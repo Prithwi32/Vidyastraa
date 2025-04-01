@@ -1,0 +1,51 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  paymentId String
+  courseId  String
+
+  course    Course  @relation(fields: [courseId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  MODERATE
+  ADVANCED
+}
+
+enum Category {
+  JEE
+  NEET
+  CRASH_COURSES
+  OTHER
+}
+
+model Course {
+  id                 String   @id @default(uuid())
+  title              String
+  subtitle           String?
+  thumbnail          String?  // URL to course thumbnail (set default in backend if not provided)
+  shortDescription   String
+  detailedDescription String
+  keyTopics         String[]  // Array of topics covered
+  difficultyLevel    DifficultyLevel
+  duration          String    // Course duration (e.g., "10 weeks")
+  features         String[]   // Array of course features
+  price            Float      // Course price
+  category         Category
+  payments        Payment[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+
