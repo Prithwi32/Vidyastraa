@@ -1,22 +1,15 @@
+// Database configuration
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// Prisma client generator
 generator client {
   provider = "prisma-client-js"
 }
 
-model Payment {
-  id        String   @id @default(uuid())
-  paymentId String
-  courseId  String
-
-  course    Course  @relation(fields: [courseId], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
+// ENUMS
 enum DifficultyLevel {
   BEGINNER
   MODERATE
@@ -30,22 +23,103 @@ enum Category {
   OTHER
 }
 
-model Course {
-  id                 String   @id @default(uuid())
-  title              String
-  subtitle           String?
-  thumbnail          String?  // URL to course thumbnail (set default in backend if not provided)
-  shortDescription   String
-  detailedDescription String
-  keyTopics         String[]  // Array of topics covered
-  difficultyLevel    DifficultyLevel
-  duration          String    // Course duration (e.g., "10 weeks")
-  features         String[]   // Array of course features
-  price            Float      // Course price
-  category         Category
-  payments        Payment[]
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+enum Subject {
+  PHYSICS
+  CHEMISTRY
+  MATHS
+  BIOLOGY
 }
 
+// MODELS
 
+model User {
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  googleId        String?          @unique
+  enrolledCourses EnrolledCourse[]
+  payments        Payment[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Course {
+  id                  String           @id @default(uuid())
+  title               String
+  subtitle            String?
+  thumbnail           String? // Store URL (set default in backend if not provided)
+  detailedDescription String
+  keyTopics           String[] // List of topics covered
+  difficultyLevel     DifficultyLevel
+  duration            String // Course duration (e.g., "10 weeks")
+  price               Float // Course price
+  category            Category
+  payments            Payment[]
+  enrolledStudents    EnrolledCourse[]
+  tests               Test[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+}
+
+model EnrolledCourse {
+  userId   String
+  courseId String
+  progress Float  @default(0.0) // Store progress percentage
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, courseId]) // Composite primary key
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  image         String?
+  question      String
+  solution      String
+  options       String[] // Multiple-choice options
+  correctAnswer String
+  subject       Subject // Categorize by subject (Physics, Chemistry, Maths, Biology)
+  createdAt     DateTime @default(now())
+
+  testQuestions TestQuestion[]
+}
+
+model Test {
+  id          String         @id @default(uuid())
+  title       String
+  category    Category
+  subjects    Subject[]
+  description String?
+  courseId    String
+  course      Course         @relation(fields: [courseId], references: [id])
+  questions   TestQuestion[]
+  createdAt   DateTime       @default(now())
+}
+
+model TestQuestion {
+  testId     String
+  questionId String
+  marks      Int    @default(4) // Marks for this question
+  order      Int? // Order in which the question appears in the test
+
+  test     Test     @relation(fields: [testId], references: [id])
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@id([testId, questionId]) // Composite primary key (many-to-many relation)
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  paymentId String   @unique
+  amount    Float
+  status    String // "SUCCESS", "FAILED", "PENDING"
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+}

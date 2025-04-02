@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import FileUpload from "@/components/FileUpload";
+import FileUpload from "@/components/admin/FileUpload";
 import { toast } from "react-toastify";
 
 const DIFFICULTY_LEVELS = ["BEGINNER", "MODERATE", "ADVANCED"];
@@ -16,12 +16,10 @@ export default function CourseForm() {
     title: "",
     subtitle: "",
     thumbnail: "",
-    shortDescription: "",
     detailedDescription: "",
     keyTopics: [],
     difficultyLevel: "",
     duration: "",
-    features: [],
     price: "",
     category: "",
   });
@@ -46,7 +44,6 @@ export default function CourseForm() {
       ...courseData,
       price: price,
       keyTopics: courseData.keyTopics.filter(Boolean),
-      features: courseData.features.filter(Boolean),
     };
 
     console.log("Data to send:", dataToSend);
@@ -75,7 +72,6 @@ export default function CourseForm() {
         <Input name="title" placeholder="Course Title" onChange={handleInputChange} required />
         <Input name="subtitle" placeholder="Subtitle" onChange={handleInputChange} />
         <FileUpload name="thumbnail" label="Upload Thumbnail" onUpload={(url) => setCourseData({ ...courseData, thumbnail: url })} />
-        <Textarea name="shortDescription" placeholder="Short Description" onChange={handleInputChange} required />
         <Textarea name="detailedDescription" placeholder="Detailed Description" onChange={handleInputChange} required />
         <Input name="keyTopics" placeholder="Key Topics (comma separated)" onChange={handleInputChange} />
         <Select onValueChange={(value) => setCourseData({ ...courseData, difficultyLevel: value })} required >
@@ -87,7 +83,6 @@ export default function CourseForm() {
           </SelectContent>
         </Select>
         <Input name="duration" placeholder="Course Duration (e.g., 10 weeks)" onChange={handleInputChange} />
-        <Input name="features" placeholder="Features (comma separated)" onChange={handleInputChange} />
         <Input name="price" type="number" placeholder="Course Price" onChange={handleInputChange} required />
         <Select onValueChange={(value) => setCourseData({ ...courseData, category: value })} required >
           <SelectTrigger><SelectValue placeholder="Select Course Category" /></SelectTrigger>
@@ -111,12 +106,10 @@ export const courseSchema = z.object({
   title: z.string().min(3, "Title is too short"),
   subtitle: z.string().optional(),
   thumbnail: z.string().url().optional(),
-  shortDescription: z.string().min(10, "Short description is too short"),
   detailedDescription: z.string().min(10, "Detailed description is too short"),
   keyTopics: z.array(z.string()).min(1, "At least one key topic is required"),
   difficultyLevel: z.enum(["BEGINNER", "MODERATE", "ADVANCED"]),
   duration: z.string().min(3, "Duration must be specified"),
-  features: z.array(z.string()).min(1, "At least one feature is required"),
   price: z.number().positive("Price must be a positive number"),
   category: z.enum(["JEE", "NEET", "CRASH_COURSES", "OTHER"]),
 });
@@ -131,12 +124,10 @@ export async function POST(req: NextRequest) {
         title: parsedBody.title,
         subtitle: parsedBody.subtitle || null,
         thumbnail: parsedBody.thumbnail || null,
-        shortDescription: parsedBody.shortDescription,
         detailedDescription: parsedBody.detailedDescription,
         keyTopics: parsedBody.keyTopics,
         difficultyLevel: parsedBody.difficultyLevel,
         duration: parsedBody.duration,
-        features: parsedBody.features,
         price: parsedBody.price,
         category: parsedBody.category,
       },
