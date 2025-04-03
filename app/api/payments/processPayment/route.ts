@@ -9,27 +9,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Ensure amount is a number
-    const parsedAmount = Number(amount);
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
-    // 1️⃣ Store the Payment Record
+    if (!user) {
+      return NextResponse.json({ error: "User does not exist" }, { status: 404 });
+    }
+
+    // Store the Payment Record
     const payment = await prisma.payment.create({
       data: {
         userId,
         courseId,
         paymentId,
-        amount: parsedAmount,
+        amount: Number(amount), // Ensure number type
         status,
       },
     });
 
-    // 2️⃣ If Payment is SUCCESS, Enroll User in Course
+    // Enroll user if payment successful
     if (status === "SUCCESS") {
       await prisma.enrolledCourse.create({
         data: {
           userId,
           courseId,
-          progress: 0.0, // User starts at 0% progress
+          progress: 0.0,
         },
       });
     }
