@@ -6,6 +6,9 @@ export const NEXT_AUTH = {
     GoogleProvider({
       clientId: process.env.GOOGLE_ID || "",
       clientSecret: process.env.GOOGLE_SECRET || "",
+      authorization: {
+        params: { redirect_uri: "https://edu-platform-six.vercel.app/api/auth/callback/google" }
+      }
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
