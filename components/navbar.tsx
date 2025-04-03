@@ -118,10 +118,10 @@ export function Navbar() {
           <ThemeToggle />
           <div className="hidden md:flex gap-2">
             <Button variant="outline" asChild>
-              <Link href="/login">Log In</Link>
+              <Link href="/auth/login">Log In</Link>
             </Button>
             <Button asChild>
-              <Link href="/signup">Sign Up</Link>
+              <Link href="/auth/login">Sign Up</Link>
             </Button>
           </div>
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
