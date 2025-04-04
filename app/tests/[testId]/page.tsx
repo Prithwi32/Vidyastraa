@@ -34,7 +34,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTheme } from "next-themes";
-import { set } from "date-fns";
 
 // Define question status types
 type QuestionStatus = "unattempted" | "attempted" | "review" | "current";
