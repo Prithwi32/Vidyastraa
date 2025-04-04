@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, courseId, paymentId, amount, status } = await req.json();
 
-    if (!userId || !courseId || !paymentId || !status) {
+    if (!userId || !courseId || !paymentId || !status || !amount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         userId,
         courseId,
         paymentId,
-        amount: Number(amount), // Ensure number type
+        amount: Number(amount),
         status,
       },
     });

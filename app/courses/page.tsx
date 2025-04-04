@@ -48,7 +48,7 @@ export default function Courses() {
       if (status === "authenticated") {
         try {
           const res = await axios.get("/api/courses/enrolled");
-          const enrolledIds = res.data.map((enrollment: any) => enrollment.courseId);
+          const enrolledIds = res.data.map((enrollment: any) => enrollment.id);
           setEnrolledCourses(enrolledIds);
         } catch (error) {
           console.error("Error fetching enrolled courses:", error);
@@ -69,6 +69,7 @@ export default function Courses() {
 
       const res = await fetch("/api/payments/createOrder", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: price * 100 }),
       });
       const data = await res.json();
@@ -91,18 +92,12 @@ export default function Courses() {
             if (verifyData.isOk) {
               toast.success("Payment Successful!");
 
-              const userId = session?.user?.id;
-              if (!userId) {
-                toast.error("User not authenticated!");
-                return;
-              }
-
               // Store payment & enroll user
               await fetch("/api/payments/processPayment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  userId,
+                  userId: session?.user?.id,
                   courseId,
                   paymentId: response.razorpay_payment_id,
                   amount: price,
@@ -111,7 +106,7 @@ export default function Courses() {
               });
 
               setEnrolledCourses([...enrolledCourses, courseId]);
-              toast.success("Enrollment successful! You are now enrolled.");
+              toast.success("Enrollment successful!");
             } else {
               toast.error("Payment verification failed.");
             }
@@ -149,37 +144,19 @@ export default function Courses() {
             >
               <Card className="hover:shadow-lg transition-shadow duration-300">
                 <CardHeader>
-                  {course.thumbnail && (
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="h-40 w-full object-cover rounded-md mb-4"
-                    />
-                  )}
+                  <img
+                    src={course.thumbnail || "/placeholder.png"}
+                    alt={course.title}
+                    className="h-40 w-full object-cover rounded-md mb-4"
+                  />
                   <CardTitle>{course.title}</CardTitle>
-                  {course.subtitle && (
-                    <p className="text-sm text-gray-500">{course.subtitle}</p>
-                  )}
+                  {course.subtitle && <p className="text-sm text-gray-500">{course.subtitle}</p>}
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {course.detailedDescription}
-                  </p>
-                  <p className="text-sm mb-1">
-                    <strong>Key Topics:</strong> {course.keyTopics.join(", ")}
-                  </p>
-                  <p className="text-sm mb-1">
-                    <strong>Difficulty:</strong> {course.difficultyLevel}
-                  </p>
-                  <p className="text-sm mb-1">
-                    <strong>Duration:</strong> {course.duration}
-                  </p>
-                  <p className="text-lg font-semibold mt-2 text-green-800">
-                    ₹{course.price}
-                  </p>
-                  <p className="text-sm mt-1">
-                    <strong>Category:</strong> {course.category}
-                  </p>
+                  <p className="text-sm text-gray-600 mb-2">{course.detailedDescription}</p>
+                  <p className="text-sm"><strong>Difficulty:</strong> {course.difficultyLevel}</p>
+                  <p className="text-sm"><strong>Duration:</strong> {course.duration}</p>
+                  <p className="text-lg font-semibold mt-2 text-green-800">₹{course.price}</p>
                 </CardContent>
                 <CardFooter>
                   {enrolledCourses.includes(course.id) ? (
@@ -187,10 +164,7 @@ export default function Courses() {
                       Enrolled ✅
                     </Button>
                   ) : (
-                    <Button
-                      onClick={() => handlePayment(course.id, course.price)}
-                      className="w-full"
-                    >
+                    <Button onClick={() => handlePayment(course.id, course.price)} className="w-full">
                       Buy Course <ArrowRight className="ml-2" />
                     </Button>
                   )}
