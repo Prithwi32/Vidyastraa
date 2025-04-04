@@ -75,16 +75,16 @@ export function Navbar() {
                   <NavigationMenuTrigger>Tests</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                      <ListItem href="/tests" title="JEE Tests">
+                      <ListItem href="/tests/all" title="JEE Tests">
                         Practice tests for JEE Main & Advanced
                       </ListItem>
-                      <ListItem href="/tests" title="NEET Tests">
+                      <ListItem href="/tests/all" title="NEET Tests">
                         Practice tests for NEET preparation
                       </ListItem>
-                      <ListItem href="/tests" title="Chapter-wise Tests">
+                      <ListItem href="/tests/all" title="Chapter-wise Tests">
                         Topic and chapter-wise practice tests
                       </ListItem>
-                      <ListItem href="/tests" title="Previous Year Papers">
+                      <ListItem href="/tests/all" title="Previous Year Papers">
                         Solve previous year question papers
                       </ListItem>
                     </ul>
@@ -176,7 +176,7 @@ export function Navbar() {
               Study Materials
             </Link>
             <Link
-              href="/tests"
+              href="/tests/all"
               className="px-4 py-2 text-lg hover:bg-muted rounded-md"
             >
               Tests
