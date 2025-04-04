@@ -33,22 +33,19 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const subject = searchParams.get('subject')
+
   try {
-    const { searchParams } = new URL(req.url);
-    const subject = searchParams.get("subject");
-
-    if (!subject) {
-      return NextResponse.json({ error: "Subject is required" }, { status: 400 });
-    }
-
     const questions = await prisma.question.findMany({
-      where: { subject },
-    });
+      where: subject ? { subject } : undefined,
+      orderBy: { createdAt: 'desc' }
+    })
 
-    return NextResponse.json(questions, { status: 200 });
+    return NextResponse.json({ questions })
   } catch (error) {
-    console.error("❌ Error fetching questions:", error);
-    return NextResponse.json({ error: "Failed to fetch questions" }, { status: 500 });
+    console.error('Error fetching questions:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
