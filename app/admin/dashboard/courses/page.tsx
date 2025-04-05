@@ -47,14 +47,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function CoursesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [courses, setCourses] = useState([]);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const params = useParams();
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -67,7 +72,34 @@ export default function CoursesPage() {
     };
 
     fetchCourses();
-  }, []);
+  }, [params.id]);
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!id) return;
+    setDeleting(true);
+  
+    try {
+      const response = await fetch(`/api/courses/${id}`, {
+        method: "DELETE",
+      });
+  
+      if (response.ok) {
+        toast.success("Course deleted successfully!");
+        setCourses(prev => prev.filter(course => course.id !== id));
+        setDeleteDialogOpen(false);
+      } else {
+        const errorData = await response.json();
+        toast.error(
+          `Failed to delete course: ${errorData.error || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Filter courses based on search query and category
   const filteredCourses = courses.filter((course) => {
@@ -100,6 +132,7 @@ export default function CoursesPage() {
 
   return (
     <div className="space-y-6">
+      <ToastContainer />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Courses</h1>
@@ -266,7 +299,7 @@ export default function CoursesPage() {
                   <TableRow key={course.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="rounded-md bg-slate-100 flex items-center justify-center">
+                        <div className="w-100 h-100 rounded-md bg-slate-100 flex items-center justify-center">
                           {course.thumbnail ? (
                             <Image
                               src={course.thumbnail}
@@ -352,7 +385,10 @@ export default function CoursesPage() {
                             <span>Edit</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDeleteCourse(course.id)}
+                          >
                             <Trash className="mr-2 h-4 w-4" />
                             <span>Delete</span>
                           </DropdownMenuItem>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
@@ -35,8 +35,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export default function ViewCoursePage({ params }: { params: { id: string } }) {
+export default function ViewCoursePage() {
   const router = useRouter();
+  const params = useParams();
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -48,6 +49,7 @@ export default function ViewCoursePage({ params }: { params: { id: string } }) {
         const response = await fetch(`/api/courses/${params.id}`);
         if (response.ok) {
           const data = await response.json();
+          console.log(data);
           setCourse(data);
         } else {
           toast.error("Failed to fetch course details");
@@ -61,9 +63,11 @@ export default function ViewCoursePage({ params }: { params: { id: string } }) {
         setLoading(false);
       }
     };
+    if (params?.id) {
+      fetchCourse();
+    }
+  }, [params?.id, router]);
 
-    fetchCourse();
-  }, [params.id, router]);
 
   const handleDeleteCourse = async () => {
     setDeleting(true);
@@ -296,7 +300,7 @@ export default function ViewCoursePage({ params }: { params: { id: string } }) {
                     No tests have been created for this course yet
                   </p>
                   <Button
-                    className="mt-4 bg-blue-600 hover:bg-blue-700"
+                    className="mt-4 bg-blue-600 hover:bg-blue-700 dark:text-white"
                     onClick={() => router.push("/admin/dashboard/tests/create")}
                   >
                     Create Test
@@ -387,7 +391,7 @@ export default function ViewCoursePage({ params }: { params: { id: string } }) {
                   <span>Enrolled Students</span>
                 </div>
                 <span className="font-medium">
-                  {course.enrolledStudents?.length || 0}
+                  {course?.enrolledStudents?.length || 0}
                 </span>
               </div>
 
@@ -417,7 +421,7 @@ export default function ViewCoursePage({ params }: { params: { id: string } }) {
             </CardHeader>
             <CardContent className="space-y-2">
               <Button
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700 dark:text-white"
                 onClick={() =>
                   router.push(
                     `/admin/dashboard/tests/create?courseId=${course.id}`

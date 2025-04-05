@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   DollarSign,
   Info,
@@ -40,7 +40,7 @@ import FileUpload from "@/components/admin/FileUpload";
 const DIFFICULTY_LEVELS = ["BEGINNER", "MODERATE", "ADVANCED"];
 const COURSE_CATEGORIES = ["JEE", "NEET", "CRASH_COURSES", "OTHER"];
 
-export default function EditCoursePage({ params }: { params: { id: string } }) {
+export default function EditCoursePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [fetchingCourse, setFetchingCourse] = useState(true);
@@ -56,6 +56,41 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
     category: "",
   });
   const [newTopic, setNewTopic] = useState("");
+  const params = useParams();
+
+  const handleUpdateCourse = async () => {
+    const courseId = params?.id;
+    if (!courseId) return;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(courseData),
+      });
+
+      if (!response.ok) {
+        toast.error("Failed to update course");
+        return;
+      }
+
+      toast.success("Course updated successfully");
+
+      // Wait 1.5 seconds before redirecting
+      setTimeout(() => {
+        router.push("/admin/dashboard/courses");
+      }, 1500);
+    } catch (error) {
+      console.error("Error updating course:", error);
+      toast.error("An error occurred while updating the course");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -114,60 +149,6 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
       ...courseData,
       keyTopics: courseData.keyTopics.filter((t) => t !== topic),
     });
-  };
-
-  const handleUpdateCourse = async () => {
-    if (
-      !courseData.title ||
-      !courseData.detailedDescription ||
-      !courseData.difficultyLevel ||
-      !courseData.duration ||
-      !courseData.price ||
-      !courseData.category
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    const price = Number.parseFloat(courseData.price);
-    if (isNaN(price) || price <= 0) {
-      toast.error("Please enter a valid price");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const dataToSend = {
-        ...courseData,
-        price: price,
-        keyTopics:
-          courseData.keyTopics.length > 0 ? courseData.keyTopics : ["General"],
-      };
-
-      const response = await fetch(`/api/courses/${params.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
-      });
-
-      if (response.ok) {
-        toast.success("Course updated successfully!");
-        setTimeout(() => {
-          router.push("/admin/dashboard/courses");
-        }, 2000);
-      } else {
-        const errorData = await response.json();
-        toast.error(
-          `Failed to update course: ${errorData.error || "Unknown error"}`
-        );
-      }
-    } catch (error) {
-      console.error("Error updating course:", error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
   };
 
   if (fetchingCourse) {
@@ -412,7 +393,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
               Cancel
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleUpdateCourse}
               disabled={loading}
               type="button"

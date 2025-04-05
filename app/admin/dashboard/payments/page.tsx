@@ -45,6 +45,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useDebounce } from "@/hooks/use-debounce";
+import { convertPaymentsToCSV } from "@/lib/export-to-csv"
 
 export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,6 +75,19 @@ export default function PaymentsPage() {
     };
     fetchPayments();
   }, [debouncedQuery]);
+
+const handleExport = () => {
+  const csv = convertPaymentsToCSV(filteredPayments); // Export filtered or all payments
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "payments.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 
   // Filter payments based on search query and status
   const filteredPayments = payments.filter((payment) => {
@@ -220,7 +234,7 @@ export default function PaymentsPage() {
                   <SelectItem value="FAILED">Failed</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={handleExport}>
                 <Download className="h-4 w-4" />
                 Export
               </Button>

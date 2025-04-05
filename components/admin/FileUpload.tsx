@@ -115,6 +115,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
         type="button"
         onClick={handleUpload}
         disabled={uploading || !file}
+        className='dark:text-white'
       >
         {uploading ? (
           <>

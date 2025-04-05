@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import Razorpay from "razorpay";
 import { z } from "zod";
-
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZOR_KEY_ID as string,
-  key_secret: process.env.RAZORPAY_SECRET_ID as string,
-});
 
 export async function GET() {
   try {
