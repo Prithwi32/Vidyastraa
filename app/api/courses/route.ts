@@ -8,10 +8,36 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_SECRET_ID as string,
 });
 
-// Get all courses
 export async function GET() {
-  const courses = await prisma.course.findMany();
-  return NextResponse.json(courses);
+  try {
+    const courses = await prisma.course.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        enrolledStudents: true,
+      },
+    });
+
+    const formattedCourses = courses.map((course) => ({
+      id: course.id,
+      title: course.title,
+      subtitle: course.subtitle,
+      thumbnail: course.thumbnail,
+      difficultyLevel: course.difficultyLevel,
+      duration: course.duration,
+      price: course.price,
+      category: course.category,
+      enrolledStudents: course.enrolledStudents.length,
+      createdAt: course.createdAt,
+    }));
+
+    return NextResponse.json({ courses: formattedCourses });
+  } catch (error) {
+    console.error("Error fetching courses:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch courses" },
+      { status: 500 }
+    );
+  }
 }
 
 // Add a new course (Admin only)

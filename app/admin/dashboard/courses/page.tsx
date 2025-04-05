@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowUpDown,
   BookOpen,
@@ -47,102 +48,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-
-// Mock data for courses
-const mockCourses = [
-  {
-    id: "1",
-    title: "JEE Advanced Complete Course",
-    subtitle: "Comprehensive preparation for JEE Advanced",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "ADVANCED",
-    duration: "12 months",
-    price: 12999,
-    category: "JEE",
-    enrolledStudents: 245,
-    createdAt: "2023-01-15T10:30:00Z",
-  },
-  {
-    id: "2",
-    title: "NEET Complete Course",
-    subtitle: "Complete preparation for NEET examination",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "ADVANCED",
-    duration: "12 months",
-    price: 14999,
-    category: "NEET",
-    enrolledStudents: 312,
-    createdAt: "2023-01-10T14:20:00Z",
-  },
-  {
-    id: "3",
-    title: "Physics Crash Course",
-    subtitle: "Quick revision for competitive exams",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "MODERATE",
-    duration: "3 months",
-    price: 4999,
-    category: "CRASH_COURSES",
-    enrolledStudents: 178,
-    createdAt: "2023-02-05T09:15:00Z",
-  },
-  {
-    id: "4",
-    title: "Mathematics Foundation",
-    subtitle: "Build strong fundamentals in mathematics",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "BEGINNER",
-    duration: "6 months",
-    price: 3999,
-    category: "OTHER",
-    enrolledStudents: 156,
-    createdAt: "2023-02-15T11:45:00Z",
-  },
-  {
-    id: "5",
-    title: "Chemistry Mastery",
-    subtitle: "Master all concepts in chemistry",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "MODERATE",
-    duration: "6 months",
-    price: 5999,
-    category: "OTHER",
-    enrolledStudents: 134,
-    createdAt: "2023-03-01T16:30:00Z",
-  },
-  {
-    id: "6",
-    title: "Biology Crash Course",
-    subtitle: "Quick revision for NEET and other exams",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "MODERATE",
-    duration: "3 months",
-    price: 4499,
-    category: "CRASH_COURSES",
-    enrolledStudents: 98,
-    createdAt: "2023-03-10T13:10:00Z",
-  },
-  {
-    id: "7",
-    title: "JEE Mains Crash Course",
-    subtitle: "Last minute preparation for JEE Mains",
-    thumbnail: "/placeholder.svg?height=100&width=200",
-    difficultyLevel: "MODERATE",
-    duration: "2 months",
-    price: 9999,
-    category: "CRASH_COURSES",
-    enrolledStudents: 210,
-    createdAt: "2023-03-20T10:00:00Z",
-  },
-];
+import axios from "axios";
 
 export default function CoursesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await axios.get("/api/courses");
+        setCourses(res.data.courses);
+      } catch (err) {
+        console.error("Failed to fetch courses", err);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   // Filter courses based on search query and category
-  const filteredCourses = mockCourses.filter((course) => {
+  const filteredCourses = courses.filter((course) => {
     const matchesSearch = course.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -179,7 +107,10 @@ export default function CoursesPage() {
             Manage your educational courses
           </p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 dark:text-white">
+        <Button
+          asChild
+          className="bg-blue-600 hover:bg-blue-700 dark:text-white"
+        >
           <Link href="/admin/dashboard/courses/create">
             <Plus className="mr-2 h-4 w-4" />
             Add Course
@@ -194,7 +125,7 @@ export default function CoursesPage() {
             <BookOpen className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockCourses.length}</div>
+            <div className="text-2xl font-bold">{courses.length}</div>
             <p className="text-xs text-muted-foreground">
               Across all categories
             </p>
@@ -210,7 +141,7 @@ export default function CoursesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockCourses.reduce(
+              {courses.reduce(
                 (sum, course) => sum + course.enrolledStudents,
                 0
               )}
@@ -240,8 +171,8 @@ export default function CoursesPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(
-                mockCourses.reduce((sum, course) => sum + course.price, 0) /
-                  mockCourses.length
+                courses.reduce((sum, course) => sum + course.price, 0) /
+                  courses.length
               )}
             </div>
             <p className="text-xs text-muted-foreground">Per course</p>
@@ -269,7 +200,7 @@ export default function CoursesPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(
-                mockCourses.reduce(
+                courses.reduce(
                   (sum, course) => sum + course.price * course.enrolledStudents,
                   0
                 )
@@ -335,8 +266,18 @@ export default function CoursesPage() {
                   <TableRow key={course.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-md bg-slate-100 flex items-center justify-center">
-                          <BookOpen className="h-5 w-5 text-slate-500" />
+                        <div className="rounded-md bg-slate-100 flex items-center justify-center">
+                          {course.thumbnail ? (
+                            <Image
+                              src={course.thumbnail}
+                              alt={course.title}
+                              width={100}
+                              height={100}
+                              className="rounded object-cover"
+                            />
+                          ) : (
+                            <BookOpen className="h-5 w-5 text-slate-500" />
+                          )}
                         </div>
                         <div>
                           <div className="font-medium">{course.title}</div>
