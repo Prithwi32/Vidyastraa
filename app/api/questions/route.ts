@@ -7,6 +7,7 @@ const questionSchema = z.object({
   options: z.array(z.string()).length(4, "Exactly 4 options required"),
   correctAnswer: z.string(),
   solution: z.string().min(5, "Solution must be at least 5 characters long"),
+  difficulty: z.enum(["BEGINNER", "MODERATE", "ADVANCED"]),
   subject: z.enum(["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]),
   image: z.string().url().optional().nullable(),
 });
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     const newQuestion = await prisma.question.create({
       data: {
         ...parsedBody,
-        image: parsedBody.image || null, 
+        image: parsedBody.image || null,
       },
     });
 

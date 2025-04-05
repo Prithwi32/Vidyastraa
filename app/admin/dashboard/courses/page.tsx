@@ -179,7 +179,7 @@ export default function CoursesPage() {
             Manage your educational courses
           </p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
+        <Button asChild className="bg-blue-600 hover:bg-blue-700 dark:text-white">
           <Link href="/admin/dashboard/courses/create">
             <Plus className="mr-2 h-4 w-4" />
             Add Course

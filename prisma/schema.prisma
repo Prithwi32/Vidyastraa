@@ -30,6 +30,13 @@ enum Subject {
   BIOLOGY
 }
 
+enum Difficulty {
+  BEGINNER
+  MODERATE
+  ADVANCED
+  UNKNOWN
+}
+
 // MODELS
 
 model User {
@@ -88,6 +95,7 @@ model Question {
   options       String[]
   correctAnswer String
   subject       Subject
+  difficulty    Difficulty @default(UNKNOWN)
   createdAt     DateTime @default(now())
 
   testQuestions TestQuestion[]
