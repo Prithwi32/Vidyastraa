@@ -37,93 +37,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Mock data for questions
-const mockQuestions = [
-  {
-    id: "1",
-    subject: "PHYSICS",
-    question:
-      "An electromagnetic wave going through vacuum is described by E = E₀sin(kx − ωt). Which of the following is independent of the wavelength?",
-    options: ["k", "ω", "k/ω", "kω"],
-    correctAnswer: "ω",
-    difficulty: "ADVANCED",
-  },
-  {
-    id: "2",
-    subject: "PHYSICS",
-    question:
-      "A particle is moving in a circular path with constant speed. Which of the following statements is correct?",
-    options: [
-      "The velocity and acceleration of the particle are perpendicular to each other",
-      "The velocity and acceleration of the particle are parallel to each other",
-      "The velocity and acceleration of the particle make an angle of 45° with each other",
-      "The velocity and acceleration of the particle are in opposite directions",
-    ],
-    correctAnswer:
-      "The velocity and acceleration of the particle are perpendicular to each other",
-    difficulty: "MODERATE",
-  },
-  {
-    id: "3",
-    subject: "CHEMISTRY",
-    question: "Which of the following is not a colligative property?",
-    options: [
-      "Elevation in boiling point",
-      "Depression in freezing point",
-      "Osmotic pressure",
-      "Optical activity",
-    ],
-    correctAnswer: "Optical activity",
-    difficulty: "MODERATE",
-  },
-  {
-    id: "4",
-    subject: "CHEMISTRY",
-    question: "The IUPAC name of the compound CH₃-CH=CH-CHO is:",
-    options: ["But-2-enal", "But-3-enal", "But-2-en-1-al", "But-3-en-1-al"],
-    correctAnswer: "But-2-enal",
-    difficulty: "BEGINNER",
-  },
-  {
-    id: "5",
-    subject: "MATHS",
-    question: "If f(x) = x² - 3x + 2, then f'(2) equals:",
-    options: ["1", "2", "3", "4"],
-    correctAnswer: "1",
-    difficulty: "BEGINNER",
-  },
-  {
-    id: "6",
-    subject: "MATHS",
-    question: "The integral ∫(1/x)dx equals:",
-    options: ["log|x| + C", "log(x) + C", "x log|x| + C", "x/log|x| + C"],
-    correctAnswer: "log|x| + C",
-    difficulty: "MODERATE",
-  },
-  {
-    id: "7",
-    subject: "BIOLOGY",
-    question: "Which of the following is not a function of the liver?",
-    options: [
-      "Production of bile",
-      "Storage of glycogen",
-      "Detoxification of harmful substances",
-      "Production of insulin",
-    ],
-    correctAnswer: "Production of insulin",
-    difficulty: "MODERATE",
-  },
-  {
-    id: "8",
-    subject: "BIOLOGY",
-    question:
-      "The process by which plants lose water in the form of water vapor is called:",
-    options: ["Transpiration", "Respiration", "Photosynthesis", "Guttation"],
-    correctAnswer: "Transpiration",
-    difficulty: "BEGINNER",
-  },
-];
-
 // Mock data for courses
 const mockCourses = [
   { id: "1", title: "JEE Advanced Complete Course", category: "JEE" },
@@ -139,7 +52,6 @@ export default function CreateTestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseIdParam = searchParams.get("courseId");
-
   const [loading, setLoading] = useState(false);
   const [testType, setTestType] = useState<string>("JEE");
   const [testTitle, setTestTitle] = useState<string>("");
@@ -151,6 +63,23 @@ export default function CreateTestPage() {
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
+  const [questions, setQuestions] = useState([]);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/questions");
+        const data = await res.json();
+        setQuestions(data.questions || []);
+      } catch (err) {
+        console.error("Failed to fetch questions:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, []);
 
   // Set test type based on selected course
   useEffect(() => {
@@ -169,7 +98,7 @@ export default function CreateTestPage() {
   }, [selectedCourse]);
 
   // Filter questions based on test type, subject, search query, and difficulty
-  const filteredQuestions = mockQuestions.filter((question) => {
+  const filteredQuestions = questions.filter((question) => {
     // Filter by test type
     if (testType === "JEE" && question.subject === "BIOLOGY") return false;
     if (testType === "NEET" && question.subject === "MATHS") return false;
@@ -198,7 +127,7 @@ export default function CreateTestPage() {
   });
 
   // Group questions by subject
-  const questionsBySubject: Record<string, typeof mockQuestions> = {};
+  const questionsBySubject: Record<string, typeof questions> = {};
   filteredQuestions.forEach((question) => {
     if (!questionsBySubject[question.subject]) {
       questionsBySubject[question.subject] = [];
@@ -208,7 +137,7 @@ export default function CreateTestPage() {
 
   // Get total questions by subject
   const totalQuestionsBySubject: Record<string, number> = {};
-  mockQuestions.forEach((question) => {
+  questions.forEach((question) => {
     if (!totalQuestionsBySubject[question.subject]) {
       totalQuestionsBySubject[question.subject] = 0;
     }
@@ -218,7 +147,7 @@ export default function CreateTestPage() {
   // Get selected questions by subject
   const selectedQuestionsBySubject: Record<string, number> = {};
   selectedQuestions.forEach((id) => {
-    const question = mockQuestions.find((q) => q.id === id);
+    const question = questions.find((q) => q.id === id);
     if (question) {
       if (!selectedQuestionsBySubject[question.subject]) {
         selectedQuestionsBySubject[question.subject] = 0;
@@ -299,7 +228,7 @@ export default function CreateTestPage() {
       category: testType,
       subjects: Object.keys(questionsBySubject).filter((subject) =>
         selectedQuestions.some((id) => {
-          const question = mockQuestions.find((q) => q.id === id);
+          const question = questions.find((q) => q.id === id);
           return question?.subject === subject;
         })
       ),
