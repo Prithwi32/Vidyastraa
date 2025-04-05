@@ -23,6 +23,14 @@ enum Category {
   OTHER
 }
 
+enum TestType {
+  JEE
+  NEET
+  CRASH_COURSES
+  INDIVIDUAL
+  OTHER
+}
+
 enum Subject {
   PHYSICS
   CHEMISTRY
@@ -88,7 +96,7 @@ model EnrolledCourse {
 }
 
 model Question {
-  id            String   @id @default(uuid())
+  id            String     @id @default(uuid())
   image         String?
   question      String
   solution      String
@@ -96,7 +104,7 @@ model Question {
   correctAnswer String
   subject       Subject
   difficulty    Difficulty @default(UNKNOWN)
-  createdAt     DateTime @default(now())
+  createdAt     DateTime   @default(now())
 
   testQuestions TestQuestion[]
 
@@ -107,7 +115,7 @@ model Question {
 model Test {
   id          String         @id @default(uuid())
   title       String
-  category    Category
+  category    TestType
   subjects    Subject[]
   description String?
   courseId    String

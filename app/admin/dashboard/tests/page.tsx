@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpDown,
@@ -44,70 +44,119 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getAllTests } from "@/app/actions/test";
+import Loader from "@/components/Loader";
 
 // Mock data for tests
-const mockTests = [
-  {
-    id: "1",
-    title: "JEE Main Mock Test 1",
-    category: "JEE",
-    subjects: ["PHYSICS", "CHEMISTRY", "MATHS"],
-    questionCount: 90,
-    createdAt: "2023-04-15T10:30:00Z",
-  },
-  {
-    id: "2",
-    title: "JEE Advanced Practice Test",
-    category: "JEE",
-    subjects: ["PHYSICS", "CHEMISTRY", "MATHS"],
-    questionCount: 54,
-    createdAt: "2023-04-10T14:20:00Z",
-  },
-  {
-    id: "3",
-    title: "NEET Full Mock Test",
-    category: "NEET",
-    subjects: ["PHYSICS", "CHEMISTRY", "BIOLOGY"],
-    questionCount: 180,
-    createdAt: "2023-04-05T09:15:00Z",
-  },
-  {
-    id: "4",
-    title: "Physics Mechanics Test",
-    category: "INDIVIDUAL",
-    subjects: ["PHYSICS"],
-    questionCount: 30,
-    createdAt: "2023-04-01T11:45:00Z",
-  },
-  {
-    id: "5",
-    title: "Organic Chemistry Practice",
-    category: "INDIVIDUAL",
-    subjects: ["CHEMISTRY"],
-    questionCount: 25,
-    createdAt: "2023-03-28T16:30:00Z",
-  },
-  {
-    id: "6",
-    title: "Calculus Test",
-    category: "INDIVIDUAL",
-    subjects: ["MATHS"],
-    questionCount: 20,
-    createdAt: "2023-03-25T13:10:00Z",
-  },
-  {
-    id: "7",
-    title: "Biology Systems Test",
-    category: "INDIVIDUAL",
-    subjects: ["BIOLOGY"],
-    questionCount: 40,
-    createdAt: "2023-03-20T10:00:00Z",
-  },
-];
+// const mockTests = [
+//   {
+//     id: "1",
+//     title: "JEE Main Mock Test 1",
+//     category: "JEE",
+//     subjects: ["PHYSICS", "CHEMISTRY", "MATHS"],
+//     questionCount: 90,
+//     createdAt: "2023-04-15T10:30:00Z",
+//   },
+//   {
+//     id: "2",
+//     title: "JEE Advanced Practice Test",
+//     category: "JEE",
+//     subjects: ["PHYSICS", "CHEMISTRY", "MATHS"],
+//     questionCount: 54,
+//     createdAt: "2023-04-10T14:20:00Z",
+//   },
+//   {
+//     id: "3",
+//     title: "NEET Full Mock Test",
+//     category: "NEET",
+//     subjects: ["PHYSICS", "CHEMISTRY", "BIOLOGY"],
+//     questionCount: 180,
+//     createdAt: "2023-04-05T09:15:00Z",
+//   },
+//   {
+//     id: "4",
+//     title: "Physics Mechanics Test",
+//     category: "INDIVIDUAL",
+//     subjects: ["PHYSICS"],
+//     questionCount: 30,
+//     createdAt: "2023-04-01T11:45:00Z",
+//   },
+//   {
+//     id: "5",
+//     title: "Organic Chemistry Practice",
+//     category: "INDIVIDUAL",
+//     subjects: ["CHEMISTRY"],
+//     questionCount: 25,
+//     createdAt: "2023-03-28T16:30:00Z",
+//   },
+//   {
+//     id: "6",
+//     title: "Calculus Test",
+//     category: "INDIVIDUAL",
+//     subjects: ["MATHS"],
+//     questionCount: 20,
+//     createdAt: "2023-03-25T13:10:00Z",
+//   },
+//   {
+//     id: "7",
+//     title: "Biology Systems Test",
+//     category: "INDIVIDUAL",
+//     subjects: ["BIOLOGY"],
+//     questionCount: 40,
+//     createdAt: "2023-03-20T10:00:00Z",
+//   },
+// ];
+
+type Test = {
+  id: string;
+  title: string;
+  category: string;
+  subjects: string[];
+  description?: string;
+  questions: number;
+  createdAt: Date;
+};
 
 export default function TestsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [mockTests, setMockTests] = useState<Test[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getTests();
+  },[]);
+
+  const getTests = async () => {
+    setLoading(true);
+    try {
+      const res=await getAllTests();
+
+      if(res.success){
+        const tests=res.tests||[];
+        
+        const arr =[]
+
+        for(const test of tests){
+          arr.push({
+            id:test.id,
+            title:test.title,
+            category:test.category,
+            subjects:test.subjects,
+            description:test.description ?? '',
+            questions:test.questions.length,
+            createdAt:test.createdAt
+          })
+        }
+
+        setMockTests(arr);
+      }
+    } catch (error) {
+      console.error("Error fetching tests:", error);
+    }finally{
+      setLoading(false);
+    }
+  };
 
   // Filter tests based on search query and category
   const filteredTests = mockTests.filter((test) => {
@@ -138,7 +187,10 @@ export default function TestsPage() {
             Manage your tests and assessments
           </p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 dark:text-white">
+        <Button
+          asChild
+          className="bg-blue-600 hover:bg-blue-700 dark:text-white"
+        >
           <Link href="/admin/dashboard/tests/create">
             <Plus className="mr-2 h-4 w-4" />
             Create Test
@@ -195,7 +247,7 @@ export default function TestsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTests.map((test) => (
+                {!loading && filteredTests.map((test) => (
                   <TableRow key={test.id}>
                     <TableCell className="font-medium">{test.title}</TableCell>
                     <TableCell>
@@ -226,7 +278,7 @@ export default function TestsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {test.questionCount}
+                      {test.questions}
                     </TableCell>
                     <TableCell>{formatDate(test.createdAt)}</TableCell>
                     <TableCell className="text-right">
@@ -258,7 +310,17 @@ export default function TestsPage() {
                   </TableRow>
                 ))}
 
-                {filteredTests.length === 0 && (
+                {loading && (
+                  <TableRow>
+                    <TableCell></TableCell>
+                    <TableCell className="hidden lg:table-cell"></TableCell>
+                    <TableCell colSpan={6} className="h-16 w-full flex justify-center items-center">
+                     <Loader/>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {!loading && filteredTests.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       No tests found.
