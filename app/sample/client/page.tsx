@@ -1,5 +1,6 @@
 "use client"
 
+import { sampleTest } from "@/app/actions/test";
 import { useSession } from "next-auth/react"
 
 function page() {
@@ -13,9 +14,16 @@ function page() {
     )
   }
 
+  const onClickHandler = async () => {
+    const res = await sampleTest();
+    console.log(res);
+  }
+
   // session.data.user.id will give database user id if authenticated
   return (
-    <div>{JSON.stringify(session)}</div>
+    <div>{JSON.stringify(session)}
+    <button className="text-white" onClick={onClickHandler}>click me</button>
+    </div>
   )
 }
 
