@@ -1,6 +1,6 @@
 "use client"
 
-import { sampleTest } from "@/app/actions/test";
+import { getAllCourses } from "@/app/actions/course";
 import { useSession } from "next-auth/react"
 
 function page() {
@@ -15,7 +15,7 @@ function page() {
   }
 
   const onClickHandler = async () => {
-    const res = await sampleTest();
+    const res = await getAllCourses();
     console.log(res);
   }
 

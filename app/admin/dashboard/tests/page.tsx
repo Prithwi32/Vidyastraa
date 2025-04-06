@@ -47,66 +47,6 @@ import {
 import { getAllTests } from "@/app/actions/test";
 import Loader from "@/components/Loader";
 
-// Mock data for tests
-// const mockTests = [
-//   {
-//     id: "1",
-//     title: "JEE Main Mock Test 1",
-//     category: "JEE",
-//     subjects: ["PHYSICS", "CHEMISTRY", "MATHS"],
-//     questionCount: 90,
-//     createdAt: "2023-04-15T10:30:00Z",
-//   },
-//   {
-//     id: "2",
-//     title: "JEE Advanced Practice Test",
-//     category: "JEE",
-//     subjects: ["PHYSICS", "CHEMISTRY", "MATHS"],
-//     questionCount: 54,
-//     createdAt: "2023-04-10T14:20:00Z",
-//   },
-//   {
-//     id: "3",
-//     title: "NEET Full Mock Test",
-//     category: "NEET",
-//     subjects: ["PHYSICS", "CHEMISTRY", "BIOLOGY"],
-//     questionCount: 180,
-//     createdAt: "2023-04-05T09:15:00Z",
-//   },
-//   {
-//     id: "4",
-//     title: "Physics Mechanics Test",
-//     category: "INDIVIDUAL",
-//     subjects: ["PHYSICS"],
-//     questionCount: 30,
-//     createdAt: "2023-04-01T11:45:00Z",
-//   },
-//   {
-//     id: "5",
-//     title: "Organic Chemistry Practice",
-//     category: "INDIVIDUAL",
-//     subjects: ["CHEMISTRY"],
-//     questionCount: 25,
-//     createdAt: "2023-03-28T16:30:00Z",
-//   },
-//   {
-//     id: "6",
-//     title: "Calculus Test",
-//     category: "INDIVIDUAL",
-//     subjects: ["MATHS"],
-//     questionCount: 20,
-//     createdAt: "2023-03-25T13:10:00Z",
-//   },
-//   {
-//     id: "7",
-//     title: "Biology Systems Test",
-//     category: "INDIVIDUAL",
-//     subjects: ["BIOLOGY"],
-//     questionCount: 40,
-//     createdAt: "2023-03-20T10:00:00Z",
-//   },
-// ];
-
 type Test = {
   id: string;
   title: string;
@@ -261,7 +201,7 @@ export default function TestsPage() {
                             : "border-purple-200 bg-purple-50 text-purple-700"
                         }`}
                       >
-                        {test.category}
+                        {test.category.split("_").join(" ")}
                       </Badge>
                     </TableCell>
                     <TableCell>

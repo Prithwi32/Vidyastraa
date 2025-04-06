@@ -36,23 +36,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getAllCourses } from "@/app/actions/course";
+import Loader from "@/components/Loader";
+import { createTest } from "@/app/actions/test";
 
-// Mock data for courses
-const mockCourses = [
-  { id: "1", title: "JEE Advanced Complete Course", category: "JEE" },
-  { id: "2", title: "NEET Complete Course", category: "NEET" },
-  { id: "3", title: "Physics Crash Course", category: "CRASH_COURSES" },
-  { id: "4", title: "Mathematics Foundation", category: "OTHER" },
-  { id: "5", title: "Chemistry Mastery", category: "OTHER" },
-  { id: "6", title: "Biology Crash Course", category: "CRASH_COURSES" },
-  { id: "7", title: "JEE Mains Crash Course", category: "CRASH_COURSES" },
-];
+type Course = {
+  id: string;
+  title: string;
+  category: string;
+};
 
 export default function CreateTestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseIdParam = searchParams.get("courseId");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [testLoader, setTestLoader] = useState(false);
   const [testType, setTestType] = useState<string>("JEE");
   const [testTitle, setTestTitle] = useState<string>("");
   const [testDescription, setTestDescription] = useState<string>("");
@@ -64,27 +63,54 @@ export default function CreateTestPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
   const [questions, setQuestions] = useState([]);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const getData = async() => {
       setLoading(true);
       try {
-        const res = await fetch("/api/questions");
-        const data = await res.json();
-        setQuestions(data.questions || []);
-      } catch (err) {
-        console.error("Failed to fetch questions:", err);
+        await fetchQuestions();
+        await getCourses();
+      } catch (error) {
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchQuestions();
+
+    getData();
   }, []);
+
+  const fetchQuestions = async () => {
+    try {
+      const res = await fetch("/api/questions");
+      const data = await res.json();
+      setQuestions(data.questions || []);
+    } catch (err) {
+      console.error("Failed to fetch questions:", err);
+      toast.error("Failed to fetch questions");
+    }
+  };
+
+  const getCourses = async (): Promise<void> => {
+    try {
+      const res = await getAllCourses();
+
+      if (res.success) {
+        setCourses(res.courses as any);
+      } else {
+        toast.error("Failed to fetch courses");
+      }
+    } catch (error) {
+      toast.error("Failed to fetch courses");
+      console.error("Failed to fetch courses:", error);
+    }
+  };
 
   // Set test type based on selected course
   useEffect(() => {
     if (selectedCourse) {
-      const course = mockCourses.find((c) => c.id === selectedCourse);
+      const course = courses.find((c) => c.id === selectedCourse);
       if (course) {
         setTestType(
           course.category === "NEET"
@@ -220,7 +246,7 @@ export default function CreateTestPage() {
       return;
     }
 
-    setLoading(true);
+    setTestLoader(true);
 
     // Here you would typically send the data to your API
     const testData = {
@@ -243,20 +269,21 @@ export default function CreateTestPage() {
     };
 
     try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       console.log("Creating test with data:", testData);
-      toast.success("Test created successfully!");
+      const res = await createTest(testData as any);
 
-      setTimeout(() => {
-        router.push("/admin/dashboard/tests");
-      }, 2000);
+      if (res.success) {
+        toast.success("Test created successfully!");
+
+        setTimeout(() => {
+          router.push("/admin/dashboard/tests");
+        }, 900);
+      }
     } catch (error) {
       console.error("Error creating test:", error);
       toast.error("An unexpected error occurred");
     } finally {
-      setLoading(false);
+      setTestLoader(false);
     }
   };
 
@@ -270,380 +297,407 @@ export default function CreateTestPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-5">
-        {/* Test Configuration */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Test Configuration</CardTitle>
-            <CardDescription>
-              Configure the basic details of your test
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="test-title">Test Title</Label>
-              <Input
-                id="test-title"
-                placeholder="Enter test title"
-                value={testTitle}
-                onChange={(e) => setTestTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="test-description">Description (Optional)</Label>
-              <Input
-                id="test-description"
-                placeholder="Enter test description"
-                value={testDescription}
-                onChange={(e) => setTestDescription(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="course">Course</Label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger id="course">
-                  <SelectValue placeholder="Select a course" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockCourses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Test Type</Label>
-              <RadioGroup
-                value={testType}
-                onValueChange={setTestType}
-                className="flex flex-col space-y-1"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="JEE" id="jee" />
-                  <Label htmlFor="jee" className="font-normal">
-                    JEE (Physics, Chemistry, Mathematics)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="NEET" id="neet" />
-                  <Label htmlFor="neet" className="font-normal">
-                    NEET (Physics, Chemistry, Biology)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="INDIVIDUAL" id="individual" />
-                  <Label htmlFor="individual" className="font-normal">
-                    Individual Subject
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {testType === "INDIVIDUAL" && (
+      {!loading && (
+        <div className="grid gap-6 md:grid-cols-5">
+          {/* Test Configuration */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Test Configuration</CardTitle>
+              <CardDescription>
+                Configure the basic details of your test
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject">Select Subject</Label>
-                <Select
-                  value={selectedSubject || ""}
-                  onValueChange={setSelectedSubject}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PHYSICS">Physics</SelectItem>
-                    <SelectItem value="CHEMISTRY">Chemistry</SelectItem>
-                    <SelectItem value="MATHS">Mathematics</SelectItem>
-                    <SelectItem value="BIOLOGY">Biology</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="pt-4">
-              <div className="rounded-md bg-blue-50 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <Check className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-blue-800">
-                      Selected Questions
-                    </h3>
-                    <div className="mt-2 text-sm text-blue-700">
-                      <p>
-                        Total questions selected: {selectedQuestions.length}
-                      </p>
-                      {Object.entries(selectedQuestionsBySubject).map(
-                        ([subject, count]) => (
-                          <p key={subject}>
-                            {subject}: {count} /{" "}
-                            {totalQuestionsBySubject[subject] || 0} questions
-                          </p>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              onClick={handleCreateTest}
-              disabled={
-                loading ||
-                selectedQuestions.length === 0 ||
-                !testTitle ||
-                !selectedCourse
-              }
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Test"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Question Selection */}
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Select Questions</CardTitle>
-            <CardDescription>
-              Choose questions to include in your test
-            </CardDescription>
-
-            <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="test-title">Test Title</Label>
                 <Input
-                  placeholder="Search questions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  id="test-title"
+                  placeholder="Enter test title"
+                  value={testTitle}
+                  onChange={(e) => setTestTitle(e.target.value)}
                 />
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1">
-                    <Filter className="h-4 w-4" />
-                    Filter
-                    {difficultyFilter.length > 0 && (
-                      <Badge
-                        variant="secondary"
-                        className="ml-1 rounded-sm px-1 font-normal"
-                      >
-                        {difficultyFilter.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Difficulty Level</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => handleDifficultyFilterChange("BEGINNER")}
-                    >
-                      <Checkbox
-                        checked={difficultyFilter.includes("BEGINNER")}
-                        className="mr-2 h-4 w-4"
-                      />
-                      <span>Beginner</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDifficultyFilterChange("MODERATE")}
-                    >
-                      <Checkbox
-                        checked={difficultyFilter.includes("MODERATE")}
-                        className="mr-2 h-4 w-4"
-                      />
-                      <span>Moderate</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDifficultyFilterChange("ADVANCED")}
-                    >
-                      <Checkbox
-                        checked={difficultyFilter.includes("ADVANCED")}
-                        className="mr-2 h-4 w-4"
-                      />
-                      <span>Advanced</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={clearFilters}
-                    className="justify-center text-blue-600"
-                  >
-                    Clear Filters
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </CardHeader>
+              <div className="space-y-2">
+                <Label htmlFor="test-description">Description (Optional)</Label>
+                <Input
+                  id="test-description"
+                  placeholder="Enter test description"
+                  value={testDescription}
+                  onChange={(e) => setTestDescription(e.target.value)}
+                />
+              </div>
 
-          <CardContent>
-            <Tabs
-              defaultValue={Object.keys(questionsBySubject)[0] || "PHYSICS"}
-              className="w-full"
-            >
-              <TabsList className="w-full justify-start mb-4 overflow-x-auto">
-                {Object.keys(questionsBySubject).map((subject) => (
-                  <TabsTrigger
-                    key={subject}
-                    value={subject}
-                    className="flex-shrink-0"
-                  >
-                    {subject.charAt(0) + subject.slice(1).toLowerCase()}
-                    <Badge variant="secondary" className="ml-1.5">
-                      {questionsBySubject[subject].length}
-                    </Badge>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="space-y-2">
+                <Label htmlFor="course">Course</Label>
+                <Select
+                  value={selectedCourse}
+                  onValueChange={setSelectedCourse}
+                >
+                  <SelectTrigger id="course">
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              {Object.entries(questionsBySubject).map(
-                ([subject, questions]) => (
-                  <TabsContent
-                    key={subject}
-                    value={subject}
-                    className="space-y-4"
+              <div className="space-y-2">
+                <Label>Test Type</Label>
+                <RadioGroup
+                  value={testType}
+                  onValueChange={setTestType}
+                  className="flex flex-col space-y-1"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="JEE" id="jee" />
+                    <Label htmlFor="jee" className="font-normal">
+                      JEE (Physics, Chemistry, Mathematics)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="NEET" id="neet" />
+                    <Label htmlFor="neet" className="font-normal">
+                      NEET (Physics, Chemistry, Biology)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="CRASH_COURSES" id="CRASH_COURSES" />
+                    <Label htmlFor="CRASH_COURSES" className="font-normal">
+                      CRASH COURSES
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="OTHER" id="OTHER" />
+                    <Label htmlFor="OTHER" className="font-normal">
+                      OTHER
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="INDIVIDUAL" id="individual" />
+                    <Label htmlFor="individual" className="font-normal">
+                      INDIVIDUAL SUBJECT
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {testType === "INDIVIDUAL" && (
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Select Subject</Label>
+                  <Select
+                    value={selectedSubject || ""}
+                    onValueChange={setSelectedSubject}
                   >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Showing {questions.length} questions
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PHYSICS">Physics</SelectItem>
+                      <SelectItem value="CHEMISTRY">Chemistry</SelectItem>
+                      <SelectItem value="MATHS">Mathematics</SelectItem>
+                      <SelectItem value="BIOLOGY">Biology</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="pt-4">
+                <div className="rounded-md bg-blue-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <Check className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">
+                        Selected Questions
                       </h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          Selected: {selectedQuestionsBySubject[subject] || 0} /{" "}
-                          {questions.length}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSelectAllInSubject(subject)}
-                          className="h-8 text-xs"
-                        >
-                          {questions.every((q) =>
-                            selectedQuestions.includes(q.id)
+                      <div className="mt-2 text-sm text-blue-700">
+                        <p>
+                          Total questions selected: {selectedQuestions.length}
+                        </p>
+                        {Object.entries(selectedQuestionsBySubject).map(
+                          ([subject, count]) => (
+                            <p key={subject}>
+                              {subject}: {count} /{" "}
+                              {totalQuestionsBySubject[subject] || 0} questions
+                            </p>
                           )
-                            ? "Deselect All"
-                            : "Select All"}
-                        </Button>
+                        )}
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={handleCreateTest}
+                disabled={
+                  loading ||
+                  selectedQuestions.length === 0 ||
+                  !testTitle ||
+                  !selectedCourse
+                }
+              >
+                {testLoader ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Test"
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
 
-                    <div className="space-y-3">
-                      {questions.map((question) => (
-                        <div
-                          key={question.id}
-                          className={`rounded-lg border p-3 transition-colors ${
-                            selectedQuestions.includes(question.id)
-                              ? "border-blue-300 bg-blue-50"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
+          {/* Question Selection */}
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Select Questions</CardTitle>
+              <CardDescription>
+                Choose questions to include in your test
+              </CardDescription>
+
+              <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search questions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-1">
+                      <Filter className="h-4 w-4" />
+                      Filter
+                      {difficultyFilter.length > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-1 rounded-sm px-1 font-normal"
                         >
-                          <div className="flex items-start gap-3">
-                            <Checkbox
-                              checked={selectedQuestions.includes(question.id)}
-                              onCheckedChange={() =>
-                                handleSelectQuestion(question.id)
-                              }
-                              className="mt-1"
-                            />
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  variant="outline"
-                                  className={`px-2 py-0 text-xs ${
-                                    question.difficulty === "BEGINNER"
-                                      ? "border-green-200 bg-green-50 text-green-700"
-                                      : question.difficulty === "MODERATE"
-                                      ? "border-amber-200 bg-amber-50 text-amber-700"
-                                      : "border-red-200 bg-red-50 text-red-700"
-                                  }`}
-                                >
-                                  {question.difficulty.charAt(0) +
-                                    question.difficulty.slice(1).toLowerCase()}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  ID: {question.id}
-                                </span>
-                              </div>
-                              <p className="text-sm font-medium">
-                                {question.question}
-                              </p>
-                              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                {question.options.map((option, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-start gap-2"
+                          {difficultyFilter.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Difficulty Level</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        onClick={() => handleDifficultyFilterChange("BEGINNER")}
+                      >
+                        <Checkbox
+                          checked={difficultyFilter.includes("BEGINNER")}
+                          className="mr-2 h-4 w-4"
+                        />
+                        <span>Beginner</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDifficultyFilterChange("MODERATE")}
+                      >
+                        <Checkbox
+                          checked={difficultyFilter.includes("MODERATE")}
+                          className="mr-2 h-4 w-4"
+                        />
+                        <span>Moderate</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDifficultyFilterChange("ADVANCED")}
+                      >
+                        <Checkbox
+                          checked={difficultyFilter.includes("ADVANCED")}
+                          className="mr-2 h-4 w-4"
+                        />
+                        <span>Advanced</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={clearFilters}
+                      className="justify-center text-blue-600"
+                    >
+                      Clear Filters
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <Tabs
+                defaultValue={Object.keys(questionsBySubject)[0] || "PHYSICS"}
+                className="w-full"
+              >
+                <TabsList className="w-full justify-start mb-4 overflow-x-auto">
+                  {Object.keys(questionsBySubject).map((subject) => (
+                    <TabsTrigger
+                      key={subject}
+                      value={subject}
+                      className="flex-shrink-0"
+                    >
+                      {subject.charAt(0) + subject.slice(1).toLowerCase()}
+                      <Badge variant="secondary" className="ml-1.5">
+                        {questionsBySubject[subject].length}
+                      </Badge>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {Object.entries(questionsBySubject).map(
+                  ([subject, questions]) => (
+                    <TabsContent
+                      key={subject}
+                      value={subject}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Showing {questions.length} questions
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            Selected: {selectedQuestionsBySubject[subject] || 0}{" "}
+                            / {questions.length}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSelectAllInSubject(subject)}
+                            className="h-8 text-xs"
+                          >
+                            {questions.every((q) =>
+                              selectedQuestions.includes(q.id)
+                            )
+                              ? "Deselect All"
+                              : "Select All"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {questions.map((question) => (
+                          <div
+                            key={question.id}
+                            className={`rounded-lg border p-3 transition-colors ${
+                              selectedQuestions.includes(question.id)
+                                ? "border-blue-300 bg-blue-50 dark:bg-slate-900"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={selectedQuestions.includes(
+                                  question.id
+                                )}
+                                onCheckedChange={() =>
+                                  handleSelectQuestion(question.id)
+                                }
+                                className="mt-1"
+                              />
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={`px-2 py-0 text-xs ${
+                                      question.difficulty === "BEGINNER"
+                                        ? "border-green-200 bg-green-50 text-green-700"
+                                        : question.difficulty === "MODERATE"
+                                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                                        : "border-red-200 bg-red-50 text-red-700"
+                                    }`}
                                   >
-                                    <span className="text-xs font-medium text-muted-foreground">
-                                      {String.fromCharCode(65 + index)}.
-                                    </span>
-                                    <span className="text-xs">
-                                      {option}
-                                      {option === question.correctAnswer && (
-                                        <span className="ml-1 text-green-600">
-                                          ✓
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                ))}
+                                    {question.difficulty.charAt(0) +
+                                      question.difficulty
+                                        .slice(1)
+                                        .toLowerCase()}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    ID: {question.id}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-medium">
+                                  {question.question}
+                                </p>
+                                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
+                                  {question.options.map((option, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-start gap-2"
+                                    >
+                                      <span className="text-xs font-medium text-muted-foreground">
+                                        {String.fromCharCode(65 + index)}.
+                                      </span>
+                                      <span className="text-xs">
+                                        {option}
+                                        {option === question.correctAnswer && (
+                                          <span className="ml-1 text-green-600">
+                                            ✓
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
 
-                      {questions.length === 0 && (
-                        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-                          <div className="rounded-full bg-slate-100 p-3">
-                            <X className="h-6 w-6 text-slate-400" />
+                        {questions.length === 0 && (
+                          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+                            <div className="rounded-full bg-slate-100 p-3">
+                              <X className="h-6 w-6 text-slate-400" />
+                            </div>
+                            <h3 className="mt-2 text-sm font-medium">
+                              No questions found
+                            </h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Try adjusting your filters or search query
+                            </p>
                           </div>
-                          <h3 className="mt-2 text-sm font-medium">
-                            No questions found
-                          </h3>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Try adjusting your filters or search query
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                )
-              )}
+                        )}
+                      </div>
+                    </TabsContent>
+                  )
+                )}
 
-              {Object.keys(questionsBySubject).length === 0 && (
-                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-                  <div className="rounded-full bg-slate-100 p-3">
-                    <X className="h-6 w-6 text-slate-400" />
+                {Object.keys(questionsBySubject).length === 0 && (
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+                    <div className="rounded-full bg-slate-100 p-3">
+                      <X className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <h3 className="mt-2 text-sm font-medium">
+                      No questions found
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Try adjusting your filters or search query
+                    </p>
                   </div>
-                  <h3 className="mt-2 text-sm font-medium">
-                    No questions found
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Try adjusting your filters or search query
-                  </p>
-                </div>
-              )}
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+                )}
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {loading && (
+        <div className="w-full h-[200px] flex items-center justify-center">
+          <Loader />
+        </div>
+      )}
     </div>
   );
 }

@@ -30,108 +30,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { getAllTests } from "@/app/actions/test";
+import Loader from "@/components/Loader";
 
 // Define types based on the model
 enum Category {
   JEE = "JEE",
   NEET = "NEET",
-  CRASH_COURSES = "CRASH COURSES",
+  CRASH_COURSES = "CRASH_COURSES",
   OTHER = "OTHER",
-}
-
-interface Subject {
-  id: string;
-  name: string;
+  INDIVIDUAL = "INDIVIDUAL",
 }
 
 interface Test {
   id: string;
   title: string;
   category: Category;
-  subjects: Subject[];
+  subjects: string[];
   description?: string;
   questions: number;
   createdAt: Date;
 }
 
-// Sample data for demonstration
-const sampleTests: Test[] = [
-  {
-    id: "1",
-    title: "Mock Test - 1",
-    category: Category.JEE,
-    subjects: [
-      { id: "1", name: "Physics" },
-      { id: "2", name: "Chemistry" },
-    ],
-    description:
-      "Comprehensive mock test covering all topics from the first semester",
-    questions: 180,
-    createdAt: new Date("2023-10-15"),
-  },
-  {
-    id: "2",
-    title: "Mock Test - 2",
-    category: Category.NEET,
-    subjects: [
-      { id: "1", name: "Physics" },
-      { id: "2", name: "Chemistry" },
-      { id: "3", name: "Mathematics" },
-    ],
-    questions: 180,
-    createdAt: new Date("2023-11-05"),
-  },
-  {
-    id: "3",
-    title: "Practice Test - 1",
-    category: Category.CRASH_COURSES,
-    subjects: [
-      { id: "1", name: "Physics" },
-      { id: "3", name: "Mathematics" },
-    ],
-    description: "Focus on advanced problem-solving techniques",
-    questions: 120,
-    createdAt: new Date("2023-12-01"),
-  },
-  {
-    id: "4",
-    title: "Quiz - Organic Chemistry",
-    category: Category.OTHER,
-    subjects: [{ id: "2", name: "Chemistry" }],
-    description: "Quick assessment of organic chemistry concepts",
-    questions: 50,
-    createdAt: new Date("2024-01-10"),
-  },
-  {
-    id: "5",
-    title: "Final Exam Preparation",
-    category: Category.JEE,
-    subjects: [
-      { id: "1", name: "Physics" },
-      { id: "2", name: "Chemistry" },
-      { id: "3", name: "Mathematics" },
-    ],
-    description: "Comprehensive preparation for the final examination",
-    questions: 200,
-    createdAt: new Date("2024-02-15"),
-  },
-  {
-    id: "6",
-    title: "Mock Test - 3",
-    category: Category.NEET,
-    subjects: [
-      { id: "1", name: "Physics" },
-      { id: "3", name: "Mathematics" },
-    ],
-    questions: 180,
-    createdAt: new Date("2024-03-01"),
-  },
-];
-
 // Get badge color based on category
 const getCategoryColor = (category: Category) => {
   switch (category) {
-    case Category.OTHER:
+    case Category.INDIVIDUAL:
       return "bg-emerald-500 hover:bg-emerald-600";
     case Category.NEET:
       return "bg-amber-500 hover:bg-amber-600";
@@ -148,13 +72,49 @@ export default function TestCardsGrid() {
   const [selectedCategories, setSelectedCategories] = useState<Category[]>(
     Object.values(Category)
   );
+  const [tests, setTests] = useState<Test[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getTests();
+  }, []);
+
+  const getTests = async () => {
+    setLoading(true);
+    try {
+      const res = await getAllTests();
+      if (res.success) {
+        const arr = [];
+
+        console.log(res.tests);
+
+        for (const test of res.tests || []) {
+          arr.push({
+            id: test.id,
+            title: test.title,
+            category: test.category as Category,
+            subjects: test.subjects,
+            description: test.description ?? "",
+            questions: test.questions.length,
+            createdAt: test.createdAt,
+          });
+        }
+        
+        setTests(arr);
+      }
+    } catch (error) {
+      console.error("Error fetching tests:", error);
+    }finally {
+      setLoading(false);
+    }
+  };
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
   // Filter tests based on search query and selected categories
-  const filteredTests = sampleTests.filter((test) => {
+  const filteredTests = tests.filter((test) => {
     const matchesSearch =
       test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       test.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -212,7 +172,7 @@ export default function TestCardsGrid() {
                         }
                       }}
                     >
-                      {category}
+                      {category.split("_").join(" ")}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>
@@ -232,7 +192,7 @@ export default function TestCardsGrid() {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {!loading && <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filteredTests.map((test) => (
             <TestCard key={test.id} test={test} />
           ))}
@@ -244,7 +204,12 @@ export default function TestCardsGrid() {
               </p>
             </div>
           )}
-        </div>
+        </div>}
+        {loading && 
+         <div className="col-span-full w-full py-20 place-items-center">
+          <Loader/>
+         </div>
+        }
       </div>
     </div>
   );
@@ -270,7 +235,7 @@ function TestCard({ test }: { test: Test }) {
               test.category
             )} text-white font-medium`}
           >
-            {test.category}
+            {test.category.split("_").join(" ")}
           </Badge>
           <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
             {attemptCount.toLocaleString()} Attempts
@@ -288,13 +253,13 @@ function TestCard({ test }: { test: Test }) {
         )}
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {test.subjects.map((subject) => (
+          {test.subjects.map((subject,idx) => (
             <Badge
-              key={subject.id}
+              key={idx}
               variant="outline"
               className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
             >
-              {subject.name}
+              {subject}
             </Badge>
           ))}
         </div>
