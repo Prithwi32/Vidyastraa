@@ -128,7 +128,7 @@ export default function ViewTestPage({ params }: { params: { id: string } }) {
       } catch (error) {
         console.error("Error fetching test:", error)
         toast.error("An error occurred while fetching test details")
-        router.push("/dashboard/tests")
+        router.push("/admin/dashboard/tests")
       } finally {
         setLoading(false)
       }
@@ -146,7 +146,7 @@ export default function ViewTestPage({ params }: { params: { id: string } }) {
 
       toast.success("Test deleted successfully!")
       setTimeout(() => {
-        router.push("/dashboard/tests")
+        router.push("/admin/dashboard/tests")
       }, 2000)
     } catch (error) {
       console.error("Error deleting test:", error)
@@ -195,7 +195,7 @@ export default function ViewTestPage({ params }: { params: { id: string } }) {
       <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
         <h2 className="text-xl font-semibold">Test not found</h2>
         <p className="text-muted-foreground mb-4">The test you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => router.push("/dashboard/tests")}>
+        <Button onClick={() => router.push("/admin/dashboard/tests")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Tests
         </Button>
@@ -212,11 +212,11 @@ export default function ViewTestPage({ params }: { params: { id: string } }) {
           <p className="text-muted-foreground">{test.description}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push("/dashboard/tests")}>
+          <Button variant="outline" onClick={() => router.push("/admin/dashboard/tests")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <Button variant="outline" onClick={() => router.push(`/dashboard/tests/${params.id}/edit`)}>
+          <Button variant="outline" onClick={() => router.push(`/admin/dashboard/tests/${params.id}/edit`)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
@@ -536,7 +536,7 @@ export default function ViewTestPage({ params }: { params: { id: string } }) {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push(`/dashboard/tests/${params.id}/edit`)}
+                onClick={() => router.push(`/admin/dashboard/tests/${params.id}/edit`)}
               >
                 Edit Test
               </Button>

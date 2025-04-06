@@ -162,7 +162,7 @@ export default function EditTestPage({ params }: { params: { id: string } }) {
       } catch (error) {
         console.error("Error fetching test:", error)
         toast.error("An error occurred while fetching test details")
-        router.push("/dashboard/tests")
+        router.push("/admin/dashboard/tests")
       } finally {
         setFetchingTest(false)
       }
@@ -341,7 +341,7 @@ export default function EditTestPage({ params }: { params: { id: string } }) {
       toast.success("Test updated successfully!")
 
       setTimeout(() => {
-        router.push("/dashboard/tests")
+        router.push("/admin/dashboard/tests")
       }, 2000)
     } catch (error) {
       console.error("Error updating test:", error)
