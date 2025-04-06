@@ -1,40 +1,140 @@
 "use client";
-import { useState, useEffect } from "react";
-import axios from "axios";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  subtitle: string;
+  thumbnail: string;
+  detailedDescription: string;
+  keyTopics: string[];
+  difficultyLevel: string;
+  duration: string;
+  price: number;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+  progress?: number; // Optional
+}
 
 export default function CoursesPage() {
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const router = useRouter();
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("/api/courses/enrolled")
-      .then((res) => setEnrolledCourses(res.data))
-      .catch((err) => console.error("Error fetching courses:", err));
+    const fetchEnrolledCourses = async () => {
+      try {
+        const res = await fetch("/api/courses/enrolled");
+        if (!res.ok) throw new Error("Failed to fetch courses");
+        const data = await res.json();
+        setEnrolledCourses(
+          data.map((course: EnrolledCourse) => ({
+            ...course,
+            progress: Math.floor(Math.random() * 100),           // need to get exact data
+          }))
+        );
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrolledCourses();
   }, []);
 
   return (
-    <div className="container py-6">
-      <h3 className="text-2xl font-semibold text-purple-800">📚 Enrolled Courses</h3>
-      {enrolledCourses.length === 0 ? (
-        <p className="text-gray-500 mt-4">No courses enrolled.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-          {enrolledCourses.map(({ id, title, thumbnail, difficultyLevel }) => (
-            <Link key={id} href={`/student/dashboard/courses/${id}`} className="block">
-              <div className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition">
-                <img
-                  src={thumbnail || "/placeholder.png"}
-                  alt={title}
-                  className="w-full h-36 object-cover rounded"
-                />
-                <h4 className="font-semibold mt-2">{title}</h4>
-                <p className="text-sm text-gray-600">{difficultyLevel}</p>
-              </div>
-            </Link>
-          ))}
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-1 p-4 md:p-6 space-y-6">
+        <div className="flex flex-col space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">
+            My Enrolled Courses
+          </h2>
+          <p className="text-muted-foreground">
+            Continue learning from where you left off
+          </p>
         </div>
-      )}
+
+        {loading ? (
+          <p>Loading courses...</p>
+        ) : enrolledCourses.length === 0 ? (
+          <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {enrolledCourses.map((course) => (
+              <Card key={course.id} className="overflow-hidden">
+                <div className="aspect-video relative">
+                  <Image
+                    src={course.thumbnail || "/placeholder.svg"}
+                    alt={course.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <CardHeader>
+                  <CardTitle>{course.title}</CardTitle>
+                  <CardDescription>{course.subtitle}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Progress</span>
+                      <span className="text-sm font-medium">
+                        {course.progress ?? 0}%
+                      </span>
+                    </div>
+                    <Progress value={course.progress ?? 0} className="h-2" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Category: {course.category}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {course.keyTopics.map((topic) => (
+                        <Badge key={topic} variant="outline">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" asChild>
+                    <Link href={`/student/dashboard/courses/${course.id}`}>View Details</Link>
+                  </Button>
+                  <Button  className="dark:text-white">Continue Learning</Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-center mt-8">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => router.push(`/courses`)}
+          >
+            View All Available Courses
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }
