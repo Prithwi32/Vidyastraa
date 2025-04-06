@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"
 import {
   ArrowUpDown,
   Download,
@@ -10,6 +11,7 @@ import {
   Plus,
   Search,
   Trash,
+  Edit
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +60,7 @@ type Test = {
 };
 
 export default function TestsPage() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [mockTests, setMockTests] = useState<Test[]>([]);
@@ -231,9 +234,13 @@ export default function TestsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/dashboard/tests/${test.id}/view`)}>
                             <Eye className="mr-2 h-4 w-4" />
                             <span>View Test</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/dashboard/tests/${test.id}/edit`)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit Test</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Download className="mr-2 h-4 w-4" />

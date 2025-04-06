@@ -39,6 +39,7 @@ import {
 import { getAllCourses } from "@/app/actions/course";
 import Loader from "@/components/Loader";
 import { createTest } from "@/app/actions/test";
+import { Separator } from "@/components/ui/separator"
 
 type Course = {
   id: string;
@@ -64,6 +65,7 @@ export default function CreateTestPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
   const [questions, setQuestions] = useState([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [subjectRequirements, setSubjectRequirements] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const getData = async() => {
@@ -230,6 +232,31 @@ export default function CreateTestPage() {
     setDifficultyFilter([]);
   };
 
+  const handleSubjectRequirementChange = (subject: string, value: string) => {
+    const numValue = Number.parseInt(value) || 0
+    setSubjectRequirements((prev) => ({
+      ...prev,
+      [subject]: numValue,
+    }))
+  }
+
+  const areRequirementsMet = () => {
+    const relevantSubjects = testType === "JEE"
+      ? ["PHYSICS", "CHEMISTRY", "MATHS"]
+      : testType === "NEET"
+      ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
+      : testType === "INDIVIDUAL" && selectedSubject
+      ? [selectedSubject]
+      : Object.keys(subjectRequirements); // fallback for CRASH/OTHER
+  
+    return relevantSubjects.every((subject) => {
+      const required = subjectRequirements[subject] || 0;
+      const selected = selectedQuestionsBySubject[subject] || 0;
+      return selected >= required;
+    });
+  };
+  
+
   const handleCreateTest = async () => {
     if (!testTitle) {
       toast.error("Test title is required");
@@ -246,6 +273,11 @@ export default function CreateTestPage() {
       return;
     }
 
+    if (!areRequirementsMet()) {
+      toast.error("Please meet all subject requirements")
+      return
+    }
+
     setTestLoader(true);
 
     // Here you would typically send the data to your API
@@ -260,6 +292,7 @@ export default function CreateTestPage() {
       ),
       description: testDescription,
       courseId: selectedCourse,
+      subjectRequirements,
       questions: selectedQuestions.map((id) => {
         return {
           questionId: id,
@@ -407,28 +440,79 @@ export default function CreateTestPage() {
                 </div>
               )}
 
+<Separator />
+
+<div className="space-y-2">
+  <Label>Subject Requirements</Label>
+  <p className="text-xs text-muted-foreground mb-2">
+    Specify the minimum number of questions required for each subject
+  </p>
+
+  {(testType === "JEE"
+    ? ["PHYSICS", "CHEMISTRY", "MATHS"]
+    : testType === "NEET"
+      ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
+      : selectedSubject
+        ? [selectedSubject]
+        : []
+  ).map((subject) => (
+    <div key={subject} className="flex items-center gap-2">
+      <Label htmlFor={`req-${subject}`} className="w-24">
+        {subject.charAt(0) + subject.slice(1).toLowerCase()}
+      </Label>
+      <Input
+        id={`req-${subject}`}
+        type="number"
+        min="0"
+        placeholder="Required"
+        value={subjectRequirements[subject] || ""}
+        onChange={(e) => handleSubjectRequirementChange(subject, e.target.value)}
+        className="w-24"
+      />
+      <span className="text-xs text-muted-foreground">
+        Selected: {selectedQuestionsBySubject[subject] || 0} / {totalQuestionsBySubject[subject] || 0}
+      </span>
+    </div>
+  ))}
+</div>
+
               <div className="pt-4">
-                <div className="rounded-md bg-blue-50 p-4">
+              <div className={`rounded-md ${areRequirementsMet() ? "bg-blue-50" : "bg-amber-50"} p-4`}>
                   <div className="flex">
                     <div className="flex-shrink-0">
+                    {areRequirementsMet() ? (
                       <Check className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <X className="h-5 w-5 text-amber-600" />
+                    )}
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">
+                      <h3 className="text-sm font-medium text-blue-800"></h3>
                         Selected Questions
-                      </h3>
-                      <div className="mt-2 text-sm text-blue-700">
+                        <h3 className={`text-sm font-medium ${areRequirementsMet() ? "text-blue-800" : "text-amber-800"}`}>
+                      {areRequirementsMet() ? "Requirements Met" : "Requirements Not Met"}
+                    </h3>
+                    <div className={`mt-2 text-sm ${areRequirementsMet() ? "text-blue-700" : "text-amber-700"}`}>
                         <p>
                           Total questions selected: {selectedQuestions.length}
                         </p>
-                        {Object.entries(selectedQuestionsBySubject).map(
-                          ([subject, count]) => (
-                            <p key={subject}>
-                              {subject}: {count} /{" "}
-                              {totalQuestionsBySubject[subject] || 0} questions
-                            </p>
-                          )
-                        )}
+                        {Object.entries(subjectRequirements)
+  .filter(([subject, count]) => {
+    if (count <= 0) return false;
+    // Only include subjects relevant to the current test type
+    if (testType === "JEE") return ["PHYSICS", "CHEMISTRY", "MATHS"].includes(subject);
+    if (testType === "NEET") return ["PHYSICS", "CHEMISTRY", "BIOLOGY"].includes(subject);
+    if (testType === "INDIVIDUAL") return subject === selectedSubject;
+    if (testType === "CRASH_COURSES" || testType === "OTHER") return true;
+    return false;
+  })
+  .map(([subject, required]) => (
+    <p key={subject}>
+      {subject}: {selectedQuestionsBySubject[subject] || 0} / {required} required
+      {(selectedQuestionsBySubject[subject] || 0) < required && " ⚠️"}
+    </p>
+))}
+
                       </div>
                     </div>
                   </div>
@@ -440,10 +524,7 @@ export default function CreateTestPage() {
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={handleCreateTest}
                 disabled={
-                  loading ||
-                  selectedQuestions.length === 0 ||
-                  !testTitle ||
-                  !selectedCourse
+                  loading || selectedQuestions.length === 0 || !testTitle || !selectedCourse || !areRequirementsMet()
                 }
               >
                 {testLoader ? (
@@ -571,6 +652,7 @@ export default function CreateTestPage() {
                           <span className="text-xs text-muted-foreground">
                             Selected: {selectedQuestionsBySubject[subject] || 0}{" "}
                             / {questions.length}
+                            {subjectRequirements[subject] > 0 && ` (${subjectRequirements[subject]} required)`}
                           </span>
                           <Button
                             variant="outline"
