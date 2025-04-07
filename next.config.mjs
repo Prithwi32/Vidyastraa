@@ -15,6 +15,7 @@ const nextConfig = {
   },
   images: {
     domains: ['res.cloudinary.com'],
+    domains: ['i.ytimg.com'],
   },
   experimental: {
     webpackBuildWorker: true,
