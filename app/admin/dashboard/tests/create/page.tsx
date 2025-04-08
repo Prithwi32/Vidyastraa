@@ -313,6 +313,8 @@ export default function CreateTestPage() {
         setTimeout(() => {
           router.push("/admin/dashboard/tests");
         }, 900);
+      }else{
+        toast.error("An unexpected error occurred");
       }
     } catch (error) {
       console.error("Error creating test:", error);
@@ -457,7 +459,7 @@ export default function CreateTestPage() {
                   ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
                   : selectedSubject
                   ? [selectedSubject]
-                  : []
+                  : ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]
                 ).map((subject) => (
                   <div key={subject} className="flex items-center gap-2">
                     <Label htmlFor={`req-${subject}`} className="w-24">
