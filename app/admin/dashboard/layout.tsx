@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, BookOpen, FileQuestion, LayoutDashboard, LogOut, Settings, CreditCard, Menu, X } from "lucide-react"
+import { BarChart3, BookOpen, FileQuestion, LayoutDashboard, LogOut, Settings, CreditCard, Menu, X, FileText } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function DashboardLayout({
@@ -46,6 +46,12 @@ export default function DashboardLayout({
       label: "Payments",
       icon: <CreditCard className="h-5 w-5" />,
       active: pathname.includes("/admin/dashboard/payments"),
+    },
+    {
+      href: "/admin/dashboard/study-materials",
+      label: "Study Materials",
+      icon: <FileText className="h-5 w-5" />,
+      active: pathname.includes("/admin/dashboard/study-materials"),
     }
   ]
 

@@ -56,6 +56,7 @@ model User {
   payments        Payment[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  results         TestResult[]
 
   // Cascade delete: When a user is deleted, enrolledCourses and payments are also deleted
   @@map("users")
@@ -121,6 +122,7 @@ model Test {
   courseId    String
   course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions   TestQuestion[]
+  results     TestResult[]
   createdAt   DateTime       @default(now())
 
   // Cascade delete: When a test is deleted, related TestQuestion records are also deleted
@@ -153,4 +155,35 @@ model Payment {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+model StudyMaterial {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        String // e.g. "PDF", "DOC", "Video"
+  url         String
+  uploadedAt  DateTime @default(now())
+  subject     Subject // Enum: PHYSICS, CHEMISTRY, MATHS, BIOLOGY
+
+  @@map("study_materials")
+}
+
+model TestResult {
+  id          String   @id @default(uuid())
+  testId      String
+  userId      String
+  duration    Int
+  totalMarks  Int
+  attempted   Int
+  correct     Int
+  wrong       Int
+  score       Float
+  submittedAt DateTime @default(now())
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, userId])
+  @@map("test_results")
 }

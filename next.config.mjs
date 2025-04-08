@@ -14,8 +14,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['res.cloudinary.com'],
-    domains: ['i.ytimg.com'],
+    domains: ['res.cloudinary.com', 'i.ytimg.com'],
   },
   experimental: {
     webpackBuildWorker: true,
