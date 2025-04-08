@@ -1,14 +1,30 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock } from "lucide-react"
+import { Calendar, Clock, Eye, FileCheck } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function TestsPage() {
+  const router = useRouter()
+  const [showStartTestDialog, setShowStartTestDialog] = useState(false)
+  const [selectedTest, setSelectedTest] = useState<any>(null)
+
   // Dummy completed tests data
   const completedTests = [
     {
-      id: 1,
+      id: "test-1",
       title: "Physics - Mechanics",
       date: "2023-05-15",
       score: 85,
@@ -18,7 +34,7 @@ export default function TestsPage() {
       subject: "PHYSICS",
     },
     {
-      id: 2,
+      id: "test-2",
       title: "Chemistry - Organic Compounds",
       date: "2023-05-20",
       score: 78,
@@ -28,7 +44,7 @@ export default function TestsPage() {
       subject: "CHEMISTRY",
     },
     {
-      id: 3,
+      id: "test-3",
       title: "Mathematics - Calculus",
       date: "2023-05-25",
       score: 92,
@@ -38,7 +54,7 @@ export default function TestsPage() {
       subject: "MATHEMATICS",
     },
     {
-      id: 4,
+      id: "test-4",
       title: "Biology - Cell Structure",
       date: "2023-06-01",
       score: 88,
@@ -52,7 +68,7 @@ export default function TestsPage() {
   // Dummy upcoming tests data
   const upcomingTests = [
     {
-      id: 1,
+      id: "test-5",
       title: "Physics - Electromagnetism",
       date: "2023-06-15",
       duration: "60 minutes",
@@ -60,7 +76,7 @@ export default function TestsPage() {
       subject: "PHYSICS",
     },
     {
-      id: 2,
+      id: "test-6",
       title: "Chemistry - Inorganic Chemistry",
       date: "2023-06-20",
       duration: "75 minutes",
@@ -68,7 +84,7 @@ export default function TestsPage() {
       subject: "CHEMISTRY",
     },
     {
-      id: 3,
+      id: "test-7",
       title: "Mathematics - Algebra",
       date: "2023-06-25",
       duration: "45 minutes",
@@ -76,6 +92,22 @@ export default function TestsPage() {
       subject: "MATHEMATICS",
     },
   ]
+
+  const handleViewAnswers = (testId: string) => {
+    router.push(`/student/dashboard/tests/${testId}?mode=review`)
+  }
+
+  const handleStartTest = (test: any) => {
+    setSelectedTest(test)
+    setShowStartTestDialog(true)
+  }
+
+  const confirmStartTest = () => {
+    setShowStartTestDialog(false)
+    if (selectedTest) {
+      router.push(`/student/dashboard/tests/${selectedTest.id}`)
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -122,9 +154,16 @@ export default function TestsPage() {
                         <Badge variant="outline">{test.subject}</Badge>
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
-                      View Answers
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/student/dashboard/tests/${test.id}/results`)}>
+                        <FileCheck className="h-4 w-4 mr-2" />
+                        Results
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewAnswers(test.id)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Answers
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -152,7 +191,9 @@ export default function TestsPage() {
                     <div>
                       <Badge variant="outline">{test.subject}</Badge>
                     </div>
-                    <Button size="sm">Prepare</Button>
+                    <Button size="sm" onClick={() => handleStartTest(test)}>
+                      Start Test
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -199,7 +240,40 @@ export default function TestsPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Start Test Dialog */}
+      <Dialog open={showStartTestDialog} onOpenChange={setShowStartTestDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Start Test</DialogTitle>
+            <DialogDescription>
+              You are about to start {selectedTest?.title}. Make sure you have enough time to complete the test.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Duration:</span>
+                <span className="text-sm font-medium">{selectedTest?.duration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Questions:</span>
+                <span className="text-sm font-medium">{selectedTest?.totalQuestions}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Subject:</span>
+                <span className="text-sm font-medium">{selectedTest?.subject}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStartTestDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmStartTest}>Start Test</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

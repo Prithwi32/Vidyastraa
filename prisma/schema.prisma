@@ -169,8 +169,23 @@ model StudyMaterial {
   @@map("study_materials")
 }
 
+model TestResponse {
+  id            String       @id @default(uuid())
+  testResultId  String
+  questionId    String
+  selectedAnswer String
+  isCorrect     Boolean
+  testResult    TestResult   @relation(fields: [testResultId], references: [id], onDelete: Cascade)
+  question      Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime     @default(now())
+
+  @@unique([testResultId, questionId])
+  @@map("test_responses")
+}
+
 model TestResult {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   testId      String
   userId      String
   duration    Int
@@ -179,10 +194,11 @@ model TestResult {
   correct     Int
   wrong       Int
   score       Float
-  submittedAt DateTime @default(now())
+  submittedAt DateTime       @default(now())
 
-  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test        Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses   TestResponse[] 
 
   @@unique([testId, userId])
   @@map("test_results")

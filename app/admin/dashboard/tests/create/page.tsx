@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Filter, Search, X, Loader2 } from "lucide-react";
+import { Check, Filter, Search, X, Loader2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -68,6 +68,9 @@ export default function CreateTestPage() {
   const [subjectRequirements, setSubjectRequirements] = useState<
     Record<string, number>
   >({});
+  const [questionMarks, setQuestionMarks] = useState<Record<string, number>>(
+    {}
+  );
 
   useEffect(() => {
     const getData = async () => {
@@ -191,6 +194,13 @@ export default function CreateTestPage() {
       if (prev.includes(questionId)) {
         return prev.filter((id) => id !== questionId);
       } else {
+        // Initialize marks to 4 when selecting a question
+        if (!questionMarks[questionId]) {
+          setQuestionMarks((prevMarks) => ({
+            ...prevMarks,
+            [questionId]: 4,
+          }));
+        }
         return [...prev, questionId];
       }
     });
@@ -213,10 +223,24 @@ export default function CreateTestPage() {
       subjectQuestionIds.forEach((id) => {
         if (!newSelectedQuestions.includes(id)) {
           newSelectedQuestions.push(id);
+          // Initialize marks to 4 for newly selected questions
+          if (!questionMarks[id]) {
+            setQuestionMarks((prevMarks) => ({
+              ...prevMarks,
+              [id]: 4,
+            }));
+          }
         }
       });
       setSelectedQuestions(newSelectedQuestions);
     }
+  };
+
+  const handleMarksChange = (questionId: string, marks: number) => {
+    setQuestionMarks((prevMarks) => ({
+      ...prevMarks,
+      [questionId]: marks,
+    }));
   };
 
   const handleDifficultyFilterChange = (difficulty: string) => {
@@ -298,7 +322,7 @@ export default function CreateTestPage() {
       questions: selectedQuestions.map((id) => {
         return {
           questionId: id,
-          marks: 4, // Default marks
+          marks: questionMarks[id] || 4, // Use the selected marks or default to 4
         };
       }),
     };
@@ -313,7 +337,7 @@ export default function CreateTestPage() {
         setTimeout(() => {
           router.push("/admin/dashboard/tests");
         }, 900);
-      }else{
+      } else {
         toast.error("An unexpected error occurred");
       }
     } catch (error) {
@@ -755,6 +779,89 @@ export default function CreateTestPage() {
                                   <span className="text-xs text-muted-foreground">
                                     ID: {question.id}
                                   </span>
+                                  {/* Marks selector - only show when question is selected */}
+                                  {selectedQuestions.includes(question.id) && (
+                                    <div className="flex items-center ml-auto">
+                                      <span className="text-xs font-medium mr-2">
+                                        Marks:
+                                      </span>
+                                      <div className="flex items-center border rounded-md">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 rounded-none"
+                                          onClick={() => {
+                                            const currentMarks =
+                                              questionMarks[question.id] || 4;
+                                            if (currentMarks > 1) {
+                                              handleMarksChange(
+                                                question.id,
+                                                currentMarks - 1
+                                              );
+                                            }
+                                          }}
+                                          disabled={
+                                            (questionMarks[question.id] || 4) <=
+                                            1
+                                          }
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                          <span className="sr-only">
+                                            Decrease
+                                          </span>
+                                        </Button>
+
+                                        <Select
+                                          value={(
+                                            questionMarks[question.id] || 4
+                                          ).toString()}
+                                          onValueChange={(value) =>
+                                            handleMarksChange(
+                                              question.id,
+                                              Number.parseInt(value)
+                                            )
+                                          }
+                                        >
+                                          <SelectTrigger className="h-6 w-12 border-0 focus:ring-0 focus:ring-offset-0 p-0 pl-2">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="1">1</SelectItem>
+                                            <SelectItem value="2">2</SelectItem>
+                                            <SelectItem value="3">3</SelectItem>
+                                            <SelectItem value="4">4</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 rounded-none"
+                                          onClick={() => {
+                                            const currentMarks =
+                                              questionMarks[question.id] || 4;
+                                            if (currentMarks < 4) {
+                                              handleMarksChange(
+                                                question.id,
+                                                currentMarks + 1
+                                              );
+                                            }
+                                          }}
+                                          disabled={
+                                            (questionMarks[question.id] || 4) >=
+                                            4
+                                          }
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                          <span className="sr-only">
+                                            Increase
+                                          </span>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                                 <p className="text-sm font-medium">
                                   {question.question}
