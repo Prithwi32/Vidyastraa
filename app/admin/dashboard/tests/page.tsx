@@ -49,7 +49,15 @@ import {
 } from "@/components/ui/select";
 import { deleteTest, getAllTests } from "@/app/actions/test";
 import Loader from "@/components/Loader";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast, ToastContainer } from "react-toastify";
 
 type Test = {
@@ -108,14 +116,14 @@ export default function TestsPage() {
 
   const handleDeleteTest = async (testId: string) => {
     setDeleting(true);
-    
+
     try {
       const res = await deleteTest(testId);
       if (res.success) {
         toast.success("Test deleted successfully!");
         // Multiple approaches for better reliability
         router.refresh();
-        setMockTests(prev => prev.filter(t => t.id !== testId)); 
+        setMockTests((prev) => prev.filter((t) => t.id !== testId));
       } else {
         toast.error(res.message || "An error occurred while deleting test");
       }
@@ -286,10 +294,15 @@ export default function TestsPage() {
                               <Edit className="mr-2 h-4 w-4" />
                               <span>Edit Test</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                window.open(`/api/export/tests/${test.id}`)
+                              }
+                            >
                               <Download className="mr-2 h-4 w-4" />
-                              <span>Export</span>
+                              <span>Export as PDF</span>
                             </DropdownMenuItem>
+
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-red-600 focus:bg-red-50 dark:focus:bg-red-800"
@@ -323,7 +336,7 @@ export default function TestsPage() {
                                     </Button>
                                     <Button
                                       variant="destructive"
-                                      onClick={()=>handleDeleteTest(test.id)}
+                                      onClick={() => handleDeleteTest(test.id)}
                                       disabled={deleting}
                                     >
                                       {deleting ? (

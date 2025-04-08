@@ -64,6 +64,8 @@ export default function EditTestPage() {
   >({});
   const [questions, setQuestions] = useState([]);
   const [courses, setCourses] = useState<Course[]>([]);
+    // Add a new state to track marks for each question
+    const [questionMarks, setQuestionMarks] = useState<Record<string, number>>({})
 
   useEffect(() => {
     const getData = async () => {
@@ -220,11 +222,26 @@ export default function EditTestPage() {
     }
   });
 
+  // Add a function to handle marks changes
+  const handleMarksChange = (questionId: string, marks: number) => {
+    setQuestionMarks((prev) => ({
+      ...prev,
+      [questionId]: marks,
+    }))
+  }
+
   const handleSelectQuestion = (questionId: string) => {
     setSelectedQuestions((prev) => {
       if (prev.includes(questionId)) {
         return prev.filter((id) => id !== questionId);
       } else {
+        // Add question with default marks if not already set
+        if (!questionMarks[questionId]) {
+          setQuestionMarks((prev) => ({
+            ...prev,
+            [questionId]: 4, // Default marks
+          }))
+        }
         return [...prev, questionId];
       }
     });
@@ -244,12 +261,18 @@ export default function EditTestPage() {
     } else {
       // Select all questions in this subject
       const newSelectedQuestions = [...selectedQuestions];
+      const newQuestionMarks = { ...questionMarks }
       subjectQuestionIds.forEach((id) => {
         if (!newSelectedQuestions.includes(id)) {
           newSelectedQuestions.push(id);
+          // Initialize marks if not already set
+          if (!newQuestionMarks[id]) {
+            newQuestionMarks[id] = 4 // Default marks
+          }
         }
       });
       setSelectedQuestions(newSelectedQuestions);
+      setQuestionMarks(newQuestionMarks)
     }
   };
 
@@ -326,7 +349,7 @@ export default function EditTestPage() {
       questions: selectedQuestions.map((id) => {
         return {
           questionId: id,
-          marks: 4, // Default marks
+          marks: questionMarks[id] || 4, // Use stored marks or default to 4
         };
       }),
     };
@@ -762,6 +785,62 @@ export default function EditTestPage() {
                                 <span className="text-xs text-muted-foreground">
                                   ID: {question.id}
                                 </span>
+                                 {/* Add marks selector here */}
+                              {selectedQuestions.includes(question.id) && (
+                                <div className="flex items-center ml-auto">
+                                  <span className="text-xs text-muted-foreground mr-1">Marks:</span>
+                                  <div className="flex items-center border rounded-md">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 rounded-none rounded-l-md p-0"
+                                      onClick={() =>
+                                        handleMarksChange(
+                                          question.id,
+                                          Math.max(1, (questionMarks[question.id] || 4) - 1),
+                                        )
+                                      }
+                                      disabled={(questionMarks[question.id] || 4) <= 1}
+                                    >
+                                      <span className="sr-only">Decrease</span>
+                                      <span className="text-xs">-</span>
+                                    </Button>
+
+                                    <Select
+                                      value={(questionMarks[question.id] || 4).toString()}
+                                      onValueChange={(value) => handleMarksChange(question.id, Number.parseInt(value))}
+                                    >
+                                      <SelectTrigger className="h-6 w-12 border-0 rounded-none px-1">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="1">1</SelectItem>
+                                        <SelectItem value="2">2</SelectItem>
+                                        <SelectItem value="3">3</SelectItem>
+                                        <SelectItem value="4">4</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 rounded-none rounded-r-md p-0"
+                                      onClick={() =>
+                                        handleMarksChange(
+                                          question.id,
+                                          Math.min(4, (questionMarks[question.id] || 4) + 1),
+                                        )
+                                      }
+                                      disabled={(questionMarks[question.id] || 4) >= 4}
+                                    >
+                                      <span className="sr-only">Increase</span>
+                                      <span className="text-xs">+</span>
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                               </div>
                               <p className="text-sm font-medium">
                                 {question.question}

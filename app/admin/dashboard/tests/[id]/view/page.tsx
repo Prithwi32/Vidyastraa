@@ -500,7 +500,7 @@ export default function ViewTestPage() {
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
-                  // Mock export functionality
+                  window.open(`/api/export/tests/${test.id}`)
                   toast.success("Test exported successfully!");
                 }}
               >
