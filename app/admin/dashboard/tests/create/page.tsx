@@ -55,6 +55,7 @@ export default function CreateTestPage() {
   const [testLoader, setTestLoader] = useState(false);
   const [testType, setTestType] = useState<string>("JEE");
   const [testTitle, setTestTitle] = useState<string>("");
+  const [testDuration, setTestDuration] = useState<string>("");
   const [testDescription, setTestDescription] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>(
     courseIdParam || ""
@@ -289,6 +290,11 @@ export default function CreateTestPage() {
       return;
     }
 
+    if (!testDuration) {
+      toast.error("Test duration is required");
+      return;
+    }
+
     if (!selectedCourse) {
       toast.error("Please select a course");
       return;
@@ -309,6 +315,7 @@ export default function CreateTestPage() {
     // Here you would typically send the data to your API
     const testData = {
       title: testTitle,
+      duration: testDuration,
       category: testType,
       subjects: Object.keys(questionsBySubject).filter((subject) =>
         selectedQuestions.some((id) => {
@@ -378,7 +385,15 @@ export default function CreateTestPage() {
                   onChange={(e) => setTestTitle(e.target.value)}
                 />
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="test-duration">Test Duration (In Minutes)</Label>
+                <Input
+                  id="test-duration"
+                  placeholder="Enter test duration"
+                  value={testDuration}
+                  onChange={(e) => setTestDuration(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="test-description">Description (Optional)</Label>
                 <Input
@@ -592,6 +607,7 @@ export default function CreateTestPage() {
                   loading ||
                   selectedQuestions.length === 0 ||
                   !testTitle ||
+                  !testDuration ||
                   !selectedCourse ||
                   !areRequirementsMet()
                 }

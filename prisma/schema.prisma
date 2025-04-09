@@ -120,6 +120,7 @@ model Test {
   category    TestType
   subjects    Subject[]
   description String?
+  duration    Int
   courseId    String
   course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions   TestQuestion[]
