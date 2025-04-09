@@ -64,9 +64,9 @@ export function CompletedTestCard({ test }: CompletedTestCardProps) {
               correct out of{" "}
               {test.attempted + (test.totalMarks / 4 - test.attempted)}
             </p>
-            <p className="mt-1">
+            <div className="mt-1">
               <Badge variant="outline">{test.test.category}</Badge>
-            </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleViewResults}>

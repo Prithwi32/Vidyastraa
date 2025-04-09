@@ -1,15 +1,160 @@
-// Database configuration
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Prisma client generator
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  googleId        String?          @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  enrolledCourses EnrolledCourse[]
+  payments        Payment[]
+  results         TestResult[]
+
+  @@map("users")
 }
 
-// ENUMS
+model Course {
+  id                  String           @id @default(uuid())
+  title               String
+  subtitle            String?
+  thumbnail           String?
+  detailedDescription String
+  keyTopics           String[]
+  difficultyLevel     DifficultyLevel
+  duration            String
+  price               Float
+  category            Category
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  enrolledStudents    EnrolledCourse[]
+  payments            Payment[]
+  tests               Test[]
+
+  @@map("courses")
+}
+
+model EnrolledCourse {
+  userId    String
+  courseId  String
+  progress  Float    @default(0.0)
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, courseId])
+}
+
+model Question {
+  id            String         @id @default(uuid())
+  image         String?
+  question      String
+  solution      String
+  options       String[]
+  correctAnswer String
+  subject       Subject
+  difficulty    Difficulty     @default(UNKNOWN)
+  createdAt     DateTime       @default(now())
+  testQuestions TestQuestion[]
+  testResponses TestResponse[]
+
+  @@map("questions")
+}
+
+model Test {
+  id          String         @id @default(uuid())
+  title       String
+  category    TestType
+  subjects    Subject[]
+  description String?
+  duration    Int
+  courseId    String
+  createdAt   DateTime       @default(now())
+  questions   TestQuestion[]
+  results     TestResult[]
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("tests")
+}
+
+model TestQuestion {
+  testId     String
+  questionId String
+  marks      Int      @default(4)
+  order      Int?
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  test       Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@id([testId, questionId])
+  @@map("test_questions")
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  paymentId String   @unique
+  amount    Float
+  status    String
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model StudyMaterial {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        String
+  url         String
+  uploadedAt  DateTime @default(now())
+  subject     Subject
+
+  @@map("study_materials")
+}
+
+model TestResponse {
+  id             String     @id @default(uuid())
+  testResultId   String
+  questionId     String
+  selectedAnswer String
+  isCorrect      Boolean
+  createdAt      DateTime   @default(now())
+  question       Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  testResult     TestResult @relation(fields: [testResultId], references: [id], onDelete: Cascade)
+
+  @@unique([testResultId, questionId])
+  @@map("test_responses")
+}
+
+model TestResult {
+  id          String         @id @default(uuid())
+  testId      String
+  userId      String
+  duration    Int
+  totalMarks  Int
+  attempted   Int
+  correct     Int
+  wrong       Int
+  score       Float
+  submittedAt DateTime       @default(now())
+  responses   TestResponse[]
+  test        Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, userId])
+  @@map("test_results")
+}
+
 enum DifficultyLevel {
   BEGINNER
   MODERATE
@@ -43,165 +188,4 @@ enum Difficulty {
   MODERATE
   ADVANCED
   UNKNOWN
-}
-
-// MODELS
-
-model User {
-  id              String           @id @default(uuid())
-  name            String
-  email           String           @unique
-  googleId        String?          @unique
-  enrolledCourses EnrolledCourse[]
-  payments        Payment[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  results         TestResult[]
-
-  // Cascade delete: When a user is deleted, enrolledCourses and payments are also deleted
-  @@map("users")
-}
-
-model Course {
-  id                  String           @id @default(uuid())
-  title               String
-  subtitle            String?
-  thumbnail           String? // Store URL (set default in backend if not provided)
-  detailedDescription String
-  keyTopics           String[]
-  difficultyLevel     DifficultyLevel
-  duration            String
-  price               Float
-  category            Category
-  payments            Payment[]
-  enrolledStudents    EnrolledCourse[]
-  tests               Test[]
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-
-  // Cascade delete: When a course is deleted, enrolledCourses, tests, and payments are deleted
-  @@map("courses")
-}
-
-model EnrolledCourse {
-  userId   String
-  courseId String
-  progress Float  @default(0.0) // Store progress percentage
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@id([userId, courseId]) // Composite primary key
-}
-
-model Question {
-  id            String     @id @default(uuid())
-  image         String?
-  question      String
-  solution      String
-  options       String[]
-  correctAnswer String
-  subject       Subject
-  difficulty    Difficulty @default(UNKNOWN)
-  createdAt     DateTime   @default(now())
-
-  testQuestions TestQuestion[]
-  testResponses TestResponse[]
-
-  // Cascade delete: When a question is deleted, related TestQuestion records are also deleted
-  @@map("questions")
-}
-
-model Test {
-  id          String         @id @default(uuid())
-  title       String
-  category    TestType
-  subjects    Subject[]
-  description String?
-  duration    Int
-  courseId    String
-  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  questions   TestQuestion[]
-  results     TestResult[]
-  createdAt   DateTime       @default(now())
-
-  // Cascade delete: When a test is deleted, related TestQuestion records are also deleted
-  @@map("tests")
-}
-
-model TestQuestion {
-  testId     String
-  questionId String
-  marks      Int    @default(4)
-  order      Int?
-
-  test     Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@id([testId, questionId]) // Composite primary key
-  @@map("test_questions")
-}
-
-model Payment {
-  id        String   @id @default(uuid())
-  userId    String
-  courseId  String
-  paymentId String   @unique
-  amount    Float
-  status    String
-  createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@map("payments")
-}
-
-model StudyMaterial {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  type        String // e.g. "PDF", "DOC", "Video"
-  url         String
-  uploadedAt  DateTime @default(now())
-  subject     Subject // Enum: PHYSICS, CHEMISTRY, MATHS, BIOLOGY
-
-  @@map("study_materials")
-}
-
-model TestResponse {
-  id             String     @id @default(uuid())
-  testResultId   String
-  questionId     String
-  selectedAnswer String
-  isCorrect      Boolean
-  testResult     TestResult @relation(fields: [testResultId], references: [id], onDelete: Cascade)
-  question       Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([testResultId, questionId])
-  @@map("test_responses")
-}
-
-model TestResult {
-  id          String   @id @default(uuid())
-  testId      String
-  userId      String
-  duration    Int
-  totalMarks  Int
-  attempted   Int
-  correct     Int
-  wrong       Int
-  score       Float
-  submittedAt DateTime @default(now())
-
-  test      Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  responses TestResponse[]
-
-  @@unique([testId, userId])
-  @@map("test_results")
 }

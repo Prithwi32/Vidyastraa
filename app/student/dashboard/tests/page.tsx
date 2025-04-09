@@ -23,11 +23,13 @@ import {
   CompletedTestCard,
   UpcomingTestCard,
 } from "@/components/student/tests/test-card";
-import { fetchCompletedTests, fetchUpcomingTests } from "@/lib/tests/api";
 import type { TestItem, TestResultItem } from "@/lib/tests/types";
-import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { fetchUpcomingTests } from "@/app/actions/test";
+import Loader from "@/components/Loader";
 
 export default function TestsPage() {
+  const session = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("completed");
   const [completedTests, setCompletedTests] = useState<TestResultItem[]>([]);
@@ -41,10 +43,10 @@ export default function TestsPage() {
       setLoading(true);
       try {
         if (activeTab === "completed") {
-          const tests = await fetchCompletedTests();
-          setCompletedTests(tests);
+          // const tests = await fetchCompletedTests();
+          setCompletedTests([]);
         } else {
-          const tests = await fetchUpcomingTests();
+          const tests = await fetchUpcomingTests(session?.data?.user?.id as string);
           setUpcomingTests(tests);
         }
       } catch (error) {
@@ -56,6 +58,14 @@ export default function TestsPage() {
 
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (session.status == "loading") {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
+  }, [session.status]);
 
   const handleStartTest = (test: TestItem) => {
     setSelectedTest(test);
@@ -95,7 +105,7 @@ export default function TestsPage() {
           <TabsContent value="completed" className="space-y-4">
             {loading ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader/>
               </div>
             ) : completedTests.length > 0 ? (
               completedTests.map((test) => (
@@ -113,7 +123,7 @@ export default function TestsPage() {
           <TabsContent value="upcoming" className="space-y-4">
             {loading ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader/>
               </div>
             ) : upcomingTests.length > 0 ? (
               upcomingTests.map((test) => (
@@ -133,7 +143,7 @@ export default function TestsPage() {
           </TabsContent>
         </Tabs>
 
-        <Card>
+       {activeTab=="completed" && <Card>
           <CardHeader>
             <CardTitle>Test Statistics</CardTitle>
             <CardDescription>
@@ -172,7 +182,7 @@ export default function TestsPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
       </main>
 
       {/* Start Test Dialog */}

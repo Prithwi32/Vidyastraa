@@ -65,8 +65,10 @@ export default function EditTestPage() {
   >({});
   const [questions, setQuestions] = useState([]);
   const [courses, setCourses] = useState<Course[]>([]);
-    // Add a new state to track marks for each question
-    const [questionMarks, setQuestionMarks] = useState<Record<string, number>>({})
+  // Add a new state to track marks for each question
+  const [questionMarks, setQuestionMarks] = useState<Record<string, number>>(
+    {}
+  );
 
 
   useEffect(() => {
@@ -97,9 +99,12 @@ export default function EditTestPage() {
         setSelectedSubject(testData.subjects[0]);
       setSelectedCourse(testData.courseId);
       const arr = [];
+      const marks: Record<string, number> = {};
       for (let data of testData.questions) {
         arr.push(data.question.id);
+        marks[data.question.id] = data.marks;
       }
+      setQuestionMarks(marks);
       setSelectedQuestions(arr);
 
       const questionsCountBySubject: Record<string, number> = {};
@@ -229,8 +234,8 @@ export default function EditTestPage() {
     setQuestionMarks((prev) => ({
       ...prev,
       [questionId]: marks,
-    }))
-  }
+    }));
+  };
 
   const handleSelectQuestion = (questionId: string) => {
     setSelectedQuestions((prev) => {
@@ -242,7 +247,7 @@ export default function EditTestPage() {
           setQuestionMarks((prev) => ({
             ...prev,
             [questionId]: 4, // Default marks
-          }))
+          }));
         }
         return [...prev, questionId];
       }
@@ -263,18 +268,18 @@ export default function EditTestPage() {
     } else {
       // Select all questions in this subject
       const newSelectedQuestions = [...selectedQuestions];
-      const newQuestionMarks = { ...questionMarks }
+      const newQuestionMarks = { ...questionMarks };
       subjectQuestionIds.forEach((id) => {
         if (!newSelectedQuestions.includes(id)) {
           newSelectedQuestions.push(id);
           // Initialize marks if not already set
           if (!newQuestionMarks[id]) {
-            newQuestionMarks[id] = 4 // Default marks
+            newQuestionMarks[id] = 4; // Default marks
           }
         }
       });
       setSelectedQuestions(newSelectedQuestions);
-      setQuestionMarks(newQuestionMarks)
+      setQuestionMarks(newQuestionMarks);
     }
   };
 
@@ -362,10 +367,9 @@ export default function EditTestPage() {
       if (toast.success) {
         toast.success("Test updated successfully!");
         setTimeout(() => {
-          router.push("/admin/dashboard/tests");
+          router.push(`/admin/dashboard/tests/${params.id}/view`);
         }, 800);
       } else toast.error("An unexpected error occurred");
-
     } catch (error) {
       console.error("Error updating test:", error);
       toast.error("An unexpected error occurred");
@@ -795,62 +799,87 @@ export default function EditTestPage() {
                                 <span className="text-xs text-muted-foreground">
                                   ID: {question.id}
                                 </span>
-                                 {/* Add marks selector here */}
-                              {selectedQuestions.includes(question.id) && (
-                                <div className="flex items-center ml-auto">
-                                  <span className="text-xs text-muted-foreground mr-1">Marks:</span>
-                                  <div className="flex items-center border rounded-md">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 rounded-none rounded-l-md p-0"
-                                      onClick={() =>
-                                        handleMarksChange(
-                                          question.id,
-                                          Math.max(1, (questionMarks[question.id] || 4) - 1),
-                                        )
-                                      }
-                                      disabled={(questionMarks[question.id] || 4) <= 1}
-                                    >
-                                      <span className="sr-only">Decrease</span>
-                                      <span className="text-xs">-</span>
-                                    </Button>
+                                {/* Add marks selector here */}
+                                {selectedQuestions.includes(question.id) && (
+                                  <div className="flex items-center ml-auto">
+                                    <span className="text-xs text-muted-foreground mr-1">
+                                      Marks:
+                                    </span>
+                                    <div className="flex items-center border rounded-md">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 rounded-none rounded-l-md p-0"
+                                        onClick={() =>
+                                          handleMarksChange(
+                                            question.id,
+                                            Math.max(
+                                              1,
+                                              (questionMarks[question.id] ||
+                                                4) - 1
+                                            )
+                                          )
+                                        }
+                                        disabled={
+                                          (questionMarks[question.id] || 4) <= 1
+                                        }
+                                      >
+                                        <span className="sr-only">
+                                          Decrease
+                                        </span>
+                                        <span className="text-xs">-</span>
+                                      </Button>
 
-                                    <Select
-                                      value={(questionMarks[question.id] || 4).toString()}
-                                      onValueChange={(value) => handleMarksChange(question.id, Number.parseInt(value))}
-                                    >
-                                      <SelectTrigger className="h-6 w-12 border-0 rounded-none px-1">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="1">1</SelectItem>
-                                        <SelectItem value="2">2</SelectItem>
-                                        <SelectItem value="3">3</SelectItem>
-                                        <SelectItem value="4">4</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                      <Select
+                                        value={(
+                                          questionMarks[question.id] || 4
+                                        ).toString()}
+                                        onValueChange={(value) =>
+                                          handleMarksChange(
+                                            question.id,
+                                            Number.parseInt(value)
+                                          )
+                                        }
+                                      >
+                                        <SelectTrigger className="h-6 w-12 border-0 rounded-none px-1">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="1">1</SelectItem>
+                                          <SelectItem value="2">2</SelectItem>
+                                          <SelectItem value="3">3</SelectItem>
+                                          <SelectItem value="4">4</SelectItem>
+                                        </SelectContent>
+                                      </Select>
 
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 rounded-none rounded-r-md p-0"
-                                      onClick={() =>
-                                        handleMarksChange(
-                                          question.id,
-                                          Math.min(4, (questionMarks[question.id] || 4) + 1),
-                                        )
-                                      }
-                                      disabled={(questionMarks[question.id] || 4) >= 4}
-                                    >
-                                      <span className="sr-only">Increase</span>
-                                      <span className="text-xs">+</span>
-                                    </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 rounded-none rounded-r-md p-0"
+                                        onClick={() =>
+                                          handleMarksChange(
+                                            question.id,
+                                            Math.min(
+                                              4,
+                                              (questionMarks[question.id] ||
+                                                4) + 1
+                                            )
+                                          )
+                                        }
+                                        disabled={
+                                          (questionMarks[question.id] || 4) >= 4
+                                        }
+                                      >
+                                        <span className="sr-only">
+                                          Increase
+                                        </span>
+                                        <span className="text-xs">+</span>
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
                               </div>
                               <p className="text-sm font-medium">
                                 {question.question}

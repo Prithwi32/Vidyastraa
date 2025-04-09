@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -47,18 +47,14 @@ import {
 } from "@/components/ui/dialog";
 import type {
   QuestionWithStatus,
-  TestWithQuestions,
+  TestWithQuestion,
   TestSubmission,
   TestResponse,
 } from "@/lib/tests/types";
-import { fetchTest, submitTest } from "@/lib/tests/api";
 import { Loader2 } from "lucide-react";
-
-interface TestProps {
-  params: {
-    id: string;
-  };
-}
+import { fetchTest, submitTest } from "@/app/actions/test";
+import { toast, ToastContainer } from "react-toastify";
+import { useSession } from "next-auth/react";
 
 // Question Navigation Panel component
 function QuestionNavigationPanel({
@@ -241,8 +237,10 @@ function QuestionNavigationPanel({
   );
 }
 
-export default function TestInterface({ params }: TestProps) {
+export default function TestInterface() {
   const router = useRouter();
+  const params = useParams();
+  const session = useSession();
   const searchParams = useSearchParams();
   const testId = params.id;
   const mode = searchParams?.get("mode") || "test"; // "test", "review"
@@ -255,7 +253,7 @@ export default function TestInterface({ params }: TestProps) {
   const [loading, setLoading] = useState(true);
 
   // Test data
-  const [test, setTest] = useState<TestWithQuestions | null>(null);
+  const [test, setTest] = useState<TestWithQuestion | null>(null);
 
   // state for question panel
   const [showQuestionPanel, setShowQuestionPanel] = useState(false);
@@ -263,8 +261,16 @@ export default function TestInterface({ params }: TestProps) {
   // Submit dialog state
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
+  const [testSubmitLoader, setTestSubmitLoader] = useState(false);
+
   // Timer state
-  const [time, setTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [time, setTime] = useState({
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [timeRemaining, setTimeRemaining] = useState(0); // in seconds
+  const [timerActive, setTimerActive] = useState(false);
 
   // Current question index
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -272,13 +278,39 @@ export default function TestInterface({ params }: TestProps) {
   // Questions with status
   const [questions, setQuestions] = useState<QuestionWithStatus[]>([]);
 
+  useEffect(() => {
+    if (session.status === "loading") {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
+  }, [session.status]);
+
   // Load test data
   useEffect(() => {
     async function loadTest() {
       setLoading(true);
       try {
-        const testData = await fetchTest(testId);
+        const testData = await fetchTest(testId as string);
         setTest(testData);
+
+        // Initialize timer with test duration (converted to seconds)
+        const initialTime = testData.duration * 60;
+        setTimeRemaining(initialTime);
+
+        // Calculate initial display time
+        const hours = Math.floor(initialTime / 3600);
+        const minutes = Math.floor((initialTime % 3600) / 60);
+        const seconds = initialTime % 60;
+
+        setTime({
+          hours,
+          minutes,
+          seconds,
+        });
+
+        // Start the timer
+        setTimerActive(true);
 
         // Initialize questions with status
         const questionsWithStatus = testData.questions.map((q, index) => ({
@@ -292,7 +324,7 @@ export default function TestInterface({ params }: TestProps) {
               : undefined,
         }));
 
-        setQuestions(questionsWithStatus);
+        setQuestions(questionsWithStatus as any);
       } catch (error) {
         console.error("Error loading test:", error);
       } finally {
@@ -391,9 +423,20 @@ export default function TestInterface({ params }: TestProps) {
 
   // Handle test submission
   const handleSubmitTest = async () => {
+    // Use functional update to get the latest state
     if (!test) return;
 
-    // Prepare submission data
+    // Stop the timer
+    setTimerActive(false);
+
+    setTestSubmitLoader(true);
+
+    // Calculate actual time taken
+    const totalDuration = test.duration;
+    const timeTaken = totalDuration - Math.ceil(timeRemaining / 60);
+    const duration = timeRemaining > 0 ? timeTaken : totalDuration;
+
+    // Prepare submission data with current questions
     const responses: TestResponse[] = questions
       .filter((q) => q.selectedOption)
       .map((q) => ({
@@ -403,43 +446,62 @@ export default function TestInterface({ params }: TestProps) {
 
     const submission: TestSubmission = {
       testId: test.id,
-      userId: "user-1", // In a real app, this would be the current user's ID
-      duration: time.hours * 60 + time.minutes,
+      userId: session.data?.user?.id as string,
+      duration,
       responses,
     };
 
     try {
       // Submit the test
-      const resultId = await submitTest(submission);
+      // console.log(submission);
+      const res = await submitTest(submission);
 
-      // Navigate to the results page
-      router.push(`/student/dashboard/tests/${testId}/results/${resultId}`);
+      if (!res) {
+        console.log("Error occured during submission");
+        toast.error("Error occured during submission");
+      } else {
+        router.push(`/student/dashboard/tests/${testId}/result/${res.id}`);
+      }
     } catch (error) {
       console.error("Error submitting test:", error);
+      toast.error("Error submitting test");
       // Show error message
+    }finally{
+      setTestSubmitLoader(false);
     }
   };
 
-  // Timer effect
   useEffect(() => {
-    if (mode === "review" || !test) return; // Don't run timer in review mode
+    if (timeRemaining <= 0 && timerActive) {
+      handleSubmitTest();
+    }
+  }, [timeRemaining, timerActive]);
+
+  // Then modify your timer effect to just update time:
+  useEffect(() => {
+    if (mode === "review" || !test || !timerActive) return;
 
     const timer = setInterval(() => {
-      setTime((prevTime) => {
-        const newSeconds = prevTime.seconds + 1;
-        const newMinutes = prevTime.minutes + Math.floor(newSeconds / 60);
-        const newHours = prevTime.hours + Math.floor(newMinutes / 60);
+      setTimeRemaining((prev) => {
+        const newTime = prev - 1;
+        if (newTime <= 0) {
+          clearInterval(timer);
+          return 0;
+        }
 
-        return {
-          hours: newHours,
-          minutes: newMinutes % 60,
-          seconds: newSeconds % 60,
-        };
+        // Update display time
+        setTime({
+          hours: Math.floor(newTime / 3600),
+          minutes: Math.floor((newTime % 3600) / 60),
+          seconds: newTime % 60,
+        });
+
+        return newTime;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [mode, test]);
+  }, [mode, test, timerActive]);
 
   // Format time as 00:00:00
   const formattedTime = `${time.hours
@@ -503,6 +565,7 @@ export default function TestInterface({ params }: TestProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
+      <ToastContainer />
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-end sm:justify-between p-4 bg-card border-b border-border shadow-sm">
         <div className="hidden sm:flex items-center gap-3">
@@ -771,7 +834,14 @@ export default function TestInterface({ params }: TestProps) {
                     className="bg-primary hover:bg-primary/90"
                     onClick={() => setShowSubmitDialog(true)}
                   >
-                    Submit Test
+                   {testSubmitLoader ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Test"
+                )}
                   </Button>
                 )}
 
@@ -850,7 +920,16 @@ export default function TestInterface({ params }: TestProps) {
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmitTest}>Submit Test</Button>
+            <Button onClick={handleSubmitTest}>
+            {testSubmitLoader ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Test"
+                )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

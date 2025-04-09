@@ -43,7 +43,7 @@ export interface QuestionItem {
   order?: number
 }
 
-export interface TestWithQuestions {
+export interface TestWithQuestion {
   id: string
   title: string
   category: TestType
@@ -83,6 +83,7 @@ export interface TestResultWithDetails {
   attempted: number
   correct: number
   wrong: number
+  totalQuestions: number
   score: number
   percentage: number
   submittedAt: Date
