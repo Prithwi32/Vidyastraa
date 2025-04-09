@@ -47,20 +47,14 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
       const data = await response.json()
       onUpload(data.secure_url)
 
-      toast.success('Image uploaded successfully!', {
-        position: 'top-right',
-        autoClose: 3000,
-      })
+      toast.success('Image uploaded successfully!',{ containerId: "main-toast" })
 
       // Reset state
       setFile(null)
       setPreview(null)
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error('Upload failed. Please try again.', {
-        position: 'top-right',
-        autoClose: 5000,
-      })
+      toast.error('Upload failed. Please try again.', { containerId: "main-toast" })
     } finally {
       setUploading(false)
     }

@@ -846,24 +846,26 @@ export default function EditTestPage() {
                                 {question.question}
                               </p>
                               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                {question.options.map((option, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-start gap-2"
-                                  >
-                                    <span className="text-xs font-medium text-muted-foreground">
-                                      {String.fromCharCode(65 + index)}.
-                                    </span>
-                                    <span className="text-xs">
-                                      {option}
-                                      {option === question.correctAnswer && (
-                                        <span className="ml-1 text-green-600">
-                                          ✓
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                ))}
+                              {question.options.map((option, index) => {
+                                    const optionLetter = String.fromCharCode(
+                                      65 + index
+                                    );
+
+                                    return (
+                                      <span
+                                        key={index}
+                                        className="text-xs block"
+                                      >
+                                        {option}
+                                        {optionLetter ===
+                                          question.correctAnswer && (
+                                          <span className="ml-1 text-green-600">
+                                            ✓
+                                          </span>
+                                        )}
+                                      </span>
+                                    );
+                              })}
                               </div>
                             </div>
                           </div>

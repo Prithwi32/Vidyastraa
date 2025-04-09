@@ -867,24 +867,25 @@ export default function CreateTestPage() {
                                   {question.question}
                                 </p>
                                 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                  {question.options.map((option, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-start gap-2"
-                                    >
-                                      <span className="text-xs font-medium text-muted-foreground">
-                                        {String.fromCharCode(65 + index)}.
-                                      </span>
-                                      <span className="text-xs">
+                                {question.options.map((option, index) => {
+                                    const optionLetter = String.fromCharCode(
+                                      65 + index
+                                    );
+                                    return (
+                                      <span
+                                        key={index}
+                                        className="text-xs block"
+                                      >
                                         {option}
-                                        {option === question.correctAnswer && (
+                                        {optionLetter ===
+                                          question.correctAnswer && (
                                           <span className="ml-1 text-green-600">
                                             ✓
                                           </span>
                                         )}
                                       </span>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             </div>
