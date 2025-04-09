@@ -26,7 +26,7 @@ export function HeroSection() {
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
               <Button size="lg" asChild>
-                <Link href="/signup">
+                <Link href="/signin">
                   Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -129,8 +129,7 @@ export function HeroSection() {
                   </div>
                 </div>
               </div>
-
-              <Button className="mt-4 w-full">Start Learning Now</Button>
+              <Button className="mt-4 w-full"><Link href="/courses">Start Learning Now</Link></Button>
             </div>
           </div>
         </div>

@@ -1,15 +1,30 @@
-import Link from "next/link"
-import { ArrowRight, BookOpen, CheckCircle, Lightbulb, PlayCircle, Rocket } from "lucide-react"
+import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle,
+  Lightbulb,
+  PlayCircle,
+  Rocket,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Testimonials } from "@/components/testimonials"
-import { FAQ } from "@/components/faq"
-import { CourseCategories } from "@/components/course-categories"
-import { HeroSection } from "@/components/hero-section"
-import { Footer } from "@/components/footer"
-import { Navbar } from "@/components/navbar"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Testimonials } from "@/components/testimonials";
+import { FAQ } from "@/components/faq";
+import { CourseCategories } from "@/components/course-categories";
+import { HeroSection } from "@/components/hero-section";
+import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
+import ProtectedButtonLink from "@/components/ProtectedButtonLink";
 
 export default function Home() {
   return (
@@ -25,7 +40,8 @@ export default function Home() {
               Everything you need to excel in JEE & NEET
             </h2>
             <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-              Our comprehensive platform provides all the resources you need to succeed in your competitive exams.
+              Our comprehensive platform provides all the resources you need to
+              succeed in your competitive exams.
             </p>
           </div>
 
@@ -35,32 +51,29 @@ export default function Home() {
                 <BookOpen className="h-10 w-10 text-primary" />
                 <CardTitle className="mt-4">Study Materials</CardTitle>
                 <CardDescription>
-                  Access comprehensive PDFs, notes, and eBooks for JEE & NEET preparation.
+                  Access comprehensive PDFs, notes, and eBooks for JEE & NEET
+                  preparation.
                 </CardDescription>
               </CardHeader>
               <CardFooter>
-                <Link href="/materials" passHref>
-                  <Button variant="ghost" className="w-full">
-                    Explore Materials <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                <ProtectedButtonLink target="/student/dashboard/materials">
+                  Explore Materials
+                </ProtectedButtonLink>
               </CardFooter>
             </Card>
-
             <Card>
               <CardHeader>
                 <Lightbulb className="h-10 w-10 text-primary" />
                 <CardTitle className="mt-4">Test System</CardTitle>
                 <CardDescription>
-                  Practice with chapter-wise tests, past year papers, and full syllabus mock exams.
+                  Practice with chapter-wise tests, past year papers, and full
+                  syllabus mock exams.
                 </CardDescription>
               </CardHeader>
               <CardFooter>
-                <Link href="/tests" passHref>
-                  <Button variant="ghost" className="w-full">
-                    Take Tests <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                <ProtectedButtonLink target="/student/dashboard/tests">
+                  Take Tests
+                </ProtectedButtonLink>
               </CardFooter>
             </Card>
 
@@ -68,14 +81,14 @@ export default function Home() {
               <CardHeader>
                 <PlayCircle className="h-10 w-10 text-primary" />
                 <CardTitle className="mt-4">Video Courses</CardTitle>
-                <CardDescription>Stream high-quality video lectures from expert educators.</CardDescription>
+                <CardDescription>
+                  Stream high-quality video lectures from expert educators.
+                </CardDescription>
               </CardHeader>
               <CardFooter>
-                <Link href="/courses" passHref>
-                  <Button variant="ghost" className="w-full">
-                    Watch Courses <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                <ProtectedButtonLink target="/student/dashboard/videos">
+                  Watch Videos
+                </ProtectedButtonLink>
               </CardFooter>
             </Card>
           </div>
@@ -87,9 +100,12 @@ export default function Home() {
         {/* Why Choose Us Section */}
         <section className="container py-12 md:py-24 bg-muted/50">
           <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center">
-            <h2 className="font-heading text-3xl leading-[1.1] sm:text-3xl md:text-5xl">Why Choose EduLearn?</h2>
+            <h2 className="font-heading text-3xl leading-[1.1] sm:text-3xl md:text-5xl">
+              Why Choose EduLearn?
+            </h2>
             <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-              Our platform is designed with students in mind, providing the best learning experience.
+              Our platform is designed with students in mind, providing the best
+              learning experience.
             </p>
           </div>
 
@@ -97,27 +113,33 @@ export default function Home() {
             {[
               {
                 title: "Expert Educators",
-                description: "Learn from top educators with years of experience in JEE & NEET coaching.",
+                description:
+                  "Learn from top educators with years of experience in JEE & NEET coaching.",
               },
               {
                 title: "Comprehensive Content",
-                description: "Access a vast library of study materials, tests, and video courses.",
+                description:
+                  "Access a vast library of study materials, tests, and video courses.",
               },
               {
                 title: "Personalized Learning",
-                description: "Track your progress and get personalized recommendations.",
+                description:
+                  "Track your progress and get personalized recommendations.",
               },
               {
                 title: "Interactive Tests",
-                description: "Practice with interactive tests and get instant feedback.",
+                description:
+                  "Practice with interactive tests and get instant feedback.",
               },
               {
                 title: "Mobile Friendly",
-                description: "Access your courses anytime, anywhere with our mobile-optimized platform.",
+                description:
+                  "Access your courses anytime, anywhere with our mobile-optimized platform.",
               },
               {
                 title: "Regular Updates",
-                description: "Stay updated with the latest exam patterns and syllabus changes.",
+                description:
+                  "Stay updated with the latest exam patterns and syllabus changes.",
               },
             ].map((item, index) => (
               <div key={index} className="flex items-start gap-4">
@@ -134,7 +156,9 @@ export default function Home() {
         {/* Exam Preparation Tabs */}
         <section className="container py-12 md:py-24">
           <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center">
-            <h2 className="font-heading text-3xl leading-[1.1] sm:text-3xl md:text-5xl">Prepare for Your Exams</h2>
+            <h2 className="font-heading text-3xl leading-[1.1] sm:text-3xl md:text-5xl">
+              Prepare for Your Exams
+            </h2>
             <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
               Choose your exam and start your preparation journey with us.
             </p>
@@ -150,7 +174,9 @@ export default function Home() {
                 <Card>
                   <CardHeader>
                     <CardTitle>JEE Main & Advanced Preparation</CardTitle>
-                    <CardDescription>Comprehensive preparation for JEE Main and Advanced exams.</CardDescription>
+                    <CardDescription>
+                      Comprehensive preparation for JEE Main and Advanced exams.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -180,7 +206,9 @@ export default function Home() {
                 <Card>
                   <CardHeader>
                     <CardTitle>NEET Preparation</CardTitle>
-                    <CardDescription>Comprehensive preparation for NEET medical entrance exam.</CardDescription>
+                    <CardDescription>
+                      Comprehensive preparation for NEET medical entrance exam.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -223,7 +251,8 @@ export default function Home() {
               Ready to Start Your Preparation?
             </h2>
             <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-              Join thousands of students who are already preparing with EduLearn.
+              Join thousands of students who are already preparing with
+              EduLearn.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row">
               <Button size="lg">Get Started for Free</Button>
@@ -236,6 +265,5 @@ export default function Home() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }
-

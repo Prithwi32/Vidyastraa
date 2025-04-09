@@ -15,7 +15,15 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Navbar } from "@/components/navbar";
+import { useRouter } from "next/navigation"
 interface Course {
   id: string;
   title: string;
@@ -30,15 +38,20 @@ interface Course {
 }
 
 export default function Courses() {
+  const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<string[]>([]);
   const { data: session, status } = useSession();
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState("");
+  const [allCourses, setAllCourses] = useState([]);
 
   useEffect(() => {
     async function fetchCourses() {
       try {
         const response = await axios.get("/api/courses");
         setCourses(response.data.courses);
+        setAllCourses(response.data.courses);
       } catch (error) {
         console.error("Error fetching courses:", error);
       }
@@ -64,6 +77,9 @@ export default function Courses() {
     try {
       if (status !== "authenticated") {
         toast.error("Please log in to purchase a course.");
+        setTimeout(()=>{
+          router.push("/signin");
+        },3000);
         return;
       }
 
@@ -125,55 +141,136 @@ export default function Courses() {
     }
   };
 
+  const handleFilter = () => {
+    let filtered = [...allCourses];
+    if (categoryFilter) {
+      filtered = filtered.filter((c) => c.category === categoryFilter);
+    }
+    if (difficultyFilter) {
+      filtered = filtered.filter((c) => c.difficultyLevel === difficultyFilter);
+    }
+    setCourses(filtered);
+  };
+
+  useEffect(() => {
+    handleFilter();
+  }, [categoryFilter, difficultyFilter]);
+
   return (
-    <div className="container py-12">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+    <>
+      <Navbar />
       <ToastContainer />
-      <h2 className="text-3xl font-bold text-center mb-8 text-purple-800">
-        Our Courses
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <AnimatePresence>
-          {courses.map((course) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3 }}
+      <div className="container py-12">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+
+        <h2 className="text-3xl font-bold text-center mb-10 text-purple-800">
+          Our Courses
+        </h2>
+
+        {/* Filter Controls */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-center mb-10">
+          <Select onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter by Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="JEE">JEE</SelectItem>
+              <SelectItem value="NEET">NEET</SelectItem>
+              <SelectItem value="CRASH_COURSES">Crash Courses</SelectItem>
+              <SelectItem value="OTHER">Others</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setDifficultyFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter by Difficulty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BEGINNER">Beginner</SelectItem>
+              <SelectItem value="MODERATE">Moderate</SelectItem>
+              <SelectItem value="ADVANCED">Advanced</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(categoryFilter || difficultyFilter) && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCategoryFilter("");
+                setDifficultyFilter("");
+                setCourses(allCourses);
+              }}
             >
-              <Card className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader>
-                  <img
-                    src={course.thumbnail || "/placeholder.png"}
-                    alt={course.title}
-                    className="h-40 w-full object-cover rounded-md mb-4"
-                  />
-                  <CardTitle>{course.title}</CardTitle>
-                  {course.subtitle && <p className="text-sm text-gray-500">{course.subtitle}</p>}
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-2">{course.detailedDescription}</p>
-                  <p className="text-sm"><strong>Difficulty:</strong> {course.difficultyLevel}</p>
-                  <p className="text-sm"><strong>Duration:</strong> {course.duration}</p>
-                  <p className="text-lg font-semibold mt-2 text-green-800">₹{course.price}</p>
-                </CardContent>
-                <CardFooter>
-                  {enrolledCourses.includes(course.id) ? (
-                    <Button className="w-full" disabled>
-                      Enrolled ✅
-                    </Button>
-                  ) : (
-                    <Button onClick={() => handlePayment(course.id, course.price)} className="w-full">
-                      Buy Course <ArrowRight className="ml-2" />
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              Reset Filters
+            </Button>
+          )}
+        </div>
+
+        {/* Course Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <AnimatePresence>
+            {courses.length === 0 ? (
+              <p className="text-center col-span-full text-muted-foreground">
+                No courses match your filter.
+              </p>
+            ) : (
+              courses.map((course: any) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-purple-300">
+                    <CardHeader>
+                      <img
+                        src={course.thumbnail || "/placeholder.png"}
+                        alt={course.title}
+                        className="h-40 w-full object-cover rounded-md mb-4"
+                      />
+                      <CardTitle className="text-lg">{course.title}</CardTitle>
+                      {course.subtitle && (
+                        <p className="text-sm text-muted-foreground">
+                          {course.subtitle}
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm mb-2 line-clamp-3">
+                        {course.detailedDescription}
+                      </p>
+                      <p className="text-sm">
+                        <strong>Difficulty:</strong> {course.difficultyLevel}
+                      </p>
+                      <p className="text-sm">
+                        <strong>Duration:</strong> {course.duration}
+                      </p>
+                      <p className="text-lg font-semibold mt-2 text-green-700">
+                        ₹{course.price}
+                      </p>
+                    </CardContent>
+                    <CardFooter>
+                      {enrolledCourses.includes(course.id) ? (
+                        <Button className="w-full" disabled>
+                          Enrolled ✅
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handlePayment(course.id, course.price)}
+                          className="w-full"
+                        >
+                          Buy Course <ArrowRight className="ml-2" />
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
