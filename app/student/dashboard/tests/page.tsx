@@ -23,7 +23,6 @@ import {
   CompletedTestCard,
   UpcomingTestCard,
 } from "@/components/student/tests/test-card";
-import { fetchCompletedTests } from "@/lib/tests/api";
 import type { TestItem, TestResultItem } from "@/lib/tests/types";
 import { useSession } from "next-auth/react";
 import { fetchUpcomingTests } from "@/app/actions/test";
@@ -44,8 +43,8 @@ export default function TestsPage() {
       setLoading(true);
       try {
         if (activeTab === "completed") {
-          const tests = await fetchCompletedTests();
-          setCompletedTests(tests);
+          // const tests = await fetchCompletedTests();
+          setCompletedTests([]);
         } else {
           const tests = await fetchUpcomingTests(session?.data?.user?.id as string);
           setUpcomingTests(tests);
