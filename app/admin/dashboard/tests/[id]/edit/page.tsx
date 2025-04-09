@@ -53,6 +53,7 @@ export default function EditTestPage() {
   const [fetchingTest, setFetchingTest] = useState(true);
   const [testType, setTestType] = useState<string>("JEE");
   const [testTitle, setTestTitle] = useState<string>("");
+  const [testDuration, setTestDuration] = useState<string>("");
   const [testDescription, setTestDescription] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export default function EditTestPage() {
   const [questionMarks, setQuestionMarks] = useState<Record<string, number>>(
     {}
   );
+
 
   useEffect(() => {
     const getData = async () => {
@@ -418,7 +420,15 @@ export default function EditTestPage() {
                 onChange={(e) => setTestTitle(e.target.value)}
               />
             </div>
-
+            <div className="space-y-2">
+                <Label htmlFor="test-duration">Test Duration (In Minutes)</Label>
+                <Input
+                  id="test-duration"
+                  placeholder="Enter test duration"
+                  value={testDuration}
+                  onChange={(e) => setTestDuration(e.target.value)}
+                />
+              </div>
             <div className="space-y-2">
               <Label htmlFor="test-description">Description (Optional)</Label>
               <Input
