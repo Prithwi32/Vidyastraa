@@ -481,7 +481,7 @@ export default function CreateTestPage() {
                   ? ["PHYSICS", "CHEMISTRY", "MATHS"]
                   : testType === "NEET"
                   ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
-                  : selectedSubject
+                  : testType === "INDIVIDUAL" && selectedSubject
                   ? [selectedSubject]
                   : ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]
                 ).map((subject) => (
@@ -523,8 +523,7 @@ export default function CreateTestPage() {
                       )}
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800"></h3>
-                      Selected Questions
+                      <h3 className="text-sm font-medium text-blue-800">Selected Questions</h3>
                       <h3
                         className={`text-sm font-medium ${
                           areRequirementsMet()
@@ -867,7 +866,7 @@ export default function CreateTestPage() {
                                   {question.question}
                                 </p>
                                 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                {question.options.map((option, index) => {
+                                  {question.options.map((option, index) => {
                                     const optionLetter = String.fromCharCode(
                                       65 + index
                                     );

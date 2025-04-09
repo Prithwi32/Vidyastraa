@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Download,
   ArrowLeft,
@@ -23,9 +23,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { fetchTestResult } from "@/lib/tests/api";
 import type { TestResultWithDetails } from "@/lib/tests/types";
 import { Loader2 } from "lucide-react";
+import { fetchTestResult } from "@/app/actions/test";
 
 interface TestResultsProps {
   params: {
@@ -34,7 +34,8 @@ interface TestResultsProps {
   };
 }
 
-export default function TestResults({ params }: TestResultsProps) {
+export default function TestResults() {
+  const params = useParams();
   const router = useRouter();
   const { id: testId, resultId } = params;
 
@@ -45,7 +46,7 @@ export default function TestResults({ params }: TestResultsProps) {
     async function loadResult() {
       setLoading(true);
       try {
-        const resultData = await fetchTestResult(resultId);
+        const resultData = await fetchTestResult(resultId as string);
         setResult(resultData);
       } catch (error) {
         console.error("Error loading test result:", error);
@@ -150,7 +151,7 @@ export default function TestResults({ params }: TestResultsProps) {
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          (result.correct / (result.totalMarks / 4)) *
+                          (result.correct / (result.attempted)) *
                           100
                         ).toFixed(1)}
                         %
@@ -172,7 +173,7 @@ export default function TestResults({ params }: TestResultsProps) {
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          (result.wrong / (result.totalMarks / 4)) *
+                          (result.wrong / (result.attempted)) *
                           100
                         ).toFixed(1)}
                         %
@@ -190,12 +191,11 @@ export default function TestResults({ params }: TestResultsProps) {
                         variant="outline"
                         className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                       >
-                        {result.totalMarks / 4 - result.attempted}
+                        {result.totalQuestions -result.attempted}
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          ((result.totalMarks / 4 - result.attempted) /
-                            (result.totalMarks / 4)) *
+                          (result.totalQuestions - result.attempted) *
                           100
                         ).toFixed(1)}
                         %
@@ -216,7 +216,7 @@ export default function TestResults({ params }: TestResultsProps) {
                     <span className="text-muted-foreground">
                       Total Questions
                     </span>
-                    <span className="font-medium">{result.totalMarks / 4}</span>
+                    <span className="font-medium">{result.totalQuestions}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Marks</span>
@@ -331,7 +331,7 @@ export default function TestResults({ params }: TestResultsProps) {
                     <li>
                       Overall good attempt rate (
                       {Math.round(
-                        (result.attempted / (result.totalMarks / 4)) * 100
+                        (result.attempted / result.totalQuestions) * 100
                       )}
                       % questions attempted)
                     </li>
@@ -353,8 +353,7 @@ export default function TestResults({ params }: TestResultsProps) {
                     </li>
                     <li>
                       {Math.round(
-                        ((result.totalMarks / 4 - result.attempted) /
-                          (result.totalMarks / 4)) *
+                        (result.totalQuestions-result.attempted) *
                           100
                       )}
                       % of questions were left unattempted

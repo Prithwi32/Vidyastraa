@@ -86,8 +86,6 @@ export default function TestCardsGrid() {
       if (res.success) {
         const arr = [];
 
-        console.log(res.tests);
-
         for (const test of res.tests || []) {
           arr.push({
             id: test.id,
