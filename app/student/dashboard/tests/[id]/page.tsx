@@ -312,10 +312,11 @@ export default function TestInterface() {
     return;
   }
 
-  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  const handleBeforeUnload = async(e: BeforeUnloadEvent) => {
     if (!isSubmitted) {
       e.preventDefault();
-      e.returnValue = 'Are you sure you want to leave? Your test progress will be lost.';
+      e.returnValue = 'Are you sure you want to leave? Your test will be submitted';
+      await handleSubmitTest();
       return e.returnValue;
     }
   };
