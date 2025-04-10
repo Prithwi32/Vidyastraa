@@ -20,6 +20,7 @@ export interface TestResultItem {
   duration: number
   totalMarks: number
   attempted: number
+  totalQuestions?: number
   correct: number
   wrong: number
   score: number
@@ -37,9 +38,9 @@ export interface QuestionItem {
   options: string[]
   correctAnswer: string
   subject: Subject
-  difficulty: Difficulty
+  difficulty?: Difficulty
   solution: string
-  marks: number
+  marks?: number
   order?: number
 }
 

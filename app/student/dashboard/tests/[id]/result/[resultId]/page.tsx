@@ -27,13 +27,6 @@ import type { TestResultWithDetails } from "@/lib/tests/types";
 import { Loader2 } from "lucide-react";
 import { fetchTestResult } from "@/app/actions/test";
 
-interface TestResultsProps {
-  params: {
-    id: string;
-    resultId: string;
-  };
-}
-
 export default function TestResults() {
   const params = useParams();
   const router = useRouter();
@@ -57,6 +50,19 @@ export default function TestResults() {
 
     loadResult();
   }, [resultId]);
+
+  useEffect(() => {
+    const handleBackButton = () => {
+      router.push('/student/dashboard/tests');
+    };
+
+    window.history.pushState(null, '', window.location.pathname);
+    window.addEventListener('popstate', handleBackButton);
+
+    return () => {
+      window.removeEventListener('popstate', handleBackButton);
+    };
+  }, [router]);
 
   const handleViewAnswers = () => {
     router.push(
@@ -91,7 +97,7 @@ export default function TestResults() {
             <div>
               <h1 className="text-2xl font-bold">Test Results</h1>
               <p className="text-muted-foreground">
-                {result.test.title} - Paper 1
+                {result.test.title}
               </p>
             </div>
             <div className="flex gap-2 mt-4 md:mt-0">
@@ -151,7 +157,7 @@ export default function TestResults() {
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          (result.correct / (result.attempted)) *
+                          (result.correct / (result.totalQuestions)) *
                           100
                         ).toFixed(1)}
                         %
@@ -173,7 +179,7 @@ export default function TestResults() {
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          (result.wrong / (result.attempted)) *
+                          (result.wrong / (result.totalQuestions)) *
                           100
                         ).toFixed(1)}
                         %
@@ -195,7 +201,7 @@ export default function TestResults() {
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          (result.totalQuestions - result.attempted) *
+                          ((result.totalQuestions - result.attempted)/result.totalQuestions) *
                           100
                         ).toFixed(1)}
                         %

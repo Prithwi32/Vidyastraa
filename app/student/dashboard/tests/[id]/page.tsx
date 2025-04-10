@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback, use } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -52,9 +52,14 @@ import type {
   TestResponse,
 } from "@/lib/tests/types";
 import { Loader2 } from "lucide-react";
-import { fetchTest, submitTest } from "@/app/actions/test";
+import {
+  fetchTest,
+  fetchTestResultWithQuestion,
+  submitTest,
+} from "@/app/actions/test";
 import { toast, ToastContainer } from "react-toastify";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 // Question Navigation Panel component
 function QuestionNavigationPanel({
@@ -86,10 +91,11 @@ function QuestionNavigationPanel({
     (q) => q.status === "attempted" || q.selectedOption
   ).length;
   const reviewCount = questions.filter((q) => q.status === "review").length;
-  const unattemptedCount = questions.filter(
-    (q) =>
-      (q.status === "unattempted" || q.status === "current") &&
-      !q.selectedOption
+  const unattemptedCount = questions.filter((q) =>
+    mode === "review"
+      ? !q.selectedOption // In review mode, count all questions without selected option
+      : (q.status === "unattempted" || q.status === "current") &&
+        !q.selectedOption
   ).length;
 
   // Get button class for a question
@@ -100,17 +106,24 @@ function QuestionNavigationPanel({
     const isCurrent = index === currentQuestionIndex;
     const isReview = isMarkedForReview(question.id);
     const isCorrect =
-      mode === "review" && question.selectedOption === question.correctAnswer;
+      mode === "review" &&
+      question.selectedOption &&
+      question.options[question.correctAnswer.charCodeAt(0) - 65] ===
+        question.selectedOption;
+
     const isIncorrect =
       mode === "review" &&
       question.selectedOption &&
-      question.selectedOption !== question.correctAnswer;
+      question.options[question.correctAnswer.charCodeAt(0) - 65] !==
+        question.selectedOption;
 
     if (mode === "review") {
       if (isCorrect) {
         return "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300";
       } else if (isIncorrect) {
         return "border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300";
+      } else {
+        return "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-400 dark:border-slate-500";
       }
     }
 
@@ -142,18 +155,22 @@ function QuestionNavigationPanel({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-            <span>Attempted</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-            <span>Review</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span>Current</span>
-          </div>
+          {mode != "review" && (
+            <>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span>Attempted</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                <span>Review</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span>Current</span>
+              </div>
+            </>
+          )}
           {mode === "review" && (
             <>
               <div className="flex items-center gap-1">
@@ -163,6 +180,10 @@ function QuestionNavigationPanel({
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
                 <span>Incorrect</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-slate-500"></div>
+                <span>Unattempted</span>
               </div>
             </>
           )}
@@ -278,6 +299,65 @@ export default function TestInterface() {
   // Questions with status
   const [questions, setQuestions] = useState<QuestionWithStatus[]>([]);
 
+  const pathname = usePathname();
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(mode==="review");
+  const [shouldBlockNavigation, setShouldBlockNavigation] = useState(mode!=="review");
+
+ // Prevent leaving the test
+ useEffect(() => {
+  if(mode==="review") return;
+  if (isSubmitted) {
+    setShouldBlockNavigation(false);
+    return;
+  }
+
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (!isSubmitted) {
+      e.preventDefault();
+      e.returnValue = 'Are you sure you want to leave? Your test progress will be lost.';
+      return e.returnValue;
+    }
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  };
+}, [isSubmitted]);
+
+// Handle back button/route changes
+useEffect(() => {
+  if(mode==="review") return;
+  if (isSubmitted) return;
+
+  const handleBackButton = (e: PopStateEvent) => {
+    if (!isSubmitted) {
+      e.preventDefault();
+      setShowExitConfirm(true);
+      // Push the current path again to keep the user on the page
+      window.history.pushState(null, '', pathname);
+    }
+  };
+
+  window.history.pushState(null, '', pathname);
+  window.addEventListener('popstate', handleBackButton);
+
+  return () => {
+    window.removeEventListener('popstate', handleBackButton);
+  };
+}, [isSubmitted, pathname]);
+
+const handleConfirmExit = async() => {
+  await handleSubmitTest();
+  setShowExitConfirm(false);
+};
+
+const handleCancelExit = () => {
+  setShowExitConfirm(false);
+};
+
   useEffect(() => {
     if (session.status === "loading") {
       setLoading(true);
@@ -332,7 +412,56 @@ export default function TestInterface() {
       }
     }
 
-    loadTest();
+    async function loadResult() {
+      setLoading(true);
+      try {
+        const resultData = await fetchTestResultWithQuestion(
+          resultId as string
+        );
+
+        // Set the test information (using the test data from result)
+        setTest({
+          id: resultData.id,
+          title: resultData.title,
+          category: resultData.category,
+          subjects: resultData.subjects,
+          description: resultData.description || "",
+          duration: resultData.duration,
+          questions: resultData.questions, // Use the properly ordered questions
+        });
+
+        // Create a map of questionId to response for quick lookup
+        const responseMap = new Map<string, QuestionResponse>();
+        resultData.responses.forEach((response) => {
+          responseMap.set(response.questionId, response);
+        });
+
+        // Initialize questions with status, maintaining the original order
+        const questionsWithStatus = resultData.questions.map(
+          (question, index) => {
+            const response = responseMap.get(question.id);
+            return {
+              ...question,
+              status: index === 0 ? "current" : "reviewed", // Changed from "unattempted" to "reviewed"
+              selectedOption: response?.selectedAnswer || undefined,
+              isCorrect: response?.isCorrect || false,
+              marksAwarded: response?.isCorrect ? question.marks || 0 : 0,
+            } as QuestionWithStatus;
+          }
+        );
+
+        setQuestions(questionsWithStatus);
+      } catch (error) {
+        console.error("Error loading test result:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (mode != "review") loadTest();
+    else {
+      loadResult();
+    }
   }, [testId, mode]);
 
   // Current question
@@ -455,6 +584,8 @@ export default function TestInterface() {
       // Submit the test
       // console.log(submission);
       const res = await submitTest(submission);
+      setIsSubmitted(true);
+      setShowSubmitDialog(false);
 
       if (!res) {
         console.log("Error occured during submission");
@@ -466,7 +597,7 @@ export default function TestInterface() {
       console.error("Error submitting test:", error);
       toast.error("Error submitting test");
       // Show error message
-    }finally{
+    } finally {
       setTestSubmitLoader(false);
     }
   };
@@ -515,10 +646,11 @@ export default function TestInterface() {
     (q) => q.status === "attempted" || q.selectedOption
   ).length;
   const reviewCount = questions.filter((q) => q.status === "review").length;
-  const unattemptedCount = questions.filter(
-    (q) =>
-      (q.status === "unattempted" || q.status === "current") &&
-      !q.selectedOption
+  const unattemptedCount = questions.filter((q) =>
+    mode === "review"
+      ? !q.selectedOption // In review mode, count all questions without selected option
+      : (q.status === "unattempted" || q.status === "current") &&
+        !q.selectedOption
   ).length;
 
   // Get status icon
@@ -575,7 +707,7 @@ export default function TestInterface() {
           <div>
             <h1 className="text-xl font-bold">{test.title}</h1>
             <p className="text-sm text-muted-foreground">
-              {mode === "review" ? "Review Answers" : "Test Paper 1"}
+              {mode === "review" ? "Review Answers" : ""}
             </p>
           </div>
         </div>
@@ -734,6 +866,19 @@ export default function TestInterface() {
                   {currentQuestion.question}
                 </div>
 
+                {currentQuestion.image && (
+                    <div className="mb-6">
+                      <div className="relative w-full h-48 md:h-64 rounded-md overflow-hidden">
+                        <Image
+                          src={currentQuestion.image|| "https://ui.shadcn.com/placeholder.svg"}
+                          alt="Question image"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                 <RadioGroup
                   value={currentQuestion.selectedOption ?? ""}
                   onValueChange={handleOptionSelect}
@@ -742,13 +887,12 @@ export default function TestInterface() {
                   {currentQuestion.options.map((option, index) => {
                     const optionId = String.fromCharCode(65 + index); // A, B, C, D
                     const isCorrect =
-                      mode === "review" &&
-                      currentQuestion.correctAnswer === option;
+                      mode === "review" && currentQuestion.selectedOption &&
+                      currentQuestion.options[currentQuestion.correctAnswer.charCodeAt(0) - 65] === option;
                     const isIncorrect =
                       mode === "review" &&
-                      currentQuestion.selectedOption === option &&
-                      option !== currentQuestion.correctAnswer;
-
+                      currentQuestion.selectedOption==option &&
+                      currentQuestion.selectedOption !== currentQuestion.options[currentQuestion.correctAnswer.charCodeAt(0) - 65];
                     return (
                       <div
                         key={optionId}
@@ -833,15 +977,16 @@ export default function TestInterface() {
                     variant="default"
                     className="bg-primary hover:bg-primary/90"
                     onClick={() => setShowSubmitDialog(true)}
+                    disabled={testSubmitLoader}
                   >
-                   {testSubmitLoader ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Test"
-                )}
+                    {testSubmitLoader ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Test"
+                    )}
                   </Button>
                 )}
 
@@ -920,15 +1065,46 @@ export default function TestInterface() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmitTest}>
-            {testSubmitLoader ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Test"
-                )}
+            <Button onClick={handleSubmitTest} disabled={testSubmitLoader}>
+              {testSubmitLoader ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Test"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+     {/* Exit confirmation dialog */}
+     <Dialog open={showExitConfirm} onOpenChange={handleCancelExit}>
+        <DialogContent className="sm:max-w-[425px] bg-background">
+          <DialogHeader>
+            <DialogTitle>Exit Test?</DialogTitle>
+            <DialogDescription>
+              You haven't submitted your test yet. Are you sure you want to leave?
+              Your progress will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-5 w-5" />
+              <p className="text-sm font-medium">
+                You have {unattemptedCount} unattempted questions.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelExit}>
+              Continue Test
+            </Button>
+            <Button 
+              onClick={handleConfirmExit}
+            >
+              Submit
             </Button>
           </DialogFooter>
         </DialogContent>

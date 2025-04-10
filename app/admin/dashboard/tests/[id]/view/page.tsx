@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ClipboardList, Edit, Loader2, Trash } from "lucide-react";
+import { ArrowLeft, CircleHelpIcon, ClipboardList, Edit, Loader2, TimerIcon, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -393,6 +393,7 @@ export default function ViewTestPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-muted-foreground">
+                <CircleHelpIcon className="mr-2 h-4 w-4" />
                   <span>Total Marks</span>
                 </div>
                 <span className="font-medium">
@@ -401,6 +402,16 @@ export default function ViewTestPage() {
                     0
                   )}
                 </span>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-muted-foreground">
+                  <TimerIcon className="mr-2 h-4 w-4" />
+                  <span>Total Duration</span>
+                </div>
+                <span className="font-medium">{test.duration}</span>
               </div>
 
               <Separator />

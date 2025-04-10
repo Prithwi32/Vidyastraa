@@ -335,7 +335,6 @@ export default function CreateTestPage() {
     };
 
     try {
-      console.log("Creating test with data:", testData);
       const res = await createTest(testData as any);
 
       if (res.success) {

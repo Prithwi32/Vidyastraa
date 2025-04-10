@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   SubjectResult,
   TestItem,
+  TestResultItem,
   TestResultWithDetails,
   TestWithQuestion,
 } from "@/lib/tests/types";
@@ -24,6 +25,7 @@ export async function createTest(testData: {
   subjects: Subject[];
   description?: string;
   courseId: string;
+  duration: number;
   questions: Array<{ questionId: string; marks?: number }>;
 }) {
   try {
@@ -35,7 +37,7 @@ export async function createTest(testData: {
           subjects: testData.subjects,
           description: testData.description,
           courseId: testData.courseId,
-          duration: 30,
+          duration: Number(testData.duration),
         },
       });
 
@@ -149,6 +151,7 @@ interface UpdateTestData {
   category: TestType;
   subjects: Subject[];
   courseId: string;
+  duration: number;
   questions: Array<{
     questionId: string;
     marks: number;
@@ -165,6 +168,7 @@ export async function updateTest(testId: string, data: UpdateTestData) {
           description: data.description,
           category: data.category,
           subjects: data.subjects,
+          duration:Number(data.duration),
           courseId: data.courseId,
         },
       });
@@ -228,7 +232,7 @@ export async function deleteTest(testId: string) {
   }
 }
 
-export async function fetchUpcomingTests(userId: string): Promise<TestItem[]> {
+export async function fetchUpcomingTests(userId: string): Promise<TestItem[]|null> {
   try {
     const enrolledCourses = await prisma.enrolledCourse.findMany({
       where: { userId },
@@ -290,7 +294,7 @@ export async function fetchUpcomingTests(userId: string): Promise<TestItem[]> {
     });
   } catch (error) {
     console.error("Error fetching upcoming tests:", error);
-    return [];
+    return null;
   }
 }
 
@@ -527,6 +531,7 @@ export async function fetchTestResult(
               correctAnswer: true,
               subject: true,
               solution: true,
+              image: true,
             },
           },
         },
@@ -654,6 +659,7 @@ export async function fetchTestResult(
       question: {
         id: response.question.id,
         question: response.question.question,
+        image: response.question.image,
         options: response.question.options,
         correctAnswer: response.question.correctAnswer,
         subject: response.question.subject,
@@ -661,4 +667,158 @@ export async function fetchTestResult(
       },
     })),
   };
+}
+
+export async function fetchTestResultWithQuestion(resultId: string): Promise<TestWithQuestion & { responses: QuestionResponse[] }> {
+  try {
+    const result = await prisma.testResult.findUnique({
+      where: { id: resultId },
+      include: {
+        test: {
+          include: {
+            questions: {
+              include: {
+                question: true,
+              },
+              orderBy: {
+                order: "asc",
+              },
+            },
+          },
+        },
+        responses: {
+          include: {
+            question: {
+              include: {
+                testQuestions: {
+                  where: {
+                    testId: prisma.testResult.findUnique({
+                      where: { id: resultId },
+                      select: { testId: true }
+                    }).then(r => r?.testId)
+                  }
+                }
+              }
+            }
+          },
+        },
+      },
+    });
+
+    if (!result) {
+      throw new Error("Test result not found");
+    }
+
+    const responseMap = new Map<string, typeof result.responses[0]>();
+    result.responses.forEach(response => {
+      responseMap.set(response.questionId, response);
+    });
+
+    // Group questions by subject (same logic as fetchTest)
+    const subjectGroups: Record<Subject, typeof result.test.questions> = {} as any;
+    result.test.questions.forEach((tq) => {
+      const subject = tq.question.subject as Subject;
+      if (!subjectGroups[subject]) {
+        subjectGroups[subject] = [];
+      }
+      subjectGroups[subject].push(tq);
+    });
+
+    let currentOrder = 1;
+    const questionsWithNewOrder = Object.entries(subjectGroups).flatMap(
+      ([_, subjectQuestions]) => {
+        const reorderedQuestions = subjectQuestions.map((tq) => ({
+          ...tq,
+          order: currentOrder++,
+        }));
+        return reorderedQuestions;
+      }
+    );
+
+    questionsWithNewOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const testWithQuestions: TestWithQuestion & { responses: QuestionResponse[] } = {
+      id: result.test.id,
+      title: result.test.title,
+      category: result.test.category as TestType,
+      subjects: result.test.subjects as Subject[],
+      description: result.test.description || undefined,
+      duration: result.test.duration,
+      questions: questionsWithNewOrder.map((tq) => ({
+        id: tq.question.id,
+        question: tq.question.question,
+        image: tq.question.image || undefined,
+        options: tq.question.options,
+        correctAnswer: tq.question.correctAnswer,
+        subject: tq.question.subject as Subject,
+        difficulty: tq.question.difficulty as Difficulty,
+        solution: tq.question.solution,
+        marks: tq.marks,
+        order: tq.order || undefined,
+      })),
+      responses: questionsWithNewOrder.map((tq) => {
+        const response = responseMap.get(tq.question.id);
+        return {
+          questionId: tq.question.id,
+          selectedAnswer: response?.selectedAnswer || null,
+          isCorrect: response?.isCorrect || false,
+          marksAwarded: response?.isCorrect ? tq.marks : 0,
+        };
+      }),
+    };
+
+    return testWithQuestions;
+  } catch (error) {
+    console.error("Error fetching test result:", error);
+    throw new Error("Failed to fetch test result");
+  }
+}
+
+interface QuestionResponse {
+  questionId: string;
+  selectedAnswer: string | null;
+  isCorrect: boolean;
+  marksAwarded: number;
+}
+
+export async function fetchCompletedTests(userId: string): Promise<TestResultItem[]|null> {
+  try {
+    const results = await prisma.testResult.findMany({
+      where: { userId },
+      orderBy: { submittedAt: 'desc' },
+      include: {
+        test: {
+          include: {
+            questions: {  
+              select: {
+                questionId: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return results.map(result => ({
+      id: result.id,
+      testId: result.testId,
+      userId: result.userId,
+      duration: result.duration,
+      totalMarks: result.totalMarks,
+      attempted: result.attempted,
+      correct: result.correct,
+      wrong: result.wrong,
+      score: result.score,
+      totalQuestions: result.test.questions.length, 
+      submittedAt: result.submittedAt,
+      test: {
+        title: result.test.title,
+        category: result.test.category as TestType
+      }
+    }));
+    
+  } catch (error) {
+    console.error("Error fetching completed tests:", error);
+    return null;
+  }
 }

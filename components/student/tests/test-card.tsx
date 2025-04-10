@@ -21,7 +21,7 @@ export function CompletedTestCard({ test }: CompletedTestCardProps) {
   const router = useRouter();
 
   const handleViewResults = () => {
-    router.push(`/student/dashboard/tests/${test.testId}/results/${test.id}`);
+    router.push(`/student/dashboard/tests/${test.testId}/result/${test.id}`);
   };
 
   const handleViewAnswers = () => {
@@ -62,7 +62,7 @@ export function CompletedTestCard({ test }: CompletedTestCardProps) {
             <p>
               <span className="font-medium">Questions:</span> {test.correct}{" "}
               correct out of{" "}
-              {test.attempted + (test.totalMarks / 4 - test.attempted)}
+              {test.totalQuestions}
             </p>
             <div className="mt-1">
               <Badge variant="outline">{test.test.category}</Badge>

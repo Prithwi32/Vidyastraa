@@ -95,6 +95,7 @@ export default function EditTestPage() {
       setTestTitle(testData.title);
       setTestDescription(testData.description || "");
       setTestType(testData.category);
+      setTestDuration(String(testData.duration));
       if (testData.category == "INDIVIDUAL")
         setSelectedSubject(testData.subjects[0]);
       setSelectedCourse(testData.courseId);
@@ -353,6 +354,7 @@ export default function EditTestPage() {
       ),
       description: testDescription,
       courseId: selectedCourse,
+      duration: testDuration,
       questions: selectedQuestions.map((id) => {
         return {
           questionId: id,
