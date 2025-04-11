@@ -26,6 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import type { TestResultWithDetails } from "@/lib/tests/types";
 import { Loader2 } from "lucide-react";
 import { fetchTestResult } from "@/app/actions/test";
+import { sub } from "date-fns";
 
 export default function TestResults() {
   const params = useParams();
@@ -41,6 +42,7 @@ export default function TestResults() {
       try {
         const resultData = await fetchTestResult(resultId as string);
         setResult(resultData);
+        console.log(resultData);
       } catch (error) {
         console.error("Error loading test result:", error);
       } finally {
@@ -53,14 +55,14 @@ export default function TestResults() {
 
   useEffect(() => {
     const handleBackButton = () => {
-      router.push('/student/dashboard/tests');
+      router.push("/student/dashboard/tests");
     };
 
-    window.history.pushState(null, '', window.location.pathname);
-    window.addEventListener('popstate', handleBackButton);
+    window.history.pushState(null, "", window.location.pathname);
+    window.addEventListener("popstate", handleBackButton);
 
     return () => {
-      window.removeEventListener('popstate', handleBackButton);
+      window.removeEventListener("popstate", handleBackButton);
     };
   }, [router]);
 
@@ -96,9 +98,7 @@ export default function TestResults() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold">Test Results</h1>
-              <p className="text-muted-foreground">
-                {result.test.title}
-              </p>
+              <p className="text-muted-foreground">{result.test.title}</p>
             </div>
             <div className="flex gap-2 mt-4 md:mt-0">
               <Button variant="outline" size="sm" onClick={handleBackToTests}>
@@ -157,7 +157,7 @@ export default function TestResults() {
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          (result.correct / (result.totalQuestions)) *
+                          (result.correct / result.totalQuestions) *
                           100
                         ).toFixed(1)}
                         %
@@ -178,10 +178,9 @@ export default function TestResults() {
                         {result.wrong}
                       </Badge>
                       <span className="text-muted-foreground text-sm">
-                        {(
-                          (result.wrong / (result.totalQuestions)) *
-                          100
-                        ).toFixed(1)}
+                        {((result.wrong / result.totalQuestions) * 100).toFixed(
+                          1
+                        )}
                         %
                       </span>
                     </div>
@@ -197,11 +196,12 @@ export default function TestResults() {
                         variant="outline"
                         className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                       >
-                        {result.totalQuestions -result.attempted}
+                        {result.totalQuestions - result.attempted}
                       </Badge>
                       <span className="text-muted-foreground text-sm">
                         {(
-                          ((result.totalQuestions - result.attempted)/result.totalQuestions) *
+                          ((result.totalQuestions - result.attempted) /
+                            result.totalQuestions) *
                           100
                         ).toFixed(1)}
                         %
@@ -264,7 +264,9 @@ export default function TestResults() {
                               ? "bg-blue-600"
                               : subject.subject === "CHEMISTRY"
                               ? "bg-emerald-600"
-                              : "bg-purple-600"
+                              : subject.subject === "BIOLOGY"
+                              ? "bg-purple-600"
+                              : "bg-amber-600"
                           }
                         >
                           {subject.subject}
@@ -284,7 +286,7 @@ export default function TestResults() {
                           ? "h-2 bg-blue-100 dark:bg-blue-950"
                           : subject.subject === "CHEMISTRY"
                           ? "h-2 bg-emerald-100 dark:bg-emerald-950"
-                          : "h-2 bg-purple-100 dark:bg-purple-950"
+                          : subject.subject === "MATHS" ? "h-2 bg-amber-100 dark:bg-amber-950" : "h-2 bg-purple-100 dark:bg-purple-950"
                       }
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
@@ -359,8 +361,7 @@ export default function TestResults() {
                     </li>
                     <li>
                       {Math.round(
-                        (result.totalQuestions-result.attempted) *
-                          100
+                        (result.totalQuestions - result.attempted) * 100
                       )}
                       % of questions were left unattempted
                     </li>

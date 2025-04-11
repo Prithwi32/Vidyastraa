@@ -509,7 +509,6 @@ export async function submitTest({
 export async function fetchTestResult(
   resultId: string
 ): Promise<TestResultWithDetails> {
-  // Fetch the test result with all related data
   const result = await prisma.testResult.findUnique({
     where: { id: resultId },
     include: {
@@ -543,7 +542,6 @@ export async function fetchTestResult(
     throw new Error("Test result not found");
   }
 
-  // Get all test questions with their marks
   const testQuestions = await prisma.testQuestion.findMany({
     where: { testId: result.testId },
     include: {
@@ -555,50 +553,48 @@ export async function fetchTestResult(
     },
   });
 
-  const totalQuestions = testQuestions.length; 
+  const totalQuestions = testQuestions.length;
 
   const questionMarksMap = new Map<string, number>();
   const questionSubjectMap = new Map<string, Subject>();
 
-  testQuestions.forEach((tq) => {
-    questionMarksMap.set(tq.questionId, tq.marks);
-    questionSubjectMap.set(tq.questionId, tq.question.subject);
-  });
-
   const subjectStats = new Map<
     Subject,
     {
-      total: number; // Total questions in subject
-      attempted: number; // Questions attempted in subject
-      correct: number; // Correct answers in subject
-      totalMarks: number; // Total possible marks in subject
-      obtainedMarks: number; // Marks obtained in subject
+      total: number;        // Total questions in subject
+      attempted: number;    // Questions attempted in subject
+      correct: number;      // Correct answers in subject
+      totalMarks: number;   // Total possible marks in subject
+      obtainedMarks: number;// Marks obtained in subject
     }
   >();
 
-  result.test.subjects.forEach((subject) => {
-    subjectStats.set(subject, {
-      total: 0,
-      attempted: 0,
-      correct: 0,
-      totalMarks: 0,
-      obtainedMarks: 0,
-    });
-  });
-
-  testQuestions.forEach(({ questionId, marks, question }) => {
+  testQuestions.forEach(({ question }) => {
     const subject = question.subject;
-    if (subjectStats.has(subject)) {
-      const stats = subjectStats.get(subject)!;
+    if (!subjectStats.has(subject)) {
       subjectStats.set(subject, {
-        ...stats,
-        total: stats.total + 1,
-        totalMarks: stats.totalMarks + marks,
+        total: 0,
+        attempted: 0,
+        correct: 0,
+        totalMarks: 0,
+        obtainedMarks: 0,
       });
     }
   });
 
-  // Process responses to count attempted and correct answers per subject
+  testQuestions.forEach(({ questionId, marks, question }) => {
+    const subject = question.subject;
+    questionMarksMap.set(questionId, marks);
+    questionSubjectMap.set(questionId, subject);
+
+    const stats = subjectStats.get(subject)!;
+    subjectStats.set(subject, {
+      ...stats,
+      total: stats.total + 1,
+      totalMarks: stats.totalMarks + marks,
+    });
+  });
+
   result.responses.forEach((response) => {
     const marks = questionMarksMap.get(response.questionId) || 0;
     const subject = questionSubjectMap.get(response.questionId);
@@ -614,7 +610,6 @@ export async function fetchTestResult(
     }
   });
 
-  // Convert to SubjectResult format
   const subjectScores: SubjectResult[] = Array.from(subjectStats.entries()).map(
     ([subject, stats]) => ({
       subject,
@@ -622,11 +617,13 @@ export async function fetchTestResult(
       attempted: stats.attempted,
       correct: stats.correct,
       score: stats.obtainedMarks,
-      percentage:
-        stats.totalMarks > 0
-          ? (stats.obtainedMarks / stats.totalMarks) * 100
-          : 0,
+      percentage: stats.totalMarks > 0 ? (stats.obtainedMarks / stats.totalMarks) * 100 : 0,
     })
+  );
+
+  const totalPossibleMarks = Array.from(subjectStats.values()).reduce(
+    (sum, stats) => sum + stats.totalMarks,
+    0
   );
 
   return {
@@ -640,16 +637,13 @@ export async function fetchTestResult(
     correct: result.correct,
     wrong: result.wrong,
     score: result.score,
-    percentage:
-      result.totalMarks > 0
-        ? (result.score / result.totalMarks) * 100
-        : 0,
+    percentage: totalPossibleMarks > 0 ? (result.score / totalPossibleMarks) * 100 : 0,
     submittedAt: result.submittedAt,
     test: {
       id: result.test.id,
       title: result.test.title,
       category: result.test.category,
-      subjects: result.test.subjects,
+      subjects: Array.from(subjectStats.keys()), 
     },
     subjectScores,
     responses: result.responses.map((response) => ({
