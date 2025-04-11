@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Navbar } from "@/components/navbar";
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/navigation";
 interface Course {
   id: string;
   title: string;
@@ -77,9 +77,9 @@ export default function Courses() {
     try {
       if (status !== "authenticated") {
         toast.error("Please log in to purchase a course.");
-        setTimeout(()=>{
-          router.push("/signin");
-        },3000);
+        setTimeout(() => {
+          router.push("/auth/signin");
+        }, 3000);
         return;
       }
 

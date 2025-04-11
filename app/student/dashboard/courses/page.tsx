@@ -46,7 +46,7 @@ export default function CoursesPage() {
         setEnrolledCourses(
           data.map((course: EnrolledCourse) => ({
             ...course,
-            progress: Math.floor(Math.random() * 100),           // need to get exact data
+            progress: Math.floor(Math.random() * 100), // need to get exact data
           }))
         );
       } catch (error) {
@@ -74,7 +74,9 @@ export default function CoursesPage() {
         {loading ? (
           <p>Loading courses...</p>
         ) : enrolledCourses.length === 0 ? (
-          <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
+          <p className="text-muted-foreground">
+            You haven't enrolled in any courses yet.
+          </p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {enrolledCourses.map((course) => (
@@ -116,9 +118,15 @@ export default function CoursesPage() {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                   <Button variant="outline" asChild>
-                    <Link href={`/student/dashboard/courses/${course.id}`}>View Details</Link>
+                    <Link href={`/student/dashboard/courses/${course.id}`}>
+                      View Details
+                    </Link>
                   </Button>
-                  <Button  className="dark:text-white">Continue Learning</Button>
+                  <Button className="dark:text-white">
+                    <Link href={`/student/dashboard/tests`}>
+                      Continue Course
+                    </Link>
+                  </Button>
                 </CardFooter>
               </Card>
             ))}

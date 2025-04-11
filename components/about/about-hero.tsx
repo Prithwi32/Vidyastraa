@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
-import Image from "next/image"
-import { motion } from "framer-motion"
+import { useEffect, useRef } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 
 export function AboutHero() {
-  const imageRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (!imageRef.current) return
-      const scrollY = window.scrollY
-      imageRef.current.style.transform = `translateY(${scrollY * 0.1}px)`
-    }
+      if (!imageRef.current) return;
+      const scrollY = window.scrollY;
+      imageRef.current.style.transform = `translateY(${scrollY * 0.1}px)`;
+    };
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-slate-900 py-20 md:py-28">
@@ -38,8 +38,10 @@ export function AboutHero() {
               Empowering Students for a Brighter Future
             </h1>
             <p className="mt-6 text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0">
-              At EduLearn, we're dedicated to transforming education through innovative learning solutions. Our mission
-              is to make quality education accessible to all students preparing for competitive exams.
+              At Vidyastraa, we're dedicated to transforming education through
+              innovative learning solutions. Our mission is to make quality
+              education accessible to all students preparing for competitive
+              exams.
             </p>
             <div className="mt-8 flex flex-wrap gap-4 justify-center lg:justify-start">
               <motion.div
@@ -131,7 +133,7 @@ export function AboutHero() {
               <div className="relative rounded-2xl overflow-hidden border-8 border-white dark:border-slate-800 shadow-xl">
                 <Image
                   src="/team.avif"
-                  alt="EduLearn Team"
+                  alt="Vidyastraa Team"
                   width={600}
                   height={600}
                   className="w-full h-auto object-cover"
@@ -150,8 +152,12 @@ export function AboutHero() {
                     ))}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Join our team</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">We're hiring!</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      Join our team
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      We're hiring!
+                    </p>
                   </div>
                 </div>
               </div>
@@ -160,6 +166,5 @@ export function AboutHero() {
         </div>
       </div>
     </section>
-  )
+  );
 }
-

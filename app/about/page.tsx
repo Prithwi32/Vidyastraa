@@ -1,14 +1,15 @@
-import type { Metadata } from "next"
-import { AboutHero } from "@/components/about/about-hero"
-import { AboutMission } from "@/components/about/about-mission"
-import { AboutStats } from "@/components/about/about-stats"
-import { Footer } from "@/components/footer"
-import { Navbar } from "@/components/navbar"
+import type { Metadata } from "next";
+import { AboutHero } from "@/components/about/about-hero";
+import { AboutMission } from "@/components/about/about-mission";
+import { AboutStats } from "@/components/about/about-stats";
+import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
 
 export const metadata: Metadata = {
-  title: "About Us - EduLearn",
-  description: "Learn more about EduLearn's mission, team, and journey in educational excellence",
-}
+  title: "About Us - Vidyastraa",
+  description:
+    "Learn more about Vidyastraa's mission, team, and journey in educational excellence",
+};
 
 export default function AboutPage() {
   return (
@@ -21,6 +22,5 @@ export default function AboutPage() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }
-

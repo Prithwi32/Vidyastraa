@@ -12,7 +12,7 @@ export function FAQ() {
     {
       question: "How can I access the study materials?",
       answer:
-        "Once you sign up and enroll in a course, you can access all study materials through your dashboard. Materials are available in PDF format and can be downloaded for offline use.",
+        "Once you sign up, you can access all study materials through your dashboard. Materials are available in PDF format and can be downloaded for offline use.",
     },
     {
       question: "Are the video lectures available offline?",
@@ -25,24 +25,9 @@ export function FAQ() {
         "Our practice tests are available in various formats: chapter-wise tests, subject-wise tests, previous year papers, and full-length mock tests. All tests follow the latest exam pattern and come with detailed solutions.",
     },
     {
-      question: "Do you provide doubt-solving support?",
-      answer:
-        "Yes, we offer doubt-solving support through our dedicated forum and scheduled live sessions with educators. Premium subscribers also get access to one-on-one doubt-solving sessions.",
-    },
-    {
-      question: "What is your refund policy?",
-      answer:
-        "We offer a 7-day money-back guarantee for all our courses. If you're not satisfied with the course content, you can request a refund within 7 days of purchase.",
-    },
-    {
-      question: "Can I switch between JEE and NEET courses?",
-      answer:
-        "Yes, if you have subscribed to our premium plan, you can access both JEE and NEET courses. However, specific course packages are limited to either JEE or NEET.",
-    },
-    {
       question: "How long do I have access to the courses?",
       answer:
-        "Course access depends on your subscription plan. Monthly subscribers get access for 30 days, while yearly subscribers get access for 365 days. Lifetime access options are also available for select courses.",
+        "Course access depends on your duration of courses. Once enroll into courses, you will access to courses until course duration.",
     },
   ]
 

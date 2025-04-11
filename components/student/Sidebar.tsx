@@ -19,9 +19,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutDialog } from "@/components/logout-dialog";
 import { useMobile } from "./stud-use-mobile";
-import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
-
+import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 const navItems = [
   {
     name: "Dashboard",
@@ -56,7 +55,7 @@ const navItems = [
 ];
 
 export default function StudentSidebar() {
-  const router = useRouter();
+  const { data: session } = useSession();
   const pathname = usePathname();
   const isMobile = useMobile();
   const [isOpen, setIsOpen] = useState(false);
@@ -70,8 +69,14 @@ export default function StudentSidebar() {
     <>
       <div className="px-3 py-4">
         <div className="flex items-center mb-8 pl-2">
-          <BookOpen className="h-6 w-6 text-primary mr-2" />
-          <h1 className="text-xl font-bold">EduPortal</h1>
+          <Image
+            src="/logo.jpeg"
+            alt="Vidyastraa Logo"
+            width={26}
+            height={26}
+            className="object-contain mr-2"
+          />
+          <h1 className="text-xl font-bold text-yellow-700">Vidyastraa</h1>
         </div>
         <div className="space-y-1">
           {navItems.map((item) => (
@@ -106,7 +111,7 @@ export default function StudentSidebar() {
             }}
             className="text-muted-foreground hover:text-foreground"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-5 w-5" onClick={() => signOut()} />
             <span className="sr-only">Logout</span>
           </Button>
         </div>
@@ -116,7 +121,7 @@ export default function StudentSidebar() {
               <User className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium">John Doe</p>
+              <p className="text-sm font-medium">{session?.user?.name}</p>
               <p className="text-xs text-muted-foreground">Student</p>
             </div>
           </div>

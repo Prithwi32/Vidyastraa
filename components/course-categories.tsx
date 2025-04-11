@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { ArrowRight, Atom, BookOpen, Calculator, Dna, FlaskRoundIcon as Flask, Microscope } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -40,7 +39,7 @@ export function CourseCategories() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link href="/courses/physics" passHref>
+            <Link href="/courses" passHref>
               <Button variant="outline" className="w-full">
                 Explore Physics Courses
               </Button>
@@ -71,7 +70,7 @@ export function CourseCategories() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link href="/courses/chemistry" passHref>
+            <Link href="/courses" passHref>
               <Button variant="outline" className="w-full">
                 Explore Chemistry Courses
               </Button>
@@ -102,7 +101,7 @@ export function CourseCategories() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link href="/courses/mathematics" passHref>
+            <Link href="/courses" passHref>
               <Button variant="outline" className="w-full">
                 Explore Mathematics Courses
               </Button>
@@ -133,7 +132,7 @@ export function CourseCategories() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link href="/courses/biology" passHref>
+            <Link href="/courses" passHref>
               <Button variant="outline" className="w-full">
                 Explore Biology Courses
               </Button>
@@ -164,7 +163,7 @@ export function CourseCategories() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link href="/courses/jee-package" passHref>
+            <Link href="/courses" passHref>
               <Button variant="outline" className="w-full">
                 Explore JEE Package
               </Button>
@@ -195,7 +194,7 @@ export function CourseCategories() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link href="/courses/neet-package" passHref>
+            <Link href="/courses" passHref>
               <Button variant="outline" className="w-full">
                 Explore NEET Package
               </Button>

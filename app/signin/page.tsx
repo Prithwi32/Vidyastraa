@@ -30,7 +30,7 @@ export default function LoginPage() {
     try {
       const result = await signIn("google", {
         redirect: false,
-        callbackUrl: "/",
+        callbackUrl: "/student/dashboard",
       });
 
       if (result?.error) {
@@ -51,7 +51,7 @@ export default function LoginPage() {
         <div className="bg-white shadow-lg rounded-lg p-8 w-96 text-center">
           <Image
             src="/login.avif"
-            alt="EduLearn Logo"
+            alt="Vidyastraa Logo"
             width={200}
             height={200}
             className="mx-auto mb-4"

@@ -1,12 +1,12 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button"; // update as per your UI lib
+import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 const ProtectedButtonLink = ({
   target,
-  guestFallback = "/signin",
+  guestFallback = "/auth/signin",
   children,
 }) => {
   const router = useRouter();
@@ -23,14 +23,14 @@ const ProtectedButtonLink = ({
     <Button
       onClick={handleClick}
       variant="ghost"
-      className="w-full"
+      className="w-full bg-blue-600 text-white"
       disabled={status === "loading"}
     >
       {status === "loading" ? (
         "Loading..."
       ) : (
         <>
-          {children} <ArrowRight className="ml-2 h-4 w-4" />
+          {children}
         </>
       )}
     </Button>

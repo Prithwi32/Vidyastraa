@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, BookOpenText } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface ProfileAvatarProps {
   name: string;
@@ -24,6 +25,7 @@ export default function ProfileAvatar({
   email = "",
   imageUrl,
 }: Partial<ProfileAvatarProps>) {
+  const router = useRouter();
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -57,13 +59,19 @@ export default function ProfileAvatar({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() => router.push("/student/dashboard/profile")}
+          >
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() => router.push("/student/dashboard")}
+          >
             <BookOpenText className="mr-2 h-4 w-4" />
-            <span>My courses</span>
+            <span>Dashboard</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

@@ -56,7 +56,6 @@ export default function ProfilePage() {
                       Joined on {format(new Date(userData.joinedDate), "MMMM d, yyyy")}
                     </div>
                   </div>
-                  <Button variant="outline">Edit Profile</Button>
                 </div>
               </div>
             </CardContent>
@@ -90,40 +89,6 @@ export default function ProfilePage() {
                   <p className="text-sm font-medium">{userData.overallProgress}%</p>
                 </div>
                 <Progress value={userData.overallProgress} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Academic Achievements</CardTitle>
-              <CardDescription>Badges and certificates earned</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg">
-                  <GraduationCap className="h-8 w-8 text-primary mb-2" />
-                  <p className="text-sm font-medium text-center">Course Completion</p>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Completed {userData.courseProgress.filter((cp: { progress: number }) => cp.progress === 100).length} courses
-                  </p>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg">
-                  <Trophy className="h-8 w-8 text-primary mb-2" />
-                  <p className="text-sm font-medium text-center">Top Performer</p>
-                  <p className="text-xs text-muted-foreground text-center">Physics - 95%</p>
-                </div>
-                {/* Locked Achievements */}
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg opacity-50">
-                  <BookOpen className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm font-medium text-center">Avid Learner</p>
-                  <p className="text-xs text-muted-foreground text-center">Locked</p>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg opacity-50">
-                  <FileCheck className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm font-medium text-center">Test Master</p>
-                  <p className="text-xs text-muted-foreground text-center">Locked</p>
-                </div>
               </div>
             </CardContent>
           </Card>
