@@ -25,8 +25,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { TestResultWithDetails } from "@/lib/tests/types";
 import { Loader2 } from "lucide-react";
-import { fetchTestResult } from "@/app/actions/test";
+import { fetchTestResult, fetchTestResultWithQuestion } from "@/app/actions/test";
 import { sub } from "date-fns";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 export default function TestResults() {
   const params = useParams();
@@ -76,10 +77,195 @@ export default function TestResults() {
     router.push("/student/dashboard/tests");
   };
 
-  const handleDownloadReport = () => {
-    // In a real app, this would generate and download a PDF report
-    console.log("Downloading report...");
-    alert("Report download started");
+  const handleDownloadReport = async () => {
+    if (!result) {
+      console.error("No result data available");
+      return;
+    }
+  
+    try {
+      // Fetch complete test data including unattempted questions
+      const testWithResponses = await fetchTestResultWithQuestion(result.id);
+  
+      const pdfDoc = await PDFDocument.create();
+      let page = pdfDoc.addPage([595.28, 841.89]);
+      const { width, height } = page.getSize();
+      const fontSize = 12;
+      const margin = 50;
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      let y = height - margin;
+  
+      const drawText = (
+        text: string,
+        size = fontSize,
+        lineGap = 16,
+        x = margin
+      ) => {
+        if (y < margin + lineGap) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = height - margin;
+        }
+  
+        const lines = text.split("\n");
+        lines.forEach((line) => {
+          page.drawText(line, {
+            x,
+            y,
+            size,
+            font,
+            color: rgb(0, 0, 0),
+          });
+          y -= lineGap;
+        });
+      };
+  
+      // Header Section
+      drawText(`Test Report - ${testWithResponses.title}`, 18, 24);
+      drawText(
+        `Date: ${new Date(result.submittedAt).toLocaleDateString()}`,
+        fontSize,
+        20
+      );
+      drawText(`Score: ${result.score} / ${result.totalMarks}`, fontSize, 20);
+      drawText(`Percentage: ${result.percentage.toFixed(2)}%`, fontSize, 20);
+      drawText(
+        `Correct: ${result.correct} || Incorrect: ${
+          result.wrong
+        } || Unattempted: ${testWithResponses.questions.length - result.attempted}`,
+        fontSize,
+        24
+      );
+  
+      // Questions Summary Section
+      drawText("\nQuestions Summary", 16, 24);
+  
+      // Process all questions (both attempted and unattempted)
+      testWithResponses.questions.forEach((question, idx) => {
+        const response = testWithResponses.responses.find(
+          (r) => r.questionId === question.id
+        );
+  
+        // Question Text
+        drawText(`\n${idx + 1}. ${question.question}`, fontSize, 18);
+  
+        // Options
+        question.options.forEach((opt: string, optIdx: number) => {
+          const optionLabel = String.fromCharCode(65 + optIdx);
+          drawText(`   ${optionLabel}. ${opt}`, fontSize - 1, 16, margin + 20);
+        });
+  
+        // Process user answer
+        let userAnswerText = "Not answered";
+        let isCorrect = response?.isCorrect || false;
+  
+        if (response?.selectedAnswer) {
+          // First try to match the exact option text
+          const exactMatchIndex = question.options.findIndex(
+            (opt) => opt === response.selectedAnswer
+          );
+          if (exactMatchIndex >= 0) {
+            const optionLetter = String.fromCharCode(65 + exactMatchIndex);
+            userAnswerText = `${optionLetter}. ${question.options[exactMatchIndex]}`;
+          }
+          // If no exact match, try to parse as index (0-3) or letter (A-D)
+          else {
+            let optionIndex = -1;
+  
+            // Check if it's a letter (A-D)
+            if (/^[A-Da-d]$/.test(response.selectedAnswer)) {
+              optionIndex =
+                response.selectedAnswer.toUpperCase().charCodeAt(0) -
+                "A".charCodeAt(0);
+            }
+            // Check if it's an index (0-3)
+            else if (/^[0-3]$/.test(response.selectedAnswer)) {
+              optionIndex = parseInt(response.selectedAnswer);
+            }
+  
+            if (optionIndex >= 0 && optionIndex < question.options.length) {
+              const optionLetter = String.fromCharCode(65 + optionIndex);
+              userAnswerText = `${optionLetter}. ${question.options[optionIndex]}`;
+            } else {
+              // Fallback to showing the raw value
+              userAnswerText = response.selectedAnswer;
+            }
+          }
+        }
+  
+        // Process correct answer
+        let correctAnswerIndex = -1;
+        if (/^[A-Da-d]$/.test(question.correctAnswer)) {
+          correctAnswerIndex =
+            question.correctAnswer.toUpperCase().charCodeAt(0) - "A".charCodeAt(0);
+        } else if (/^[0-3]$/.test(question.correctAnswer)) {
+          correctAnswerIndex = parseInt(question.correctAnswer);
+        } else {
+          correctAnswerIndex = question.options.findIndex(
+            (opt) => opt === question.correctAnswer
+          );
+        }
+  
+        const correctAnswerText =
+          correctAnswerIndex >= 0 && correctAnswerIndex < question.options.length
+            ? `${String.fromCharCode(65 + correctAnswerIndex)}. ${
+                question.options[correctAnswerIndex]
+              }`
+            : question.correctAnswer;
+  
+        // Draw user answer
+        drawText(
+          `   Your answer: ${userAnswerText}`,
+          fontSize,
+          16,
+          margin + 20
+        );
+        
+        const statusText = response 
+          ? `Status: ${isCorrect ? "CORRECT" : "INCORRECT"}`
+          : "Status: UNATTEMPTED";
+        
+        drawText(
+          `   ${statusText}`,
+          fontSize,
+          16,
+          margin + 20
+        );
+  
+        if (!isCorrect || !response) {
+          drawText(
+            `   Correct answer: ${correctAnswerText}`,
+            fontSize,
+            16,
+            margin + 20
+          );
+        }
+  
+        // Add space between questions
+        drawText("", fontSize, 12);
+      });
+  
+      // Generate and download the PDF
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+  
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Test_Report_${testWithResponses.title.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_${new Date(result.submittedAt).toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+  
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   if (loading || !result) {
@@ -286,7 +472,9 @@ export default function TestResults() {
                           ? "h-2 bg-blue-100 dark:bg-blue-950"
                           : subject.subject === "CHEMISTRY"
                           ? "h-2 bg-emerald-100 dark:bg-emerald-950"
-                          : subject.subject === "MATHS" ? "h-2 bg-amber-100 dark:bg-amber-950" : "h-2 bg-purple-100 dark:bg-purple-950"
+                          : subject.subject === "MATHS"
+                          ? "h-2 bg-amber-100 dark:bg-amber-950"
+                          : "h-2 bg-purple-100 dark:bg-purple-950"
                       }
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
@@ -302,77 +490,6 @@ export default function TestResults() {
           </Card>
 
           <Card className="mt-6 bg-card border-border">
-            <CardHeader className="pb-2">
-              <CardTitle>Performance Analysis</CardTitle>
-              <CardDescription>
-                Areas of strength and improvement
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                  <h3 className="font-medium text-emerald-800 dark:text-emerald-300 flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Strengths
-                  </h3>
-                  <ul className="mt-2 space-y-1 text-emerald-700 dark:text-emerald-400 text-sm pl-7 list-disc">
-                    <li>
-                      Strong performance in Mathematics (
-                      {result.subjectScores
-                        .find((s) => s.subject === "MATHS")
-                        ?.percentage.toFixed(1)}
-                      %)
-                    </li>
-                    <li>
-                      Good accuracy in Physics (
-                      {Math.round(
-                        ((result.subjectScores.find(
-                          (s) => s.subject === "PHYSICS"
-                        )?.correct || 0) /
-                          (result.subjectScores.find(
-                            (s) => s.subject === "PHYSICS"
-                          )?.attempted || 1)) *
-                          100
-                      )}
-                      % of attempted questions correct)
-                    </li>
-                    <li>
-                      Overall good attempt rate (
-                      {Math.round(
-                        (result.attempted / result.totalQuestions) * 100
-                      )}
-                      % questions attempted)
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800">
-                  <h3 className="font-medium text-amber-800 dark:text-amber-300 flex items-center">
-                    <AlertTriangle className="h-5 w-5 mr-2" />
-                    Areas for Improvement
-                  </h3>
-                  <ul className="mt-2 space-y-1 text-amber-700 dark:text-amber-400 text-sm pl-7 list-disc">
-                    <li>
-                      Chemistry performance needs improvement (
-                      {result.subjectScores
-                        .find((s) => s.subject === "CHEMISTRY")
-                        ?.percentage.toFixed(1)}
-                      %)
-                    </li>
-                    <li>
-                      {Math.round(
-                        (result.totalQuestions - result.attempted) * 100
-                      )}
-                      % of questions were left unattempted
-                    </li>
-                    <li>
-                      {Math.round((result.wrong / result.attempted) * 100)}% of
-                      attempted questions were incorrect
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
             <CardFooter className="flex justify-center border-t border-border pt-4">
               <Button onClick={handleViewAnswers} className="gap-2">
                 <Eye className="h-4 w-4" />
