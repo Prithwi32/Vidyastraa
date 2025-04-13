@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 const ProtectedButtonLink = ({
   target,
-  guestFallback = "/auth/signin",
+  guestFallback = "/signin",
   children,
 }) => {
   const router = useRouter();
@@ -26,13 +26,7 @@ const ProtectedButtonLink = ({
       className="w-full bg-blue-600 text-white"
       disabled={status === "loading"}
     >
-      {status === "loading" ? (
-        "Loading..."
-      ) : (
-        <>
-          {children}
-        </>
-      )}
+      {status === "loading" ? "Loading..." : <>{children}</>}
     </Button>
   );
 };
