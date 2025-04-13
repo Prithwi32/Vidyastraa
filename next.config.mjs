@@ -1,6 +1,6 @@
-let userConfig = undefined
+let userConfig = undefined;
 try {
-  userConfig = await import('./v0-user-next.config')
+  userConfig = await import('./v0-user-next.config');
 } catch (e) {
   // ignore error
 }
@@ -21,28 +21,61 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-}
 
-mergeConfig(nextConfig, userConfig)
+  // ✅ Add headers for Android Google Auth (CORS support)
+  async headers() {
+    return [
+      {
+        source: '/api/android-auth',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*', // Consider restricting this in production
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'POST, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+    ];
+  },
 
+  // ✅ Add rewrites for Android-specific endpoint
+  async rewrites() {
+    return [
+      {
+        source: '/android-auth',
+        destination: '/api/android-auth',
+      },
+    ];
+  },
+};
+
+// ✅ Merge with userConfig if it exists
 function mergeConfig(nextConfig, userConfig) {
-  if (!userConfig) {
-    return
-  }
+  if (!userConfig) return;
 
   for (const key in userConfig) {
     if (
       typeof nextConfig[key] === 'object' &&
-      !Array.isArray(nextConfig[key])
+      !Array.isArray(nextConfig[key]) &&
+      typeof userConfig[key] === 'object'
     ) {
       nextConfig[key] = {
         ...nextConfig[key],
         ...userConfig[key],
-      }
+      };
     } else {
-      nextConfig[key] = userConfig[key]
+      nextConfig[key] = userConfig[key];
     }
   }
 }
 
-export default nextConfig
+mergeConfig(nextConfig, userConfig);
+
+export default nextConfig;
