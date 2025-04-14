@@ -68,16 +68,20 @@ export default function StudentSidebar() {
   const sidebarContent = (
     <>
       <div className="px-3 py-4">
-        <div className="flex items-center mb-8 pl-2">
-          <Image
-            src="/logo.jpeg"
-            alt="Vidyastraa Logo"
-            width={26}
-            height={26}
-            className="object-contain mr-2"
-          />
-          <h1 className="text-xl font-bold text-yellow-700">Vidyastraa</h1>
-        </div>
+        <Link href={"/"}>
+          <div className="flex items-center mb-8 pl-2">
+            <Image
+              src="/logo.jpeg"
+              alt="Vidyastraa Logo"
+              width={26}
+              height={26}
+              className="object-contain mr-2 rounded-full hover:scale-110 transition-all duration-300"
+            />
+            <h1 className="text-xl font-bold text-yellow-600 hover:text-yellow-500">
+              Vidyastraa
+            </h1>
+          </div>
+        </Link>
         <div className="space-y-1">
           {navItems.map((item) => (
             <Link

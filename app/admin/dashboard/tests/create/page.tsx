@@ -40,6 +40,7 @@ import { getAllCourses } from "@/app/actions/course";
 import Loader from "@/components/Loader";
 import { createTest } from "@/app/actions/test";
 import { Separator } from "@/components/ui/separator";
+import Image from "next/image";
 
 type Course = {
   id: string;
@@ -385,7 +386,9 @@ export default function CreateTestPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="test-duration">Test Duration (In Minutes)</Label>
+                <Label htmlFor="test-duration">
+                  Test Duration (In Minutes)
+                </Label>
                 <Input
                   id="test-duration"
                   placeholder="Enter test duration"
@@ -537,7 +540,9 @@ export default function CreateTestPage() {
                       )}
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Selected Questions</h3>
+                      <h3 className="text-sm font-medium text-blue-800">
+                        Selected Questions
+                      </h3>
                       <h3
                         className={`text-sm font-medium ${
                           areRequirementsMet()
@@ -880,6 +885,21 @@ export default function CreateTestPage() {
                                 <p className="text-sm font-medium">
                                   {question.question}
                                 </p>
+                                {question.image && (
+                                  <div className="mb-6">
+                                    <div className="relative w-full h-48 rounded-md my-4 overflow-hidden">
+                                      <Image
+                                        src={
+                                          question.image ||
+                                          "https://ui.shadcn.com/placeholder.svg"
+                                        }
+                                        alt="Question image"
+                                        fill
+                                        className="object-contain"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
                                   {question.options.map((option, index) => {
                                     const optionLetter = String.fromCharCode(

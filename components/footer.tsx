@@ -9,7 +9,7 @@ export function Footer() {
           {/* Branding & Social */}
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-2xl text-yellow-700">
+              <span className="font-bold text-2xl text-yellow-600">
                 Vidyastraa
               </span>
             </div>

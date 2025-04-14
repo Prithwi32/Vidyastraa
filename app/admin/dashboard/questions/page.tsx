@@ -223,7 +223,7 @@ export default function QuestionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Questions</h1>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-white">
+              <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-white" onClick={()=>resetForm()}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Question
               </Button>

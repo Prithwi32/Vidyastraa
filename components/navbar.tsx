@@ -29,7 +29,7 @@ export function Navbar() {
   const handleProtectedNavigation = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     if (session.status === "unauthenticated") {
-      router.push("/signin");
+      router.push("/auth/signin");
     } else if (session.status === "authenticated") {
       router.push(href);
     }
@@ -51,10 +51,10 @@ export function Navbar() {
                 alt="Vidyastraa Logo"
                 width={40}
                 height={40}
-                className="object-contain"
+                className="object-contain rounded-full"
               />
             </div>
-            <span className="font-bold text-2xl text-yellow-700 group-hover:text-yellow-700 transition-colors">
+            <span className="font-bold text-2xl text-yellow-600 group-hover:text-yellow-500 transition-colors">
               Vidyastraa
             </span>
           </Link>
@@ -275,7 +275,7 @@ export function Navbar() {
           {session.status == "unauthenticated" && (
             <div className="hidden md:flex gap-2">
               <Button asChild>
-                <Link href="/signin">Sign In</Link>
+                <Link href="/auth/signin">Sign In</Link>
               </Button>
             </div>
           )}
@@ -316,7 +316,7 @@ export function Navbar() {
               onClick={(e) => {
                 if (session.status === "unauthenticated") {
                   e.preventDefault();
-                  router.push("/signin");
+                  router.push("/auth/signin");
                 }
               }}
             >
@@ -331,7 +331,7 @@ export function Navbar() {
               onClick={(e) => {
                 if (session.status === "unauthenticated") {
                   e.preventDefault();
-                  router.push("/signin");
+                  router.push("/auth/signin");
                 }
               }}
             >
@@ -346,7 +346,7 @@ export function Navbar() {
               onClick={(e) => {
                 if (session.status === "unauthenticated") {
                   e.preventDefault();
-                  router.push("/signin");
+                  router.push("/auth/signin");
                 }
               }}
             >
@@ -372,7 +372,7 @@ export function Navbar() {
             </Link>
             {session.status == "unauthenticated" && (
               <Button className="w-full" asChild>
-                <Link href="/signin">Sign In</Link>
+                <Link href="/auth/signin">Sign In</Link>
               </Button>
             )}
           </div>

@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getTestById, updateTest } from "@/app/actions/test";
 import { getAllCourses } from "@/app/actions/course";
+import Image from "next/image";
 
 type Course = {
   id: string;
@@ -69,7 +70,6 @@ export default function EditTestPage() {
   const [questionMarks, setQuestionMarks] = useState<Record<string, number>>(
     {}
   );
-
 
   useEffect(() => {
     const getData = async () => {
@@ -423,14 +423,14 @@ export default function EditTestPage() {
               />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="test-duration">Test Duration (In Minutes)</Label>
-                <Input
-                  id="test-duration"
-                  placeholder="Enter test duration"
-                  value={testDuration}
-                  onChange={(e) => setTestDuration(e.target.value)}
-                />
-              </div>
+              <Label htmlFor="test-duration">Test Duration (In Minutes)</Label>
+              <Input
+                id="test-duration"
+                placeholder="Enter test duration"
+                value={testDuration}
+                onChange={(e) => setTestDuration(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="test-description">Description (Optional)</Label>
               <Input
@@ -886,27 +886,39 @@ export default function EditTestPage() {
                               <p className="text-sm font-medium">
                                 {question.question}
                               </p>
+                              {question.image && (
+                                <div className="mb-6">
+                                  <div className="relative w-full h-48 rounded-md my-4 overflow-hidden">
+                                    <Image
+                                      src={
+                                        question.image ||
+                                        "https://ui.shadcn.com/placeholder.svg"
+                                      }
+                                      alt="Question image"
+                                      fill
+                                      className="object-contain"
+                                    />
+                                  </div>
+                                </div>
+                              )}
                               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                              {question.options.map((option, index) => {
-                                    const optionLetter = String.fromCharCode(
-                                      65 + index
-                                    );
+                                {question.options.map((option, index) => {
+                                  const optionLetter = String.fromCharCode(
+                                    65 + index
+                                  );
 
-                                    return (
-                                      <span
-                                        key={index}
-                                        className="text-xs block"
-                                      >
-                                        {option}
-                                        {optionLetter ===
-                                          question.correctAnswer && (
-                                          <span className="ml-1 text-green-600">
-                                            ✓
-                                          </span>
-                                        )}
-                                      </span>
-                                    );
-                              })}
+                                  return (
+                                    <span key={index} className="text-xs block">
+                                      {option}
+                                      {optionLetter ===
+                                        question.correctAnswer && (
+                                        <span className="ml-1 text-green-600">
+                                          ✓
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
