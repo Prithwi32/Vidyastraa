@@ -19,6 +19,7 @@ import {
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [totalQuestions, setTotalQuestions] = useState(0);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -26,6 +27,7 @@ export default function DashboardPage() {
         const res = await fetch("/api/admin/stats");
         const data = await res.json();
         setStats(data);
+        setTotalQuestions(data.questionStats.reduce((acc:any,curr:any)=>acc+curr._count._all,0));
       } catch (err) {
         toast.error("Failed to load dashboard stats.");
       } finally {
@@ -96,7 +98,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {stats.questionStats.map((q: any) => {
-                const percentage = Math.min((q._count._all / 2000) * 100, 100); // adjust total if needed
+                const percentage = Math.min((q._count._all / totalQuestions) * 100, 100); // adjust total if needed
                 return (
                   <div key={q.subject} className="space-y-2">
                     <div className="flex items-center justify-between">

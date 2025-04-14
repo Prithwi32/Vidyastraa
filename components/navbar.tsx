@@ -51,10 +51,10 @@ export function Navbar() {
                 alt="Vidyastraa Logo"
                 width={40}
                 height={40}
-                className="object-contain"
+                className="object-contain rounded-full"
               />
             </div>
-            <span className="font-bold text-2xl text-yellow-700 group-hover:text-yellow-700 transition-colors">
+            <span className="font-bold text-2xl text-yellow-600 group-hover:text-yellow-500 transition-colors">
               Vidyastraa
             </span>
           </Link>
