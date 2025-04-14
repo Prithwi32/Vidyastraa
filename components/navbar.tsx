@@ -29,7 +29,7 @@ export function Navbar() {
   const handleProtectedNavigation = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     if (session.status === "unauthenticated") {
-      router.push("/auth/signin");
+      router.push("/signin");
     } else if (session.status === "authenticated") {
       router.push(href);
     }
@@ -275,7 +275,7 @@ export function Navbar() {
           {session.status == "unauthenticated" && (
             <div className="hidden md:flex gap-2">
               <Button asChild>
-                <Link href="/auth/signin">Sign In</Link>
+                <Link href="/signin">Sign In</Link>
               </Button>
             </div>
           )}
@@ -316,7 +316,7 @@ export function Navbar() {
               onClick={(e) => {
                 if (session.status === "unauthenticated") {
                   e.preventDefault();
-                  router.push("/auth/signin");
+                  router.push("/signin");
                 }
               }}
             >
@@ -331,7 +331,7 @@ export function Navbar() {
               onClick={(e) => {
                 if (session.status === "unauthenticated") {
                   e.preventDefault();
-                  router.push("/auth/signin");
+                  router.push("/signin");
                 }
               }}
             >
@@ -346,7 +346,7 @@ export function Navbar() {
               onClick={(e) => {
                 if (session.status === "unauthenticated") {
                   e.preventDefault();
-                  router.push("/auth/signin");
+                  router.push("/signin");
                 }
               }}
             >
@@ -372,7 +372,7 @@ export function Navbar() {
             </Link>
             {session.status == "unauthenticated" && (
               <Button className="w-full" asChild>
-                <Link href="/auth/signin">Sign In</Link>
+                <Link href="/signin">Sign In</Link>
               </Button>
             )}
           </div>
