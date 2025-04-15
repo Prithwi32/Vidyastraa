@@ -78,16 +78,20 @@
 
 
 import GoogleProvider from "next-auth/providers/google";
-import { prisma } from "./prisma";
+import { PrismaClient } from "@prisma/client";
+import type { NextAuthOptions } from "next-auth";
 
-export const NEXT_AUTH = {
+const prisma = new PrismaClient();
+
+export const NEXT_AUTH: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_ID || "",
       clientSecret: process.env.GOOGLE_SECRET || "",
       authorization: {
         params: {
-          prompt: "select_account"
+          prompt: "select_account",
+          access_type: "offline" // Add for refresh tokens
         }
       }
     }),
@@ -97,41 +101,58 @@ export const NEXT_AUTH = {
     strategy: "jwt",
     maxAge: 24 * 60 * 60,
   },
+  cookies: { // Moved to root level
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: false, // Required for WebView access
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   callbacks: {
-    async jwt({ token, user }:any) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        // Store only what you need
+        token.accessToken = token.accessToken;
       }
       return token;
     },
 
-    async session({ session, token }:any) {
+    async session({ session, token }) {
       if (token?.id) {
         session.user.id = token.id;
       }
-      // Expose the raw JWT token to client
-      session.token = token;
+      // Expose only necessary token data
+      session.accessToken = token.accessToken;
       return session;
     },
 
-    async redirect({ url, baseUrl }:any) {
-      // Mobile app deep link handling
-      if (url.startsWith('android-app://')) {
-        return `${baseUrl}/auth/mobile-callback`;
+    async redirect({ url, baseUrl }) {
+      // Enhanced mobile handling
+      if (url.startsWith('android-app://') || 
+          url.startsWith('com.example.vidyastraa_app://')) {
+        return `${baseUrl}/api/auth/sync`;
       }
       return url.startsWith(baseUrl) ? url : baseUrl;
     },
 
-    async signIn({ user, account }:any) {
+    async signIn({ user, account }) {
       if (account?.provider === "google") {
         try {
-          const { email, name, id: googleId } = user;
+          const email = user.email as string;
+          const name = user.name as string;
+          const googleId = user.id as string;
+
           const existingUser = await prisma.user.upsert({
             where: { email },
             update: { googleId },
             create: {
-              email: email as string,
-              name: name as string,
+              email,
+              name: name || email.split('@')[0],
               googleId,
             },
           });
@@ -149,4 +170,5 @@ export const NEXT_AUTH = {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
+  debug: process.env.NODE_ENV === "development",
 };
