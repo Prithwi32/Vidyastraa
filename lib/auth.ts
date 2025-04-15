@@ -10,12 +10,12 @@
 //   ],
 //   secret: process.env.NEXTAUTH_SECRET,
 //   session:{
-//     maxAge: 1 * 24 * 60 * 60, 
+//     maxAge: 1 * 24 * 60 * 60,
 //   },
 //   callbacks: {
 //     async jwt({ token, user }: any) {
 //       if (user) {
-//         token.id = user.id; 
+//         token.id = user.id;
 //       }
 //       return token;
 //     },
@@ -48,7 +48,7 @@
 //             });
 //           }
 
-//           user.id = existingUser.id; 
+//           user.id = existingUser.id;
 
 //           return true;
 //         } catch (error) {
@@ -63,7 +63,6 @@
 //     signIn: "/auth/signin",
 //   },
 // };
-
 
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
@@ -81,6 +80,14 @@ export const NEXT_AUTH = {
     maxAge: 1 * 24 * 60 * 60, // 1 day
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // For mobile apps, redirect back to the app's main URL
+      if (url.startsWith("android-app://")) {
+        return `${baseUrl}/student/dashboard`;
+      }
+      return url.startsWith(baseUrl) ? url : baseUrl;
+    },
+
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
@@ -131,7 +138,7 @@ export const NEXT_AUTH = {
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
-    }
+    },
   },
   pages: {
     signIn: "/auth/signin",
