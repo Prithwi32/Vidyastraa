@@ -77,6 +77,7 @@
 // };
 
 
+
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaClient } from "@prisma/client";
 import type { NextAuthOptions } from "next-auth";
@@ -91,69 +92,69 @@ export const NEXT_AUTH: NextAuthOptions = {
       authorization: {
         params: {
           prompt: "select_account",
-          access_type: "offline" // Add for refresh tokens
+          access_type: "offline",
+          response_type: "code" // Explicitly set response type
         }
       }
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET!,
   session: {
     strategy: "jwt",
     maxAge: 24 * 60 * 60,
+    updateAge: 6 * 60 * 60 // Refresh session every 6 hours
   },
-  cookies: { // Moved to root level
+  cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: `__Secure-next-auth.session-token`,
       options: {
-        httpOnly: false, // Required for WebView access
-        sameSite: "lax",
+        httpOnly: false, // Must be false for WebView access
+        sameSite: "none", // Changed to none for cross-domain
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
+        domain: process.env.NODE_ENV === "production" 
+          ? ".vidyastraa-jeeneet.vercel.app" 
+          : undefined
       },
     },
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      if (account?.access_token) {
+        token.accessToken = account.access_token;
+      }
       if (user) {
         token.id = user.id;
-        // Store only what you need
-        token.accessToken = token.accessToken;
       }
       return token;
     },
 
     async session({ session, token }) {
-      if (token?.id) {
-        session.user.id = token.id;
-      }
-      // Expose only necessary token data
-      session.accessToken = token.accessToken;
+      session.user.id = token.id as string;
+      session.accessToken = token.accessToken as string;
+      session.isWebView = token.isWebView as boolean;
       return session;
     },
 
     async redirect({ url, baseUrl }) {
-      // Enhanced mobile handling
+      // Handle mobile deep links
       if (url.startsWith('android-app://') || 
-          url.startsWith('com.example.vidyastraa_app://')) {
-        return `${baseUrl}/api/auth/sync`;
+          url.startsWith(APP_REDIRECT_SCHEME + '://')) {
+        return `${baseUrl}/api/auth/mobile-callback`;
       }
       return url.startsWith(baseUrl) ? url : baseUrl;
     },
 
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
-          const email = user.email as string;
-          const name = user.name as string;
-          const googleId = user.id as string;
-
           const existingUser = await prisma.user.upsert({
-            where: { email },
-            update: { googleId },
+            where: { email: profile?.email },
+            update: { googleId: profile?.sub },
             create: {
-              email,
-              name: name || email.split('@')[0],
-              googleId,
+              email: profile?.email as string,
+              name: profile?.name || profile?.email?.split('@')[0],
+              googleId: profile?.sub,
             },
           });
           user.id = existingUser.id;
@@ -164,11 +165,11 @@ export const NEXT_AUTH: NextAuthOptions = {
         }
       }
       return false;
-    },
+    }
   },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
-  },
-  debug: process.env.NODE_ENV === "development",
+    verifyRequest: "/auth/verify" // Add verification page
+  }
 };
