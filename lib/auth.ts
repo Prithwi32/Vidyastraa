@@ -73,16 +73,7 @@ export const NEXT_AUTH = {
     GoogleProvider({
       clientId: process.env.GOOGLE_ID || "",
       clientSecret: process.env.GOOGLE_SECRET || "",
-      authorization: {
-        params: {
-          // Add Android client ID for mobile app authentication
-          audience: process.env.ANDROID_CLIENT_ID || "",
-          // Force account selection for better mobile UX
-          prompt: "select_account",
-          // Request offline access for refresh tokens
-          access_type: "offline",
-        }
-      }
+      // Remove Android-specific authorization params
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
@@ -90,13 +81,9 @@ export const NEXT_AUTH = {
     maxAge: 1 * 24 * 60 * 60, // 1 day
   },
   callbacks: {
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
-      }
-      // Store the access token for mobile clients if needed
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
       }
       return token;
     },
@@ -104,10 +91,6 @@ export const NEXT_AUTH = {
     async session({ session, token }: any) {
       if (token?.id) {
         session.user.id = token.id;
-      }
-      // Expose access token to client if needed for mobile
-      if (token?.accessToken) {
-        session.accessToken = token.accessToken;
       }
       return session;
     },
@@ -144,11 +127,8 @@ export const NEXT_AUTH = {
     },
 
     async redirect({ url, baseUrl }: any) {
-      // Handle mobile app deep linking
-      if (url.startsWith("/student/dashboard")) {
-        return `${baseUrl}${url}`;
-      }
-      // Allow callback URLs from same origin
+      // Handle both web and mobile redirects
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     }
@@ -157,6 +137,5 @@ export const NEXT_AUTH = {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  // Enable debug logs in development for troubleshooting
   debug: process.env.NODE_ENV === "development",
 };
