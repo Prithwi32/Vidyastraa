@@ -136,14 +136,16 @@ export const NEXT_AUTH: NextAuthOptions = {
       return session;
     },
 
-    async redirect({ url, baseUrl }) {
-      // Handle mobile deep links
-      if (url.startsWith('android-app://') || 
-          url.startsWith(APP_REDIRECT_SCHEME + '://')) {
-        return `${baseUrl}/api/auth/mobile-callback`;
-      }
-      return url.startsWith(baseUrl) ? url : baseUrl;
-    },
+  async redirect({ url, baseUrl }) {
+  const appRedirectScheme = process.env.APP_REDIRECT_SCHEME || 'myapp';
+
+  if (url.startsWith('android-app://') || 
+      url.startsWith(`${appRedirectScheme}://`)) {
+    return `${baseUrl}/api/auth/mobile-callback`;
+  }
+  return url.startsWith(baseUrl) ? url : baseUrl;
+ }
+
 
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
