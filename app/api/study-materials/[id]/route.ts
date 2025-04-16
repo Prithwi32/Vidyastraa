@@ -1,6 +1,9 @@
+import { NEXT_AUTH } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Subject } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 
 export async function DELETE(
   req: Request,
@@ -9,6 +12,11 @@ export async function DELETE(
   const { id } = context.params;
 
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const material = await prisma.studyMaterial.findUnique({ where: { id } });
     if (!material) return new Response("Material not found", { status: 404 });
 
@@ -18,14 +26,15 @@ export async function DELETE(
     );
 
     // Delete from Supabase Storage
-    const { error: storageError } = await supabaseServer
-      .storage
+    const { error: storageError } = await supabaseServer.storage
       .from("study-materials")
       .remove([filePath]);
 
     if (storageError) {
       console.error("Supabase delete error:", storageError);
-      return new Response("Failed to delete file from Supabase", { status: 500 });
+      return new Response("Failed to delete file from Supabase", {
+        status: 500,
+      });
     }
 
     // Delete from DB
@@ -38,13 +47,15 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  context: { params: { id: string } }
-) {
+export async function PATCH(req: Request, context: { params: { id: string } }) {
   const { id } = context.params;
 
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const formData = await req.formData();
 
     const title = formData.get("title") as string;
@@ -67,8 +78,7 @@ export async function PATCH(
       await supabaseServer.storage.from("study-materials").remove([oldPath]);
 
       const newPath = `materials/${Date.now()}-${file.name}`;
-      const { data, error } = await supabaseServer
-        .storage
+      const { data, error } = await supabaseServer.storage
         .from("study-materials")
         .upload(newPath, file);
 

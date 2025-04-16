@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { NEXT_AUTH } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -49,6 +51,11 @@ const courseSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const body = await req.json();
     body.price = Number(body.price); // Ensure price is a number
 

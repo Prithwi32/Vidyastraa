@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 const ProtectedButtonLink = ({
   target,
-  guestFallback = "/signin",
+  guestFallback = "/auth/signin",
   children,
 }) => {
   const router = useRouter();

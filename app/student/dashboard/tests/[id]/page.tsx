@@ -351,6 +351,7 @@ useEffect(() => {
 }, [isSubmitted, pathname]);
 
 const handleConfirmExit = async() => {
+  setTestSubmitLoader(true);
   await handleSubmitTest();
   setShowExitConfirm(false);
 };
@@ -1104,8 +1105,16 @@ const handleCancelExit = () => {
             </Button>
             <Button 
               onClick={handleConfirmExit}
+              disabled={testSubmitLoader}
             >
-              Submit
+              {testSubmitLoader ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Test"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

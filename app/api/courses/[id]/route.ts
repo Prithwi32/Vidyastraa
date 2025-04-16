@@ -1,4 +1,6 @@
+import { NEXT_AUTH } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -30,11 +32,11 @@ export async function GET(
                 id: true,
                 name: true,
                 email: true,
-              }
-            }
-          }
-        }
-      }
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!course) {
@@ -56,6 +58,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const body = await req.json();
     body.price = Number(body.price);
 
@@ -84,6 +91,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     await prisma.course.delete({
       where: { id: params.id },
     });

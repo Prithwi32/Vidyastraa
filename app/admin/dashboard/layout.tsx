@@ -1,20 +1,34 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BarChart3, BookOpen, FileQuestion, LayoutDashboard, LogOut, Settings, CreditCard, Menu, X, FileText } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  BarChart3,
+  BookOpen,
+  FileQuestion,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  CreditCard,
+  Menu,
+  X,
+  FileText,
+} from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useSession } from "next-auth/react";
+import Loader from "@/components/Loader";
+import Image from "next/image";
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const pathname = usePathname()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const pathname = usePathname();
 
   const routes = [
     {
@@ -52,17 +66,53 @@ export default function DashboardLayout({
       label: "Study Materials",
       icon: <FileText className="h-5 w-5" />,
       active: pathname.includes("/admin/dashboard/study-materials"),
-    }
-  ]
+    },
+  ];
+
+  const session = useSession();
+  const router = useRouter();
+  const [loader, setLoader] = useState(true);
+
+  useEffect(() => {
+    setLoader(true);
+    handleAuth();
+  }, [session]);
+
+  const handleAuth = () => {
+    if (session.status === "unauthenticated")
+      return router.push("/auth/signin");
+    else if (
+      session.status === "authenticated" &&
+      session.data.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL
+    )
+      return router.push("/student/dashboard");
+    else setLoader(false);
+  };
+
+  if (loader)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader />
+      </div>
+    );
 
   return (
     <div className="h-full relative dark:bg-gray-950">
       <div className="hidden md:flex h-full w-72 flex-col fixed inset-y-0 z-50 dark:bg-gray-900 bg-white border-r dark:border-gray-800">
-        <div className="p-6">
-          <Link href="/admin/dashboard">
-            <h1 className="text-2xl font-bold dark:text-white">Admin Panel</h1>
-          </Link>
-        </div>
+        <Link href={"/"}>
+          <div className="flex items-center p-6 pl-4">
+            <Image
+              src="/logo.jpeg"
+              alt="Vidyastraa Logo"
+              width={26}
+              height={26}
+              className="object-contain mr-2 rounded-full hover:scale-110 transition-all duration-300"
+            />
+            <h1 className="text-xl font-bold text-yellow-600 hover:text-yellow-500">
+              Vidyastraa
+            </h1>
+          </div>
+        </Link>
         <div className="flex flex-col w-full">
           {routes.map((route) => (
             <Link
@@ -94,19 +144,37 @@ export default function DashboardLayout({
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="md:hidden fixed top-4 left-4 z-50 bg-white dark:bg-gray-900 p-2 rounded-md shadow-md"
       >
-        {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {isSidebarOpen ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <Menu className="h-5 w-5" />
+        )}
       </button>
       {isSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsSidebarOpen(false)} />
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setIsSidebarOpen(false)}
+        />
       )}
       <div
-        className={`md:hidden fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-gray-900 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`md:hidden fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-gray-900 transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <div className="p-6">
-          <Link href="/admin/dashboard">
-            <h1 className="text-2xl font-bold dark:text-white">Admin Panel</h1>
-          </Link>
-        </div>
+        <Link href={"/"}>
+          <div className="flex items-center p-6">
+            <Image
+              src="/logo.jpeg"
+              alt="Vidyastraa Logo"
+              width={26}
+              height={26}
+              className="object-contain mr-2 rounded-full hover:scale-110 transition-all duration-300"
+            />
+            <h1 className="text-xl font-bold text-yellow-600 hover:text-yellow-500">
+              Vidyastraa
+            </h1>
+          </div>
+        </Link>
         <div className="flex flex-col w-full">
           {routes.map((route) => (
             <Link
@@ -139,5 +207,5 @@ export default function DashboardLayout({
         <div className="p-6">{children}</div>
       </main>
     </div>
-  )
+  );
 }

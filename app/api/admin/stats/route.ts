@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
-import {prisma} from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { NEXT_AUTH } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await getServerSession(NEXT_AUTH);
+    
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const totalCourses = await prisma.course.count();
     const totalStudents = await prisma.user.count();
     const totalTests = await prisma.test.count();

@@ -32,42 +32,34 @@ export default function TestsPage() {
   const [showStartTestDialog, setShowStartTestDialog] = useState(false);
   const [selectedTest, setSelectedTest] = useState<TestItem | null>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        if (activeTab === "completed") {
-          const tests = await fetchCompletedTests(
-            session?.data?.user?.id as string
-          );
-          if (tests == null) {
-            toast.error("Failed to fetch completed tests");
-          } else setCompletedTests(tests);
-        } else {
-          const tests = await fetchUpcomingTests(
-            session?.data?.user?.id as string
-          );
-          if (tests == null) {
-            toast.error("Failed to fetch upcoming tests");
-          } else setUpcomingTests(tests);
-        }
-      } catch (error) {
-        console.error("Error loading tests:", error);
-      } finally {
-        setLoading(false);
+  async function loadData() {
+    setLoading(true);
+    try {
+      if (activeTab === "completed") {
+        const tests = await fetchCompletedTests(
+          session?.data?.user?.id as string
+        );
+        if (tests == null) {
+          toast.error("Failed to fetch completed tests");
+        } else setCompletedTests(tests);
+      } else {
+        const tests = await fetchUpcomingTests(
+          session?.data?.user?.id as string
+        );
+        if (tests == null) {
+          toast.error("Failed to fetch upcoming tests");
+        } else setUpcomingTests(tests);
       }
-    }
-
-    loadData();
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (session.status == "loading") {
-      setLoading(true);
-    } else {
+    } catch (error) {
+      console.error("Error loading tests:", error);
+    } finally {
       setLoading(false);
     }
-  }, [session.status]);
+  }
+
+  useEffect(() => {
+    if (session && session.status === "authenticated") loadData();
+  }, [activeTab, session]);
 
   const handleStartTest = (test: TestItem) => {
     setSelectedTest(test);

@@ -78,7 +78,7 @@ export default function Courses() {
       if (status !== "authenticated") {
         toast.error("Please log in to purchase a course.");
         setTimeout(() => {
-          router.push("/signin");
+          router.push("/auth/signin");
         }, 3000);
         return;
       }

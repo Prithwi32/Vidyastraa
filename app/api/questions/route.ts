@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { NEXT_AUTH } from "@/lib/auth";
 
 const questionSchema = z.object({
   question: z.string().min(5, "Question is too short"),
@@ -14,6 +16,11 @@ const questionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const body = await req.json();
     const parsedBody = questionSchema.parse(body);
 
@@ -35,18 +42,26 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const subject = searchParams.get('subject')
+  const { searchParams } = new URL(req.url);
+  const subject = searchParams.get("subject");
 
   try {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+      return new NextResponse("Unauthorized", { status: 401 });
+
     const questions = await prisma.question.findMany({
       where: subject ? { subject } : undefined,
-      orderBy: { createdAt: 'desc' }
-    })
+      orderBy: { createdAt: "desc" },
+    });
 
-    return NextResponse.json({ questions })
+    return NextResponse.json({ questions });
   } catch (error) {
-    console.error('Error fetching questions:', error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    console.error("Error fetching questions:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
