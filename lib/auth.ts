@@ -144,9 +144,8 @@ export const NEXT_AUTH: NextAuthOptions = {
     return `${baseUrl}/api/auth/mobile-callback`;
   }
   return url.startsWith(baseUrl) ? url : baseUrl;
- }
-
-
+ },
+    
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
