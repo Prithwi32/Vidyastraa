@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DarkModeButton } from "@/components/DarkModeButton";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import Loader from "@/components/Loader";
+import { toast, ToastContainer } from "react-toastify";
+import { signUp } from "@/app/actions/auth";
 
 export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
@@ -33,7 +36,7 @@ export default function SignUpPage() {
   if (session.status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+        <Loader/>
       </div>
     );
   }
@@ -43,15 +46,15 @@ export default function SignUpPage() {
       setPasswordError("Passwords do not match");
       return false;
     }
-    if (password.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
       return false;
     }
     setPasswordError("");
     return true;
   };
 
-  const handleSignUp = async (e) => {
+  const handleSignUp = async (e:any) => {
     e.preventDefault();
 
     if (!validatePassword()) {
@@ -59,47 +62,22 @@ export default function SignUpPage() {
     }
 
     if (!agreeTerms) {
-      alert("Please agree to the terms and conditions");
+      toast.error("Please agree to the terms and conditions");
       return;
     }
 
     setLoading(true);
     try {
-      // Here you would typically call your API to register the user
-      // For example:
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ name, email, password }),
-      // });
-
-      // For demo purposes, we'll just redirect to sign in
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-
-      // After successful registration, redirect to sign in
-      router.push("/signin?registered=true");
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setLoading(true);
-    try {
-      const result = await signIn("google", {
-        redirect: false,
-        callbackUrl: "/dashboard",
-      });
-
-      if (result?.error) {
-        console.log(result.error);
-      } else {
-        router.push(result?.url || "/");
+     const result = await signUp(name, email, password);
+      if (!result?.success) {
+        toast.error(result.message);
+      }else{
+        toast.success(result.message);
+        router.push("/auth/signin");
       }
     } catch (error) {
       console.log(error);
+      toast.error("An error occurred while signing up");
     } finally {
       setLoading(false);
     }
@@ -108,6 +86,7 @@ export default function SignUpPage() {
   return (
     session.status === "unauthenticated" && (
       <div className="min-h-screen flex items-center justify-center sm:p-4 bg-slate-100 dark:bg-slate-950">
+        <ToastContainer/>
         {/* Single Card Container */}
         <div className="w-full max-md:h-screen max-w-6xl overflow-y-auto overflow-x-hidden sm:rounded-2xl shadow-xl bg-white dark:bg-slate-900 transition-colors duration-300 flex flex-col justify-between">
           {/* Navigation */}
@@ -230,7 +209,7 @@ export default function SignUpPage() {
                       </button>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Must be at least 8 characters
+                      Must be at least 6 characters
                     </p>
                   </div>
 

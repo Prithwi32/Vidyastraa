@@ -8,33 +8,33 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DarkModeButton } from "@/components/DarkModeButton";
 import { Loader2 } from "lucide-react";
+import Loader from "@/components/Loader";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
   const session = useSession();
 
   useEffect(() => {
     if (session.status === "authenticated") {
-      router.push("/");
+      router.push("/student/dashboard/profile");
     }
   }, [session.status, router]);
 
   if (session.status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+        <Loader/>
       </div>
     );
   }
 
-  const handleEmailSignIn = async (e) => {
+  const handleEmailSignIn = async (e:any) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -42,34 +42,13 @@ export default function SignInPage() {
         redirect: false,
         email,
         password,
-        callbackUrl: "/dashboard",
+        callbackUrl: "/student/dashboard",
       });
 
       if (result?.error) {
-        console.log(result.error);
-        // You could add error handling UI here
+        toast.error(result.error);
       } else {
-        router.push(result?.url || "/");
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const result = await signIn("google", {
-        redirect: false,
-        callbackUrl: "/dashboard",
-      });
-
-      if (result?.error) {
-        console.log(result.error);
-      } else {
-        router.push(result?.url || "/");
+        router.push("/student/dashboard/profile");
       }
     } catch (error) {
       console.log(error);
@@ -81,6 +60,7 @@ export default function SignInPage() {
   return (
     session.status === "unauthenticated" && (
       <div className="min-h-screen flex items-center justify-center sm:p-4 bg-slate-100 dark:bg-slate-950">
+        <ToastContainer/>
         {/* Single Card Container */}
         <div className="w-full max-md:h-screen max-w-6xl overflow-y-auto overflow-x-hidden sm:rounded-2xl shadow-xl bg-white dark:bg-slate-900 transition-colors duration-300 flex flex-col justify-between">
           {/* Navigation */}
