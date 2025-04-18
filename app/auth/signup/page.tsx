@@ -10,13 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DarkModeButton } from "@/components/DarkModeButton";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const router = useRouter();
   const session = useSession();
 
@@ -34,23 +38,46 @@ export default function SignInPage() {
     );
   }
 
-  const handleEmailSignIn = async (e) => {
+  const validatePassword = () => {
+    if (password !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return false;
+    }
+    if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
+
+  const handleSignUp = async (e) => {
     e.preventDefault();
+
+    if (!validatePassword()) {
+      return;
+    }
+
+    if (!agreeTerms) {
+      alert("Please agree to the terms and conditions");
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-        callbackUrl: "/dashboard",
-      });
+      // Here you would typically call your API to register the user
+      // For example:
+      // const response = await fetch('/api/auth/register', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ name, email, password }),
+      // });
 
-      if (result?.error) {
-        console.log(result.error);
-        // You could add error handling UI here
-      } else {
-        router.push(result?.url || "/");
-      }
+      // For demo purposes, we'll just redirect to sign in
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+
+      // After successful registration, redirect to sign in
+      router.push("/signin?registered=true");
     } catch (error) {
       console.log(error);
     } finally {
@@ -58,7 +85,7 @@ export default function SignInPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setLoading(true);
     try {
       const result = await signIn("google", {
@@ -141,20 +168,32 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Sign In Form */}
+            {/* Sign Up Form */}
             <div className="w-full md:w-1/2 p-8 md:p-12 flex items-center">
               <div className="w-full max-w-md mx-auto space-y-6">
                 <div className="text-center space-y-2 mb-8">
                   <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-                    Sign in to Vidyastraa
+                    Create your account
                   </h1>
                   <p className="text-slate-500 dark:text-slate-400 text-sm max-w-lg mx-auto">
-                    Master your dream exams with top-rated courses, smart test
-                    series, and expert guidance.
+                    Join thousands of aspirants learning smarter and achieving
+                    success every day!
                   </p>
                 </div>
 
-                <form onSubmit={handleEmailSignIn} className="space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -168,24 +207,78 @@ export default function SignInPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      <Link
-                        href="/forgot-password"
-                        className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        onClick={() => setShowPassword(!showPassword)}
                       >
-                        Forgot password?
-                      </Link>
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
                     </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Must be at least 8 characters
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <Input
-                      id="password"
-                      type="password"
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                     />
+                    {passwordError && (
+                      <p className="text-xs text-red-500">{passwordError}</p>
+                    )}
                   </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="terms"
+                      checked={agreeTerms}
+                      onCheckedChange={(checked) =>
+                        setAgreeTerms(checked === true)
+                      }
+                      required
+                    />
+                    <label
+                      htmlFor="terms"
+                      className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer"
+                    >
+                      I agree to the{" "}
+                      <Link
+                        href="/terms"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        href="/privacy"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </label>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6"
@@ -194,27 +287,16 @@ export default function SignInPage() {
                     {loading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : null}
-                    Sign in
+                    Create Account
                   </Button>
                 </form>
-
                 <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                  Don't have an account?{" "}
+                  Already have an account?{" "}
                   <Link
-                    href="/auth/signup"
+                    href="/auth/signin"
                     className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
                   >
-                    Sign up
-                  </Link>
-                </p>
-
-                <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-8">
-                  By signing in, you agree to our{" "}
-                  <Link
-                    href="/terms"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Terms & Privacy Policy
+                    Sign in
                   </Link>
                 </p>
               </div>
