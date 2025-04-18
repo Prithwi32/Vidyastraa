@@ -21,8 +21,17 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  
+  // Add webpack configuration to handle the useEffectEvent issue
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@radix-ui/react-use-effect-event': false,
+  };
+    return config;
+  },
 
-  // ✅ Add headers for Android Google Auth (CORS support)
+  // CORS headers for Android Google Auth
   async headers() {
     return [
       {
@@ -45,7 +54,7 @@ const nextConfig = {
     ];
   },
 
-  // ✅ Add rewrites for Android-specific endpoint
+  // Rewrites for Android-specific endpoint
   async rewrites() {
     return [
       {
@@ -56,7 +65,7 @@ const nextConfig = {
   },
 };
 
-// ✅ Merge with userConfig if it exists
+// Merge with userConfig if it exists
 function mergeConfig(nextConfig, userConfig) {
   if (!userConfig) return;
 
