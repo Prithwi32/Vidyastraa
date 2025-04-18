@@ -14,6 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import Image from "next/image";
 
+interface TestResult {
+  id: string;
+  score: number;
+  submittedAt: string;
+}
+
 interface Test {
   id: string;
   title: string;
@@ -21,6 +27,8 @@ interface Test {
   description?: string;
   duration: number;
   subjects: string[];
+  createdAt: string;
+  results: TestResult[];
 }
 
 interface Course {
@@ -59,6 +67,19 @@ export default function CourseDetails() {
 
     fetchCourse();
   }, [id]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatScore = (score: number) => {
+    return `${Math.round(score)}%`;
+  };
 
   if (loading) {
     return (
@@ -109,14 +130,6 @@ export default function CourseDetails() {
                 Continue Learning
               </Link>
             </Button>
-            <Button
-              className="dark:text-white"
-              onClick={() =>
-                router.push(`/student/dashboard/tests?course=${course.id}`)
-              }
-            >
-              Take Tests
-            </Button>
           </div>
         </div>
 
@@ -156,49 +169,89 @@ export default function CourseDetails() {
       </Card>
 
       {/* Tests Section */}
-      {course.tests?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>📝 Course Tests</CardTitle>
-            <CardDescription>
-              Assess your knowledge with these tests
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {course.tests.map((test) => (
-              <div
-                key={test.id}
-                className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium">{test.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {test.description || "Test your knowledge"}
-                    </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>📝 Course Tests</CardTitle>
+          <CardDescription>
+            Assess your knowledge with these tests
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {course.tests?.length > 0 ? (
+            course.tests.map((test) => {
+              const hasTakenTest = test.results.length > 0;
+              const latestResult = hasTakenTest ? test.results[0] : null;
+
+              return (
+                <div
+                  key={test.id}
+                  className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="space-y-1">
+                      <h3 className="font-medium">{test.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {test.description || "Test your knowledge"}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge variant="outline">{test.duration} mins</Badge>
+                        <Badge variant="outline">
+                          {test.category.replace("_", " ")}
+                        </Badge>
+                        {test.subjects.map((subject) => (
+                          <Badge key={subject} variant="outline">
+                            {subject}
+                          </Badge>
+                        ))}
+                      </div>
+                      {hasTakenTest && latestResult && (
+                        <div className="mt-2">
+                          <Badge variant="secondary" className="mr-2">
+                            Score: {formatScore(latestResult.score)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Taken on: {formatDate(latestResult.submittedAt)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {hasTakenTest ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/student/dashboard/tests/${test.id}/result/${latestResult?.id}`
+                            )
+                          }
+                        >
+                          View Results
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/student/dashboard/tests/${test.id}`)
+                          }
+                        >
+                          Start Test
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/student/dashboard/tests/${test.id}`)
-                    }
-                  >
-                    Start Test
-                  </Button>
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline">{test.duration} mins</Badge>
-                  {test.subjects.map((subject) => (
-                    <Badge key={subject} variant="outline">
-                      {subject}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              );
+            })
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                No tests available for this course yet
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end">
         <Button

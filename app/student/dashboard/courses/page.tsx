@@ -29,7 +29,9 @@ interface EnrolledCourse {
   category: string;
   createdAt: string;
   updatedAt: string;
-  progress?: number; // Optional
+  progress: number;
+  totalTests: number;
+  completedTests: number;
 }
 
 export default function CoursesPage() {
@@ -43,12 +45,7 @@ export default function CoursesPage() {
         const res = await fetch("/api/courses/enrolled");
         if (!res.ok) throw new Error("Failed to fetch courses");
         const data = await res.json();
-        setEnrolledCourses(
-          data.map((course: EnrolledCourse) => ({
-            ...course,
-            progress: Math.floor(Math.random() * 100), // need to get exact data
-          }))
-        );
+        setEnrolledCourses(data);
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -98,10 +95,10 @@ export default function CoursesPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Progress</span>
                       <span className="text-sm font-medium">
-                        {course.progress ?? 0}%
+                        {course.progress}% ({course.completedTests}/{course.totalTests} tests)
                       </span>
                     </div>
-                    <Progress value={course.progress ?? 0} className="h-2" />
+                    <Progress value={course.progress} className="h-2" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">

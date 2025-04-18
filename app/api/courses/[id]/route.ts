@@ -16,16 +16,30 @@ const courseUpdateSchema = z.object({
   category: z.enum(["JEE", "NEET", "CRASH_COURSES", "OTHER"]),
 });
 
-// GET single course
+// GET course
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(NEXT_AUTH);
+    
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const course = await prisma.course.findUnique({
       where: { id: params.id },
       include: {
-        tests: true,
+        tests: {
+          include: {
+            results: {
+              where: {
+                userId: session.user.id
+              }
+            }
+          }
+        },
         enrolledStudents: {
           include: {
             user: {
