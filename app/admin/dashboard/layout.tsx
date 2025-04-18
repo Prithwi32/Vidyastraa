@@ -18,7 +18,7 @@ import {
   FileText,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Loader from "@/components/Loader";
 import Image from "next/image";
 
@@ -130,13 +130,13 @@ export default function DashboardLayout({
           ))}
         </div>
         <div className="mt-auto p-6 flex items-center justify-between">
-          <Link
-            href="/admin/logout"
+          <button
+            onClick={() => signOut()}
             className="flex items-center gap-x-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-all"
           >
             <LogOut className="h-5 w-5" />
             Logout
-          </Link>
+          </button>
           <ThemeToggle />
         </div>
       </div>
@@ -194,7 +194,11 @@ export default function DashboardLayout({
         </div>
         <div className="mt-auto p-6 flex items-center justify-between">
           <Link
-            href="/admin/logout"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              signOut();
+            }}
             className="flex items-center gap-x-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-all"
           >
             <LogOut className="h-5 w-5" />

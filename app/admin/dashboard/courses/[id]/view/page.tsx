@@ -68,7 +68,6 @@ export default function ViewCoursePage() {
     }
   }, [params?.id, router]);
 
-
   const handleDeleteCourse = async () => {
     setDeleting(true);
 
@@ -261,6 +260,7 @@ export default function ViewCoursePage() {
           </Card>
 
           {/* Tests */}
+
           <Card>
             <CardHeader>
               <CardTitle>Course Tests</CardTitle>
@@ -274,34 +274,61 @@ export default function ViewCoursePage() {
                   {course.tests.map((test: any) => (
                     <div
                       key={test.id}
-                      className="flex items-center justify-between p-4 border rounded-md"
+                      className="flex items-center justify-between p-4 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-medium">{test.title}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {test.questions?.length || 0} questions
-                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge variant="outline">
+                            {test.subjects?.join(", ") || "No subjects"}
+                          </Badge>
+                          <Badge variant="outline">{test.duration} mins</Badge>
+                          <Badge variant="outline">
+                            {test.category.replace("_", " ")}
+                          </Badge>
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/admin/dashboard/tests/${test.id}/view`)
-                        }
-                      >
-                        View
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          className="hover:bg-blue-900"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/admin/dashboard/tests/${test.id}/view`
+                            )
+                          }
+                        >
+                          View
+                        </Button>
+                        <Button
+                          className="hover:bg-blue-900"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/admin/dashboard/tests/${test.id}/edit`
+                            )
+                          }
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-4">
                     No tests have been created for this course yet
                   </p>
                   <Button
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 dark:text-white"
-                    onClick={() => router.push("/admin/dashboard/tests/create")}
+                    className="bg-blue-600 hover:bg-blue-700 dark:text-white"
+                    onClick={() =>
+                      router.push(
+                        `/admin/dashboard/tests/create?courseId=${course.id}`
+                      )
+                    }
                   >
                     Create Test
                   </Button>
@@ -424,7 +451,7 @@ export default function ViewCoursePage() {
                 className="w-full bg-blue-600 hover:bg-blue-700 dark:text-white"
                 onClick={() =>
                   router.push(
-                    `/admin/dashboard/tests/create?courseId=${course.id}`
+                    `/admin/dashboard/tests/create?courseId=${params.id}`
                   )
                 }
               >
