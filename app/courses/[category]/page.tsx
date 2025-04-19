@@ -1,11 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
 
 type Course = {
   id: string;
@@ -32,7 +28,10 @@ export default async function CourseCategoryPage({
 }: {
   params: { category: string };
 }) {
-  const mappedCategory = allowedCategories[params.category.toLowerCase()];
+  // Convert to lowercase once and use the variable
+  const categoryLower = params.category.toLowerCase();
+  const mappedCategory = allowedCategories[categoryLower as keyof typeof allowedCategories];
+  
   if (!mappedCategory) return notFound();
 
   const res = await fetch(
@@ -47,30 +46,25 @@ export default async function CourseCategoryPage({
   const data = await res.json();
 
   return (
-<div className="container py-10">
-  {/* Heading + Button Row */}
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-    <h1 className="text-3xl font-bold capitalize text-purple-800">
-      {params.category} Courses
-    </h1>
+    <div className="container py-10">
+      {/* Heading + Button Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-bold capitalize text-purple-800">
+          {params.category} Courses
+        </h1>
 
-    <Link href="/courses">
-      <Button
-        variant="outline"
-        className="group border-purple-600 text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-950"
-      >
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-2"
-        >
-          View All Courses
-          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-        </motion.div>
-      </Button>
-    </Link>
-  </div>
-
+        <Link href="/courses">
+          <Button
+            variant="outline"
+            className="group border-purple-600 text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-950"
+          >
+            <div className="flex items-center gap-2">
+              View All Courses
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Button>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {data.courses.length === 0 ? (

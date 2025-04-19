@@ -66,7 +66,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/materials"
+                  href="/student/dashboard/materials"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-4"
                 >
                   Study Materials
@@ -74,7 +74,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/tests/all"
+                  href="/student/dashboard/tests"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-4"
                 >
                   Practice Tests
@@ -138,36 +138,36 @@ export function Footer() {
             <address className="not-italic text-sm text-muted-foreground space-y-2">
               {/* <p>123 Education Street</p>
               <p>New Delhi, India 110001</p> */}
-              <p>Email: info@vidyastraa.com</p>
-              <p>Phone: +91 98765 43210</p>
+              <p>Email: Info.vidyastraa@gmail.com</p>
+              <p>Phone:+91 9632405325</p>
             </address>
           </div>
         </div>
-          <div className="mt-12 border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-center sm:text-left text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Vidyastraa. All rights reserved.
-            </p>
+        <div className="mt-12 border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-center sm:text-left text-sm text-muted-foreground">
+            © {new Date().getFullYear()} Vidyastraa. All rights reserved.
+          </p>
 
-            <div className="flex gap-4 text-sm text-muted-foreground">
-              <span>Developed by:</span>
-              <div className="flex gap-2">
-                <a
-                  href="mailto:prithwi.online11@gmail.com"
-                  className="hover:text-blue-500 transition-colors"
-                >
-                  Developer 1
-                </a>
-                <span>&</span>
-                <a
-                  href="mailto:nirmith10@gmail.com"
-                  className="hover:text-blue-500 transition-colors"
-                >
-                  Developer 2
-                </a>
-              </div>
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <span>Developed by:</span>
+            <div className="flex gap-2">
+              <a
+                href="mailto:prithwi.online11@gmail.com"
+                className="hover:text-blue-500 transition-colors"
+              >
+                Developer 1
+              </a>
+              <span>&</span>
+              <a
+                href="mailto:nirmith10@gmail.com"
+                className="hover:text-blue-500 transition-colors"
+              >
+                Developer 2
+              </a>
             </div>
           </div>
         </div>
+      </div>
     </footer>
   );
 }

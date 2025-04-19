@@ -1,5 +1,6 @@
 "use server";
 
+import { NEXT_AUTH } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   SubjectResult,
@@ -18,6 +19,7 @@ import {
   TestResult,
   TestResponse,
 } from "@prisma/client";
+import { getServerSession } from "next-auth/next";
 
 export async function createTest(testData: {
   title: string;
@@ -64,7 +66,49 @@ export async function createTest(testData: {
   }
 }
 
+//   try {
+//     const tests = await prisma.test.findMany({
+//       include: {
+//         course: {
+//           select: {
+//             id: true,
+//             title: true,
+//             detailedDescription: true,
+//             thumbnail: true,
+//             category: true,
+//           },
+//         },
+//         questions: {
+//           select: {
+//             order: true,
+//             marks: true,
+//             question: true,
+//           },
+//           orderBy: {
+//             order: "asc",
+//           },
+//         },
+//       },
+//       orderBy: {
+//         createdAt: "desc",
+//       },
+//     });
+
+//     return { success: true, tests };
+//   } catch (error) {
+//     console.error("Error fetching tests:", error);
+//     return { success: false, error: "Failed to fetch tests" };
+//   }
+// }
+
+// In your test action file
 export async function getAllTests() {
+  const session = await getServerSession(NEXT_AUTH);
+
+  if (!session?.user?.id) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     const tests = await prisma.test.findMany({
       include: {
@@ -72,31 +116,56 @@ export async function getAllTests() {
           select: {
             id: true,
             title: true,
-            detailedDescription: true,
-            thumbnail: true,
             category: true,
+            thumbnail: true,
+            detailedDescription: true,
           },
         },
         questions: {
-          select: {
-            order: true,
-            marks: true,
+          include: {
             question: true,
           },
-          orderBy: {
-            order: "asc",
+        },
+        results: {
+          where: {
+            userId: session.user.id,
+          },
+          select: {
+            id: true,
+            score: true,
+            submittedAt: true,
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
     });
 
-    return { success: true, tests };
+    // Add isEnrolled flag for each test
+    const testsWithEnrollment = await Promise.all(
+      tests.map(async (test) => {
+        let isEnrolled = false;
+        if (test.courseId) {
+          const enrollment = await prisma.enrolledCourse.findFirst({
+            where: {
+              userId: session.user.id,
+              courseId: test.courseId,
+            },
+          });
+          isEnrolled = !!enrollment;
+        }
+        return {
+          ...test,
+          isEnrolled,
+        };
+      })
+    );
+
+    return {
+      success: true,
+      tests: testsWithEnrollment,
+    };
   } catch (error) {
     console.error("Error fetching tests:", error);
-    return { success: false, error: "Failed to fetch tests" };
+    return { success: false, message: "Failed to fetch tests" };
   }
 }
 

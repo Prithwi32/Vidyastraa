@@ -12,7 +12,7 @@ export function ContactInfo() {
   const contactInfo = [
     {
       title: "Email",
-      value: "info@Vidyastraa.com",
+      value: "Info.vidyastraa@gmail.com",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -32,7 +32,7 @@ export function ContactInfo() {
     },
     {
       title: "Phone",
-      value: "+91 98765 43210",
+      value: "+91 9632405325",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"

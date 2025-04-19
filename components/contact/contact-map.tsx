@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { useInView } from "react-intersection-observer"
+import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 
 export function ContactMap() {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
-  })
+  });
 
   return (
     <section className="py-12 bg-blue-50 dark:bg-blue-950">
@@ -23,7 +23,8 @@ export function ContactMap() {
             Visit Our Learning Centers
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-            We have learning centers across major cities in India. Find the one nearest to you.
+            We have learning centers across major cities in India. Find the one
+            nearest to you.
           </p>
         </motion.div>
 
@@ -53,7 +54,9 @@ export function ContactMap() {
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                 </div>
-                <p className="text-slate-600 dark:text-slate-300">Interactive map would be displayed here</p>
+                <p className="text-slate-600 dark:text-slate-300">
+                  Interactive map would be displayed here
+                </p>
               </div>
             </div>
           </div>
@@ -64,7 +67,7 @@ export function ContactMap() {
             {
               city: "New Delhi",
               address: "123 Education Street, New Delhi, 110001",
-              phone: "+91 98765 43210",
+              phone: "+91 9632405325",
             },
             {
               city: "Mumbai",
@@ -84,7 +87,9 @@ export function ContactMap() {
               transition={{ duration: 0.6, delay: 0.3 + index * 0.1 }}
               className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-md"
             >
-              <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-2">{location.city}</h3>
+              <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                {location.city}
+              </h3>
               <div className="space-y-2 text-slate-600 dark:text-slate-300">
                 <p className="flex items-start gap-2">
                   <svg
@@ -143,6 +148,5 @@ export function ContactMap() {
         </div>
       </div>
     </section>
-  )
+  );
 }
-
