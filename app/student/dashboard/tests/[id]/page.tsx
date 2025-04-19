@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, use } from "react";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -301,64 +306,67 @@ export default function TestInterface() {
 
   const pathname = usePathname();
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(mode==="review");
-  const [shouldBlockNavigation, setShouldBlockNavigation] = useState(mode!=="review");
+  const [isSubmitted, setIsSubmitted] = useState(mode === "review");
+  const [shouldBlockNavigation, setShouldBlockNavigation] = useState(
+    mode !== "review"
+  );
 
- // Prevent leaving the test
- useEffect(() => {
-  if(mode==="review") return;
-  if (isSubmitted) {
-    setShouldBlockNavigation(false);
-    return;
-  }
-
-  const handleBeforeUnload = async(e: BeforeUnloadEvent) => {
-    if (!isSubmitted) {
-      e.preventDefault();
-      e.returnValue = 'Are you sure you want to leave? Your test will be submitted';
-      await handleSubmitTest();
-      return e.returnValue;
+  // Prevent leaving the test
+  useEffect(() => {
+    if (mode === "review") return;
+    if (isSubmitted) {
+      setShouldBlockNavigation(false);
+      return;
     }
+
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      if (!isSubmitted) {
+        e.preventDefault();
+        e.returnValue =
+          "Are you sure you want to leave? Your test will be submitted";
+        await handleSubmitTest();
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isSubmitted]);
+
+  // Handle back button/route changes
+  useEffect(() => {
+    if (mode === "review") return;
+    if (isSubmitted) return;
+
+    const handleBackButton = (e: PopStateEvent) => {
+      if (!isSubmitted) {
+        e.preventDefault();
+        setShowExitConfirm(true);
+        // Push the current path again to keep the user on the page
+        window.history.pushState(null, "", pathname);
+      }
+    };
+
+    window.history.pushState(null, "", pathname);
+    window.addEventListener("popstate", handleBackButton);
+
+    return () => {
+      window.removeEventListener("popstate", handleBackButton);
+    };
+  }, [isSubmitted, pathname]);
+
+  const handleConfirmExit = async () => {
+    setTestSubmitLoader(true);
+    await handleSubmitTest();
+    setShowExitConfirm(false);
   };
 
-  window.addEventListener('beforeunload', handleBeforeUnload);
-
-  return () => {
-    window.removeEventListener('beforeunload', handleBeforeUnload);
+  const handleCancelExit = () => {
+    setShowExitConfirm(false);
   };
-}, [isSubmitted]);
-
-// Handle back button/route changes
-useEffect(() => {
-  if(mode==="review") return;
-  if (isSubmitted) return;
-
-  const handleBackButton = (e: PopStateEvent) => {
-    if (!isSubmitted) {
-      e.preventDefault();
-      setShowExitConfirm(true);
-      // Push the current path again to keep the user on the page
-      window.history.pushState(null, '', pathname);
-    }
-  };
-
-  window.history.pushState(null, '', pathname);
-  window.addEventListener('popstate', handleBackButton);
-
-  return () => {
-    window.removeEventListener('popstate', handleBackButton);
-  };
-}, [isSubmitted, pathname]);
-
-const handleConfirmExit = async() => {
-  setTestSubmitLoader(true);
-  await handleSubmitTest();
-  setShowExitConfirm(false);
-};
-
-const handleCancelExit = () => {
-  setShowExitConfirm(false);
-};
 
   useEffect(() => {
     if (session.status === "loading") {
@@ -703,8 +711,14 @@ const handleCancelExit = () => {
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-end sm:justify-between p-4 bg-card border-b border-border shadow-sm">
         <div className="hidden sm:flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-            <span className="text-xl font-bold text-white">JEE</span>
+          <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md overflow-hidden">
+            <Image
+              src="/logo.jpeg"
+              alt="Vidyastraa Logo"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold">{test.title}</h1>
@@ -869,17 +883,20 @@ const handleCancelExit = () => {
                 </div>
 
                 {currentQuestion.image && (
-                    <div className="mb-6">
-                      <div className="relative w-full h-48 md:h-64 rounded-md overflow-hidden">
-                        <Image
-                          src={currentQuestion.image|| "https://ui.shadcn.com/placeholder.svg"}
-                          alt="Question image"
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
+                  <div className="mb-6">
+                    <div className="relative w-full h-48 md:h-64 rounded-md overflow-hidden">
+                      <Image
+                        src={
+                          currentQuestion.image ||
+                          "https://ui.shadcn.com/placeholder.svg"
+                        }
+                        alt="Question image"
+                        fill
+                        className="object-contain"
+                      />
                     </div>
-                  )}
+                  </div>
+                )}
 
                 <RadioGroup
                   value={currentQuestion.selectedOption ?? ""}
@@ -889,12 +906,18 @@ const handleCancelExit = () => {
                   {currentQuestion.options.map((option, index) => {
                     const optionId = String.fromCharCode(65 + index); // A, B, C, D
                     const isCorrect =
-                      mode === "review" && currentQuestion.selectedOption &&
-                      currentQuestion.options[currentQuestion.correctAnswer.charCodeAt(0) - 65] === option;
+                      mode === "review" &&
+                      currentQuestion.selectedOption &&
+                      currentQuestion.options[
+                        currentQuestion.correctAnswer.charCodeAt(0) - 65
+                      ] === option;
                     const isIncorrect =
                       mode === "review" &&
-                      currentQuestion.selectedOption==option &&
-                      currentQuestion.selectedOption !== currentQuestion.options[currentQuestion.correctAnswer.charCodeAt(0) - 65];
+                      currentQuestion.selectedOption == option &&
+                      currentQuestion.selectedOption !==
+                        currentQuestion.options[
+                          currentQuestion.correctAnswer.charCodeAt(0) - 65
+                        ];
                     return (
                       <div
                         key={optionId}
@@ -1081,14 +1104,14 @@ const handleCancelExit = () => {
         </DialogContent>
       </Dialog>
 
-     {/* Exit confirmation dialog */}
-     <Dialog open={showExitConfirm} onOpenChange={handleCancelExit}>
+      {/* Exit confirmation dialog */}
+      <Dialog open={showExitConfirm} onOpenChange={handleCancelExit}>
         <DialogContent className="sm:max-w-[425px] bg-background">
           <DialogHeader>
             <DialogTitle>Exit Test?</DialogTitle>
             <DialogDescription>
-              You haven't submitted your test yet. Are you sure you want to leave?
-              Your progress will be lost.
+              You haven't submitted your test yet. Are you sure you want to
+              leave? Your progress will be lost.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -1103,10 +1126,7 @@ const handleCancelExit = () => {
             <Button variant="outline" onClick={handleCancelExit}>
               Continue Test
             </Button>
-            <Button 
-              onClick={handleConfirmExit}
-              disabled={testSubmitLoader}
-            >
+            <Button onClick={handleConfirmExit} disabled={testSubmitLoader}>
               {testSubmitLoader ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

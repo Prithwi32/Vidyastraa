@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,6 +20,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { signOut, useSession } from "next-auth/react";
 import Loader from "@/components/Loader";
 import Image from "next/image";
+import { LogoutDialog } from "@/components/logout-dialog";
 
 export default function DashboardLayout({
   children,
@@ -28,6 +28,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const pathname = usePathname();
 
   const routes = [
@@ -89,6 +90,10 @@ export default function DashboardLayout({
     else setLoader(false);
   };
 
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/auth/signin" });
+  };
+
   if (loader)
     return (
       <div className="flex items-center justify-center h-screen">
@@ -98,6 +103,7 @@ export default function DashboardLayout({
 
   return (
     <div className="h-full relative dark:bg-gray-950">
+      {/* Desktop Sidebar */}
       <div className="hidden md:flex h-full w-72 flex-col fixed inset-y-0 z-50 dark:bg-gray-900 bg-white border-r dark:border-gray-800">
         <Link href={"/"}>
           <div className="flex items-center p-6 pl-4">
@@ -131,7 +137,7 @@ export default function DashboardLayout({
         </div>
         <div className="mt-auto p-6 flex items-center justify-between">
           <button
-            onClick={() => signOut()}
+            onClick={() => setShowLogoutDialog(true)}
             className="flex items-center gap-x-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-all"
           >
             <LogOut className="h-5 w-5" />
@@ -140,6 +146,8 @@ export default function DashboardLayout({
           <ThemeToggle />
         </div>
       </div>
+
+      {/* Mobile Sidebar Toggle */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="md:hidden fixed top-4 left-4 z-50 bg-white dark:bg-gray-900 p-2 rounded-md shadow-md"
@@ -150,12 +158,16 @@ export default function DashboardLayout({
           <Menu className="h-5 w-5" />
         )}
       </button>
+
+      {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/50"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
+
+      {/* Mobile Sidebar */}
       <div
         className={`md:hidden fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-gray-900 transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -193,23 +205,27 @@ export default function DashboardLayout({
           ))}
         </div>
         <div className="mt-auto p-6 flex items-center justify-between">
-          <Link
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              signOut();
-            }}
+          <button
+            onClick={() => setShowLogoutDialog(true)}
             className="flex items-center gap-x-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-all"
           >
             <LogOut className="h-5 w-5" />
             Logout
-          </Link>
+          </button>
           <ThemeToggle />
         </div>
       </div>
+
+      {/* Main Content */}
       <main className="md:pl-72 pt-16 md:pt-0 min-h-screen dark:bg-gray-950">
         <div className="p-6">{children}</div>
       </main>
+
+      {/* Logout Dialog */}
+      <LogoutDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+      />
     </div>
   );
 }
