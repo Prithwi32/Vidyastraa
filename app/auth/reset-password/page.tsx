@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import { DarkModeButton } from "@/components/DarkModeButton";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const [loading, setLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
     return true;
   };
 
-  const handleResetPassword = async (e: any) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validatePassword()) {
@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
         router.push("/auth/signin");
       }, 3000);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Failed to reset password. Please try again.");
     } finally {
       setLoading(false);
@@ -235,5 +235,13 @@ export default function ResetPasswordPage() {
         </footer>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
