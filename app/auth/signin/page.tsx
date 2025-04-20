@@ -29,12 +29,12 @@ export default function SignInPage() {
   if (session.status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
-        <Loader/>
+        <Loader />
       </div>
     );
   }
 
-  const handleEmailSignIn = async (e:any) => {
+  const handleEmailSignIn = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -60,7 +60,7 @@ export default function SignInPage() {
   return (
     session.status === "unauthenticated" && (
       <div className="min-h-screen flex items-center justify-center sm:p-4 bg-slate-100 dark:bg-slate-950">
-        <ToastContainer/>
+        <ToastContainer />
         {/* Single Card Container */}
         <div className="w-full max-md:h-screen max-w-6xl overflow-y-auto overflow-x-hidden sm:rounded-2xl shadow-xl bg-white dark:bg-slate-900 transition-colors duration-300 flex flex-col justify-between">
           {/* Navigation */}
@@ -151,7 +151,7 @@ export default function SignInPage() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
                       <Link
-                        href="/forgot-password"
+                        href="/auth/forgot-password"
                         className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         Forgot password?
