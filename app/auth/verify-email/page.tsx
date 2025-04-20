@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -10,30 +10,43 @@ import { Label } from "@/components/ui/label"
 import { DarkModeButton } from "@/components/DarkModeButton"
 import { Loader2 } from "lucide-react"
 import { toast, ToastContainer } from "react-toastify"
+import { sendVerificationEmail } from "@/app/actions/auth"
+import { useSession } from "next-auth/react"
+import Loader from "@/components/Loader"
 
 export default function VerifyEmailPage() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState("")
   const router = useRouter()
+  const session = useSession();
+
+  useEffect(() => {
+    if (session.status === "authenticated") {
+      router.push("/student/dashboard/profile");
+    }
+  }, [session.status, router]);
+
+  if (session.status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
+        <Loader />
+      </div>
+    );
+  }
 
   const handleVerifyEmail = async (e: any) => {
     e.preventDefault()
     setLoading(true)
     try {
-      // Here you would typically call your API to send a verification email
-      // For example:
-      // const response = await fetch('/api/auth/verify-email', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email }),
-      // });
+      if(email.trim()==="")return;
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const result = await sendVerificationEmail(email)
+      if (!result.success){
+        return toast.error(result.message)
+      }
 
-      toast.success("Verification email sent! Please check your inbox.")
+      toast.success(result.message)
 
-      // Optionally redirect after a delay
       setTimeout(() => {
         router.push("/auth/signin")
       }, 3000)

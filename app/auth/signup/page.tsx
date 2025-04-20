@@ -73,6 +73,8 @@ export default function SignUpPage() {
         toast.error(result.message);
       }else{
         toast.success(result.message);
+        setLoading(false);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         router.push("/auth/signin");
       }
     } catch (error) {

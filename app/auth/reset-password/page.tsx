@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { DarkModeButton } from "@/components/DarkModeButton";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
+import { resetPassword } from "@/app/actions/auth";
+import Loader from "@/components/Loader";
+import { useSession } from "next-auth/react";
 
 function ResetPasswordContent() {
   const [loading, setLoading] = useState(false);
@@ -20,6 +23,15 @@ function ResetPasswordContent() {
   const [passwordError, setPasswordError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const session = useSession()
+
+  useEffect(() => {
+      if (session.status === "authenticated") {
+        router.push("/student/dashboard/profile");
+      }
+    }, [session.status]);
+  
+   
 
   useEffect(() => {
     // Get token from URL query parameter
@@ -35,9 +47,17 @@ function ResetPasswordContent() {
     }
   }, [searchParams, router]);
 
+  if (session.status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
+        <Loader />
+      </div>
+    );
+  }
+
   const validatePassword = () => {
-    if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters long");
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
       return false;
     }
 
@@ -59,20 +79,16 @@ function ResetPasswordContent() {
 
     setLoading(true);
     try {
-      // Here you would typically call your API to reset the password
-      // For example:
-      // const response = await fetch('/api/auth/reset-password', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ token, newPassword }),
-      // });
+      const response = await resetPassword(token, newPassword);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!response.success) {
+        toast.error(response.message);
+        setLoading(false);
+        return;
+      }
 
-      toast.success(
-        "Password reset successful! You can now sign in with your new password."
-      );
+      toast.success(response.message);
+      setLoading(false);
 
       // Redirect to sign in page after a delay
       setTimeout(() => {
@@ -183,7 +199,7 @@ function ResetPasswordContent() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Must be at least 8 characters
+                    Must be at least 6 characters
                   </p>
                 </div>
 
@@ -240,7 +256,13 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader/>
+        </div>
+      }
+    >
       <ResetPasswordContent />
     </Suspense>
   );

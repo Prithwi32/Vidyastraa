@@ -166,6 +166,12 @@ export default function SignInPage() {
                       required
                     />
                   </div>
+                  <Link
+                    href="/auth/verify-email"
+                    className="text-sm hover:underline text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Resend Verification Link
+                  </Link>
                   <Button
                     type="submit"
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6"

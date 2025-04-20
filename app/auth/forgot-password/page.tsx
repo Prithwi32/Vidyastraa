@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -12,13 +12,31 @@ import { DarkModeButton } from "@/components/DarkModeButton"
 import { Loader2 } from "lucide-react"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
+import { requestPasswordReset } from "@/app/actions/auth"
+import { useSession } from "next-auth/react"
+import Loader from "@/components/Loader"
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState("")
   const router = useRouter()
+  const session = useSession()
 
-  const handleVerifyEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+      if (session.status === "authenticated") {
+        router.push("/student/dashboard/profile");
+      }
+    }, [session.status]);
+  
+    if (session.status === "loading") {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
+          <Loader />
+        </div>
+      );
+    }
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
 
@@ -29,10 +47,14 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await requestPasswordReset(email)
+      if (!response.success) {
+        toast.error(response.message)
+        setLoading(false)
+        return;
+      }
 
-      toast.success("Verification email sent! Please check your inbox.")
+      toast.success(response.message)
 
       // Optionally redirect after a delay
       setTimeout(() => {
@@ -126,7 +148,7 @@ export default function ForgotPasswordPage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleVerifyEmail} className="space-y-4 pb-6">
+                <form onSubmit={handleForgotPassword} className="space-y-4 pb-5">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
                     <Input
@@ -151,17 +173,10 @@ export default function ForgotPasswordPage() {
                         Sending...
                       </>
                     ) : (
-                      "Send Verification Email"
+                      "Send Password Reset Link"
                     )}
                   </Button>
                 </form>
-
-                <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                  Already verified?{" "}
-                  <Link href="/auth/signin" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                    Sign in
-                  </Link>
-                </p>
 
                 <p className="text-center text-sm text-slate-500 dark:text-slate-400">
                   Don't have an account?{" "}
