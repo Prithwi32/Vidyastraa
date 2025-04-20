@@ -3,7 +3,7 @@ import type React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import StudentSidebar from "@/components/student/Sidebar";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Loader from "@/components/Loader";
 
@@ -14,6 +14,7 @@ export default function StudentDashboardLayout({
 }) {
   const session = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [loader, setLoader] = useState(true);
 
   useEffect(() => {
@@ -31,6 +32,8 @@ export default function StudentDashboardLayout({
     else setLoader(false);
   };
 
+  const isTestTakingPage = pathname?.match(/^\/student\/dashboard\/tests\/[^\/]+$/);
+
   if (loader)
     return (
       <div className="flex items-center justify-center h-screen">
@@ -47,8 +50,10 @@ export default function StudentDashboardLayout({
         disableTransitionOnChange
       >
         <div className="flex min-h-screen">
-          <StudentSidebar />
-          <div className="flex-1 flex flex-col p-6">{children}</div>
+          {!isTestTakingPage && <StudentSidebar />}
+          <div className={`flex-1 flex flex-col ${isTestTakingPage ? "" : "p-6"}`}>
+            {children}
+          </div>
         </div>
       </ThemeProvider>
     </div>
