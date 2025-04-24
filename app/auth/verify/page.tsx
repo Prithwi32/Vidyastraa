@@ -1,5 +1,5 @@
 "use client";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Link from "next/link";
@@ -20,9 +20,10 @@ import {
   AlertTriangle,
   ArrowRight,
   Mail,
-  Loader,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import Loader from "@/components/Loader";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -30,6 +31,15 @@ function VerifyEmailContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading"
   );
+
+  const router = useRouter();
+  const session = useSession();
+
+  useEffect(() => {
+    if (session.status === "authenticated") {
+      router.push("/student/dashboard/profile");
+    }
+  }, [session.status, router]);
 
   useEffect(() => {
     if (!token) {
@@ -53,6 +63,14 @@ function VerifyEmailContent() {
 
     verify();
   }, [token]);
+
+  if (session.status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-blue-50 to-white dark:from-slate-950 dark:to-slate-900">

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutDialog } from "@/components/logout-dialog";
 import { useMobile } from "./stud-use-mobile";
-import { signOut, useSession } from "next-auth/react";
+import {  useSession } from "next-auth/react";
 import Image from "next/image";
 const navItems = [
   {
@@ -109,13 +109,10 @@ export default function StudentSidebar() {
             size="icon"
             onClick={() => {
               setShowLogoutDialog(true);
-              setTimeout(() => {
-                signOut({ callbackUrl: "/" });
-              }, 5000);
             }}
             className="text-muted-foreground hover:text-foreground"
           >
-            <LogOut className="h-5 w-5" onClick={() => signOut()} />
+            <LogOut className="h-5 w-5" />
             <span className="sr-only">Logout</span>
           </Button>
         </div>
