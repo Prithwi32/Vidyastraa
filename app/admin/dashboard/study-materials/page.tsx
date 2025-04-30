@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -57,10 +55,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface StudyMaterial {
+  id: string;
+  title: string;
+  description: string;
+  subjectId: string;
+  subject: {
+    id: string;
+    name: string;
+  };
+  type: string;
+  url: string;
+  uploadedAt: string;
+  size?: string;
+}
+
 export default function AdminMaterialsPage() {
-  const [materials, setMaterials] = useState<{ [key: string]: any[] }>({});
+  const [materials, setMaterials] = useState<{
+    [key: string]: StudyMaterial[];
+  }>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+  const [selectedMaterial, setSelectedMaterial] =
+    useState<StudyMaterial | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
@@ -69,20 +85,33 @@ export default function AdminMaterialsPage() {
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
-    subject: "",
+    subjectId: "", // Changed from 'subject' to 'subjectId'
   });
   const [editFile, setEditFile] = useState<File | null>(null);
+
+  const subjects = ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"];
 
   const fetchMaterials = async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/study-materials");
-      const data = await res.json();
-      const grouped = data.reduce((acc: any, material: any) => {
-        acc[material.subject] = acc[material.subject] || [];
-        acc[material.subject].push(material);
-        return acc;
-      }, {});
+      if (!res.ok) {
+        throw new Error("Failed to fetch materials");
+      }
+      const data: StudyMaterial[] = await res.json();
+
+      const grouped = data.reduce(
+        (acc: { [key: string]: StudyMaterial[] }, material) => {
+          const subjectName = material.subject?.name || "Unknown";
+          if (!acc[subjectName]) {
+            acc[subjectName] = [];
+          }
+          acc[subjectName].push(material);
+          return acc;
+        },
+        {}
+      );
+
       setMaterials(grouped);
     } catch (error) {
       console.error("Failed to fetch materials:", error);
@@ -103,11 +132,9 @@ export default function AdminMaterialsPage() {
     setIsUpdating(true);
     try {
       const formData = new FormData();
-      formData.append("id", selectedMaterial.id);
       formData.append("title", editForm.title);
       formData.append("description", editForm.description);
-      formData.append("subject", editForm.subject);
-
+      formData.append("subjectId", editForm.subjectId);
       if (editFile) {
         formData.append("file", editFile);
       }
@@ -117,37 +144,46 @@ export default function AdminMaterialsPage() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Failed to update material");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update material");
+      }
 
-      toast.success("Study material updated successfully");
+      const result = await res.json();
+      toast.success(result.message || "Study material updated successfully");
       fetchMaterials();
+      setIsEditDialogOpen(false);
     } catch (error) {
       console.error("Error updating material:", error);
-      toast.error("Failed to update study material. Please try again.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update study material"
+      );
     } finally {
       setIsUpdating(false);
-      setIsEditDialogOpen(false);
       setEditFile(null);
     }
   };
 
-  const handleEdit = (material: any) => {
+  // Update your handleEdit function
+  const handleEdit = (material: StudyMaterial) => {
     setSelectedMaterial(material);
     setEditForm({
       title: material.title,
       description: material.description,
-      subject: material.subject,
+      subjectId: material.subjectId, // Changed from subject to subjectId
     });
     setEditFile(null);
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (material: any) => {
+  const handleDelete = (material: StudyMaterial) => {
     setSelectedMaterial(material);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleViewPdf = (material: any) => {
+  const handleViewPdf = (material: StudyMaterial) => {
     if (!material?.url) {
       toast.error("Material URL missing.");
       return;
@@ -165,15 +201,20 @@ export default function AdminMaterialsPage() {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        toast.success("Study material deleted successfully");
-        fetchMaterials();
-      } else {
-        throw new Error("Failed to delete material");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to delete material");
       }
+
+      toast.success("Study material deleted successfully");
+      fetchMaterials();
     } catch (error) {
       console.error("Error deleting material:", error);
-      toast.error("Failed to delete study material. Please try again.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete study material"
+      );
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
@@ -197,8 +238,6 @@ export default function AdminMaterialsPage() {
     }
   };
 
-  const subjects = ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"];
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -210,6 +249,7 @@ export default function AdminMaterialsPage() {
         </div>
         <AddMaterialForm onMaterialAdded={fetchMaterials} />
       </div>
+
       <Tabs defaultValue="PHYSICS">
         <TabsList className="flex flex-wrap">
           {subjects.map((subject) => (
@@ -236,7 +276,7 @@ export default function AdminMaterialsPage() {
                   </div>
                 ) : materials[subject]?.length ? (
                   <Accordion type="single" collapsible>
-                    {(materials[subject] || []).map((mat: any) => (
+                    {materials[subject].map((mat) => (
                       <AccordionItem key={mat.id} value={`item-${mat.id}`}>
                         <AccordionTrigger>
                           <div className="flex items-center text-left">
@@ -244,7 +284,7 @@ export default function AdminMaterialsPage() {
                             <div>
                               <p className="font-medium">{mat.title}</p>
                               <p className="text-xs text-muted-foreground">
-                                {mat.type} • {mat.size}
+                                {mat.type} • {mat.size || "N/A"}
                               </p>
                             </div>
                           </div>
@@ -253,7 +293,7 @@ export default function AdminMaterialsPage() {
                           <p>{mat.description}</p>
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <Badge>
-                              Uploaded:
+                              Uploaded:{" "}
                               {new Date(mat.uploadedAt).toLocaleDateString()}
                             </Badge>
                             <div className="flex flex-wrap gap-2">
@@ -266,7 +306,7 @@ export default function AdminMaterialsPage() {
                                 View PDF
                               </Button>
                               <a
-                                href={selectedMaterial?.url}
+                                href={mat.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download
@@ -327,6 +367,7 @@ export default function AdminMaterialsPage() {
           </TabsContent>
         ))}
       </Tabs>
+
       {/* Edit Material Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -352,10 +393,11 @@ export default function AdminMaterialsPage() {
               <div className="grid gap-2">
                 <Label htmlFor="subject">Subject</Label>
                 <Select
-                  value={editForm.subject}
+                  value={editForm.subjectId}
                   onValueChange={(value) =>
-                    setEditForm({ ...editForm, subject: value })
+                    setEditForm({ ...editForm, subjectId: value })
                   }
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
@@ -381,7 +423,6 @@ export default function AdminMaterialsPage() {
                 />
               </div>
 
-              {/* Add file upload field */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-file">Replace PDF (Optional)</Label>
                 <div className="flex items-center gap-2">
@@ -416,18 +457,6 @@ export default function AdminMaterialsPage() {
                     </span>
                   </div>
                 )}
-                {!editFile && selectedMaterial && selectedMaterial.filename && (
-                  <div className="text-sm text-muted-foreground">
-                    <span>Current file: {selectedMaterial.filename}</span>
-                  </div>
-                )}
-                {!editFile &&
-                  selectedMaterial &&
-                  !selectedMaterial.filename && (
-                    <div className="text-sm text-muted-foreground">
-                      <span>No file associated with this material.</span>
-                    </div>
-                  )}
               </div>
             </div>
             <DialogFooter>
@@ -453,6 +482,7 @@ export default function AdminMaterialsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -471,7 +501,7 @@ export default function AdminMaterialsPage() {
               <div className="border rounded-md p-3 bg-muted/50">
                 <p className="font-medium">{selectedMaterial.title}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedMaterial.subject}
+                  {selectedMaterial.subject?.name || "Unknown subject"}
                 </p>
               </div>
             )}
@@ -502,43 +532,58 @@ export default function AdminMaterialsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* PDF Viewer Dialog */}
       <Dialog open={isPdfViewerOpen} onOpenChange={setIsPdfViewerOpen}>
-        <DialogContent className="sm:max-w-[90vw] max-h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-4">
             <DialogTitle>{selectedMaterial?.title || "Untitled"}</DialogTitle>
             <DialogDescription>
               {selectedMaterial?.description || "No description available."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden p-6 pt-0">
             {selectedMaterial?.url ? (
-              <iframe
-                src={`${selectedMaterial.url}`}
-                className="w-full h-[70vh] border rounded-md"
-                title={selectedMaterial.title}
-              />
+              <div className="w-full h-full flex">
+                <iframe
+                  src={`${selectedMaterial.url}#toolbar=0&navpanes=0&scrollbar=0`}
+                  className="absolute inset-0 w-full h-5/6 border rounded-md"
+                  title={selectedMaterial.title}
+                />
+              </div>
             ) : (
-              <p className="text-center text-red-500">No PDF URL found.</p>
+              <div className="flex flex-col items-center justify-center h-full">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-red-500">PDF could not be loaded</p>
+                <p className="text-sm text-muted-foreground">
+                  The document may be unavailable or corrupted
+                </p>
+              </div>
             )}
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
-            <a
-              href={selectedMaterial?.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              className="w-full sm:w-auto"
-            >
-              <Button variant="outline" className="w-full">
-                <Download className="mr-2 h-4 w-4" />
-                Download
+          <DialogFooter className="px-6 py-4 border-t">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 w-full">
+              <a
+                href={selectedMaterial?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="w-full sm:w-auto"
+              >
+                <Button variant="outline" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </a>
+              <Button
+                className="ml-4"
+                onClick={() => setIsPdfViewerOpen(false)}
+              >
+                Close
               </Button>
-            </a>
-
-            <Button onClick={() => setIsPdfViewerOpen(false)}>Close</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

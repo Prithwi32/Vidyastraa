@@ -17,7 +17,10 @@ export async function DELETE(
     if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
       return new NextResponse("Unauthorized", { status: 401 });
 
-    const material = await prisma.studyMaterial.findUnique({ where: { id } });
+    const material = await prisma.studyMaterial.findUnique({
+      where: { id },
+      include: { subject: true },
+    });
     if (!material) return new Response("Material not found", { status: 404 });
 
     // Get file path from public URL
@@ -40,7 +43,18 @@ export async function DELETE(
     // Delete from DB
     await prisma.studyMaterial.delete({ where: { id } });
 
-    return new Response("Deleted successfully", { status: 200 });
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        message: "Deleted successfully",
+        deletedMaterial: {
+          id: material.id,
+          title: material.title,
+          subject: material.subject?.name || "Unknown",
+        },
+      }),
+      { status: 200 }
+    );
   } catch (error) {
     console.error("DELETE error:", error);
     return new Response("Internal Server Error", { status: 500 });
@@ -52,33 +66,44 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
 
   try {
     const session = await getServerSession(NEXT_AUTH);
-
-    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+    if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
       return new NextResponse("Unauthorized", { status: 401 });
+    }
 
     const formData = await req.formData();
+    console.log("Received form data:", Object.fromEntries(formData.entries()));
 
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
-    const subject = formData.get("subject") as string;
+    const subjectId = formData.get("subjectId") as string;
     const file = formData.get("file") as File | null;
+
+    if (!title || !subjectId) {
+      return new NextResponse("Title and subject ID are required", { status: 400 });
+    }
 
     const existing = await prisma.studyMaterial.findUnique({ where: { id } });
     if (!existing) return new Response("Material not found", { status: 404 });
 
+    const subjectExists = await prisma.subject.findUnique({
+      where: { id: subjectId },
+    });
+    if (!subjectExists) {
+      return new NextResponse("Subject not found", { status: 404 });
+    }
+
     let url = existing.url;
 
-    // If a new file is uploaded, delete the old one and upload the new one
     if (file) {
+      // Delete old file
       const oldPath = decodeURIComponent(
         url.split("/storage/v1/object/public/study-materials/")[1]
       );
-
-      // Delete old file
       await supabaseServer.storage.from("study-materials").remove([oldPath]);
 
+      // Upload new file
       const newPath = `materials/${Date.now()}-${file.name}`;
-      const { data, error } = await supabaseServer.storage
+      const { error } = await supabaseServer.storage
         .from("study-materials")
         .upload(newPath, file);
 
@@ -87,22 +112,27 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
         return new Response("Failed to upload file", { status: 500 });
       }
 
-      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/study-materials/${newPath}`;
-      url = publicUrl;
+      url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/study-materials/${newPath}`;
     }
 
-    // Update DB
     const updated = await prisma.studyMaterial.update({
       where: { id },
       data: {
         title,
         description,
-        subject: subject as Subject,
+        subjectId,
         url,
+      },
+      include: {
+        subject: true,
       },
     });
 
-    return Response.json(updated, { status: 200 });
+    return NextResponse.json({
+      success: true,
+      message: "Material updated successfully",
+      updatedMaterial: updated,
+    });
   } catch (error) {
     console.error("PATCH error:", error);
     return new Response("Failed to update material", { status: 500 });

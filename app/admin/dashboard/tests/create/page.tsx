@@ -1,8 +1,21 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Filter, Search, X, Loader2, Minus, Plus } from "lucide-react";
+import {
+  Check,
+  Filter,
+  Search,
+  X,
+  Loader2,
+  Minus,
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  FolderOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,7 +49,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getAllCourses } from "@/app/actions/course";
 import Loader from "@/components/Loader";
 import { createTest } from "@/app/actions/test";
 import { Separator } from "@/components/ui/separator";
@@ -46,6 +58,29 @@ type Course = {
   id: string;
   title: string;
   category: string;
+};
+
+type Chapter = {
+  id: string;
+  name: string;
+  subjectId: string;
+  questions: Question[];
+};
+
+type Question = {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  solution: string;
+  difficulty: "BEGINNER" | "MODERATE" | "ADVANCED";
+  subject: string;
+  chapter: {
+    id: string;
+    name: string;
+  };
+  image: string | null;
+  createdAt: string;
 };
 
 export default function CreateTestPage() {
@@ -65,7 +100,8 @@ export default function CreateTestPage() {
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [subjectRequirements, setSubjectRequirements] = useState<
     Record<string, number>
@@ -73,123 +109,149 @@ export default function CreateTestPage() {
   const [questionMarks, setQuestionMarks] = useState<Record<string, number>>(
     {}
   );
+  const [expandedChapters, setExpandedChapters] = useState<
+    Record<string, boolean>
+  >({});
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+
+  const subjects: string[] = ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"];
+  const difficulties: ("BEGINNER" | "MODERATE" | "ADVANCED")[] = [
+    "BEGINNER",
+    "MODERATE",
+    "ADVANCED",
+  ];
 
   useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        await fetchQuestions();
-        await getCourses();
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
+    const loadInitialData = async () => {
+      await fetchChapters("");
+      await fetchQuestions();
     };
-
-    getData();
+    loadInitialData();
   }, []);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (selectedSubject) {
+        await fetchChapters(selectedSubject);
+      }
+      await fetchQuestions();
+    };
+    fetchData();
+  }, [selectedSubject, selectedChapter]);
+
   const fetchQuestions = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/questions");
+      let url = "/api/questions";
+      const params = new URLSearchParams();
+
+      if (selectedSubject) {
+        params.append("subject", selectedSubject);
+      }
+
+      if (selectedChapter) {
+        params.append("chapterId", selectedChapter);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
-      setQuestions(data.questions || []);
+
+      const questionsArray = Array.isArray(data) ? data : data.questions || [];
+      setQuestions(questionsArray);
     } catch (err) {
-      console.error("Failed to fetch questions:", err);
-      toast.error("Failed to fetch questions");
+      console.error("Error fetching questions:", err);
+      toast.error("❌ Failed to fetch questions.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getCourses = async (): Promise<void> => {
+  const fetchChapters = async (subject: string) => {
     try {
-      const res = await getAllCourses();
+      const res = await fetch(`/api/chapters?subject=${subject}`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      const chaptersData = Array.isArray(data) ? data : data.chapters || [];
+      setChapters(chaptersData);
+    } catch (err) {
+      console.error("Error fetching chapters:", err);
+      toast.error("❌ Failed to fetch chapters.");
+    }
+  };
+
+  const resetForm = () => {
+    setTestTitle("");
+    setTestDuration("");
+    setTestDescription("");
+    setSelectedQuestions([]);
+    setQuestionMarks({});
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !testTitle.trim() ||
+      !testDuration.trim() ||
+      !selectedCourse ||
+      selectedQuestions.length === 0
+    ) {
+      toast.error("❌ Please fill in all required fields.");
+      return;
+    }
+
+    if (!areRequirementsMet()) {
+      toast.error("❌ Please meet all subject requirements.");
+      return;
+    }
+
+    setTestLoader(true);
+
+    const testData = {
+      title: testTitle,
+      duration: testDuration,
+      category: testType,
+      subjects: Object.keys(questionsBySubject).filter((subject) =>
+        selectedQuestions.some((id) => {
+          const question = questions.find((q) => q.id === id);
+          return question?.subject === subject;
+        })
+      ),
+      description: testDescription,
+      courseId: selectedCourse,
+      subjectRequirements,
+      questions: selectedQuestions.map((id) => {
+        return {
+          questionId: id,
+          marks: questionMarks[id] || 4,
+        };
+      }),
+    };
+
+    try {
+      const res = await createTest(testData as any);
 
       if (res.success) {
-        setCourses(res.courses as any);
+        toast.success("Test created successfully!");
+
+        setTimeout(() => {
+          router.push("/admin/dashboard/tests");
+        }, 900);
       } else {
-        toast.error("Failed to fetch courses");
+        toast.error("An unexpected error occurred");
       }
     } catch (error) {
-      toast.error("Failed to fetch courses");
-      console.error("Failed to fetch courses:", error);
+      console.error("Error creating test:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setTestLoader(false);
     }
   };
-
-  // Set test type based on selected course
-  useEffect(() => {
-    if (selectedCourse) {
-      const course = courses.find((c) => c.id === selectedCourse);
-      if (course) {
-        setTestType(
-          course.category === "NEET"
-            ? "NEET"
-            : course.category === "JEE"
-            ? "JEE"
-            : "INDIVIDUAL"
-        );
-      }
-    }
-  }, [selectedCourse]);
-
-  // Filter questions based on test type, subject, search query, and difficulty
-  const filteredQuestions = questions.filter((question) => {
-    // Filter by test type
-    if (testType === "JEE" && question.subject === "BIOLOGY") return false;
-    if (testType === "NEET" && question.subject === "MATHS") return false;
-    if (
-      testType === "INDIVIDUAL" &&
-      selectedSubject &&
-      question.subject !== selectedSubject
-    )
-      return false;
-
-    // Filter by search query
-    if (
-      searchQuery &&
-      !question.question.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-      return false;
-
-    // Filter by difficulty
-    if (
-      difficultyFilter.length > 0 &&
-      !difficultyFilter.includes(question.difficulty)
-    )
-      return false;
-
-    return true;
-  });
-
-  // Group questions by subject
-  const questionsBySubject: Record<string, typeof questions> = {};
-  filteredQuestions.forEach((question) => {
-    if (!questionsBySubject[question.subject]) {
-      questionsBySubject[question.subject] = [];
-    }
-    questionsBySubject[question.subject].push(question);
-  });
-
-  // Get total questions by subject
-  const totalQuestionsBySubject: Record<string, number> = {};
-  questions.forEach((question) => {
-    if (!totalQuestionsBySubject[question.subject]) {
-      totalQuestionsBySubject[question.subject] = 0;
-    }
-    totalQuestionsBySubject[question.subject]++;
-  });
-
-  // Get selected questions by subject
-  const selectedQuestionsBySubject: Record<string, number> = {};
-  selectedQuestions.forEach((id) => {
-    const question = questions.find((q) => q.id === id);
-    if (question) {
-      if (!selectedQuestionsBySubject[question.subject]) {
-        selectedQuestionsBySubject[question.subject] = 0;
-      }
-      selectedQuestionsBySubject[question.subject]++;
-    }
-  });
 
   const handleSelectQuestion = (questionId: string) => {
     setSelectedQuestions((prev) => {
@@ -208,21 +270,24 @@ export default function CreateTestPage() {
     });
   };
 
-  const handleSelectAllInSubject = (subject: string) => {
-    const subjectQuestionIds = questionsBySubject[subject].map((q) => q.id);
-    const allSelected = subjectQuestionIds.every((id) =>
+  const handleSelectAllInChapter = (
+    chapterId: string,
+    questions: Question[]
+  ) => {
+    const chapterQuestionIds = questions.map((q) => q.id);
+    const allSelected = chapterQuestionIds.every((id) =>
       selectedQuestions.includes(id)
     );
 
     if (allSelected) {
-      // Deselect all questions in this subject
+      // Deselect all questions in this chapter
       setSelectedQuestions((prev) =>
-        prev.filter((id) => !subjectQuestionIds.includes(id))
+        prev.filter((id) => !chapterQuestionIds.includes(id))
       );
     } else {
-      // Select all questions in this subject
+      // Select all questions in this chapter
       const newSelectedQuestions = [...selectedQuestions];
-      subjectQuestionIds.forEach((id) => {
+      chapterQuestionIds.forEach((id) => {
         if (!newSelectedQuestions.includes(id)) {
           newSelectedQuestions.push(id);
           // Initialize marks to 4 for newly selected questions
@@ -276,7 +341,7 @@ export default function CreateTestPage() {
         ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
         : testType === "INDIVIDUAL" && selectedSubject
         ? [selectedSubject]
-        : Object.keys(subjectRequirements); // fallback for CRASH/OTHER
+        : Object.keys(subjectRequirements);
 
     return relevantSubjects.every((subject) => {
       const required = subjectRequirements[subject] || 0;
@@ -285,75 +350,95 @@ export default function CreateTestPage() {
     });
   };
 
-  const handleCreateTest = async () => {
-    if (!testTitle) {
-      toast.error("Test title is required");
-      return;
-    }
-
-    if (!testDuration) {
-      toast.error("Test duration is required");
-      return;
-    }
-
-    if (!selectedCourse) {
-      toast.error("Please select a course");
-      return;
-    }
-
-    if (selectedQuestions.length === 0) {
-      toast.error("Please select at least one question");
-      return;
-    }
-
-    if (!areRequirementsMet()) {
-      toast.error("Please meet all subject requirements");
-      return;
-    }
-
-    setTestLoader(true);
-
-    // Here you would typically send the data to your API
-    const testData = {
-      title: testTitle,
-      duration: testDuration,
-      category: testType,
-      subjects: Object.keys(questionsBySubject).filter((subject) =>
-        selectedQuestions.some((id) => {
-          const question = questions.find((q) => q.id === id);
-          return question?.subject === subject;
-        })
-      ),
-      description: testDescription,
-      courseId: selectedCourse,
-      subjectRequirements,
-      questions: selectedQuestions.map((id) => {
-        return {
-          questionId: id,
-          marks: questionMarks[id] || 4, // Use the selected marks or default to 4
-        };
-      }),
-    };
-
-    try {
-      const res = await createTest(testData as any);
-
-      if (res.success) {
-        toast.success("Test created successfully!");
-
-        setTimeout(() => {
-          router.push("/admin/dashboard/tests");
-        }, 900);
-      } else {
-        toast.error("An unexpected error occurred");
-      }
-    } catch (error) {
-      console.error("Error creating test:", error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      setTestLoader(false);
-    }
+  const toggleChapter = (chapterId: string) => {
+    setExpandedChapters((prev) => ({
+      ...prev,
+      [chapterId]: !prev[chapterId],
+    }));
   };
+
+  // Filter questions based on test type, subject, search query, and difficulty
+  const filteredQuestions = questions.filter((question) => {
+    // Filter by test type
+    if (testType === "JEE" && question.subject.name === "BIOLOGY") return false;
+    if (testType === "NEET" && question.subject.name === "MATHS") return false;
+    if (
+      testType === "INDIVIDUAL" &&
+      selectedSubject &&
+      question.subject.name !== selectedSubject
+    )
+      return false;
+
+    // Filter by search query
+    if (
+      searchQuery &&
+      !question.question.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+      return false;
+
+    // Filter by difficulty
+    if (
+      difficultyFilter.length > 0 &&
+      !difficultyFilter.includes(question.difficulty)
+    )
+      return false;
+
+    return true;
+  });
+
+  // Group questions by subject
+  const questionsBySubject: Record<string, Question[]> = {};
+  filteredQuestions.forEach((question) => {
+    const subjectName = question.subject.name;
+    if (!questionsBySubject[subjectName]) {
+      questionsBySubject[subjectName] = [];
+    }
+    questionsBySubject[subjectName].push(question);
+  });
+
+  // Group questions by chapter within each subject
+  const questionsBySubjectAndChapter: Record<
+    string,
+    Record<string, Question[]>
+  > = {};
+
+  Object.keys(questionsBySubject).forEach((subject) => {
+    questionsBySubjectAndChapter[subject] = {};
+
+    questionsBySubject[subject].forEach((question) => {
+      const chapterId = question.chapter?.id || "uncategorized";
+      const chapterName = question.chapter?.name || "Uncategorized";
+
+      if (!questionsBySubjectAndChapter[subject][chapterId]) {
+        questionsBySubjectAndChapter[subject][chapterId] = [];
+      }
+
+      questionsBySubjectAndChapter[subject][chapterId].push(question);
+    });
+  });
+
+  // Get total questions by subject
+  const totalQuestionsBySubject: Record<string, number> = {};
+  questions.forEach((question) => {
+    const subjectName = question.subject.name;
+    if (!totalQuestionsBySubject[subjectName]) {
+      totalQuestionsBySubject[subjectName] = 0;
+    }
+    totalQuestionsBySubject[subjectName]++;
+  });
+
+  // Get selected questions by subject
+  const selectedQuestionsBySubject: Record<string, number> = {};
+  selectedQuestions.forEach((id) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      const subjectName = question.subject.name;
+      if (!selectedQuestionsBySubject[subjectName]) {
+        selectedQuestionsBySubject[subjectName] = 0;
+      }
+      selectedQuestionsBySubject[subjectName]++;
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -605,7 +690,7 @@ export default function CreateTestPage() {
             <CardFooter>
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={handleCreateTest}
+                onClick={handleSubmit}
                 disabled={
                   loading ||
                   selectedQuestions.length === 0 ||
@@ -628,6 +713,7 @@ export default function CreateTestPage() {
           </Card>
 
           {/* Question Selection */}
+          {/* Question Selection Card */}
           <Card className="md:col-span-3">
             <CardHeader>
               <CardTitle>Select Questions</CardTitle>
@@ -706,257 +792,359 @@ export default function CreateTestPage() {
             </CardHeader>
 
             <CardContent>
-              <Tabs
-                defaultValue={Object.keys(questionsBySubject)[0] || "PHYSICS"}
-                className="w-full"
-              >
+              <Tabs defaultValue={subjects[0]} className="w-full">
                 <TabsList className="w-full justify-start mb-4 overflow-x-auto">
-                  {Object.keys(questionsBySubject).map((subject) => (
-                    <TabsTrigger
-                      key={subject}
-                      value={subject}
-                      className="flex-shrink-0"
-                    >
-                      {subject.charAt(0) + subject.slice(1).toLowerCase()}
-                      <Badge variant="secondary" className="ml-1.5">
-                        {questionsBySubject[subject].length}
-                      </Badge>
-                    </TabsTrigger>
-                  ))}
+                  {subjects
+                    .filter((subject) => {
+                      if (testType === "JEE") return subject !== "BIOLOGY";
+                      if (testType === "NEET") return subject !== "MATHS";
+                      if (testType === "INDIVIDUAL" && selectedSubject)
+                        return subject === selectedSubject;
+                      return true;
+                    })
+                    .map((subject) => {
+                      const subjectQuestions = filteredQuestions.filter(
+                        (q) => q.subject.name === subject
+                      );
+                      return (
+                        <TabsTrigger
+                          key={subject}
+                          value={subject}
+                          className="flex-shrink-0"
+                          disabled={subjectQuestions.length === 0}
+                        >
+                          {subject.charAt(0) + subject.slice(1).toLowerCase()}
+                          <Badge variant="secondary" className="ml-1.5">
+                            {subjectQuestions.length}
+                          </Badge>
+                        </TabsTrigger>
+                      );
+                    })}
                 </TabsList>
 
-                {Object.entries(questionsBySubject).map(
-                  ([subject, questions]) => (
-                    <TabsContent
-                      key={subject}
-                      value={subject}
-                      className="space-y-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-muted-foreground">
-                          Showing {questions.length} questions
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
+                {subjects
+                  .filter((subject) => {
+                    if (testType === "JEE") return subject !== "BIOLOGY";
+                    if (testType === "NEET") return subject !== "MATHS";
+                    if (testType === "INDIVIDUAL" && selectedSubject)
+                      return subject === selectedSubject;
+                    return true;
+                  })
+                  .map((subject) => {
+                    const subjectQuestions = filteredQuestions.filter(
+                      (q) => q.subject.name === subject
+                    );
+
+                    // Group questions by chapter for this subject
+                    const questionsByChapter: Record<string, Question[]> = {};
+                    subjectQuestions.forEach((question) => {
+                      const chapterId = question.chapter?.id || "uncategorized";
+                      if (!questionsByChapter[chapterId]) {
+                        questionsByChapter[chapterId] = [];
+                      }
+                      questionsByChapter[chapterId].push(question);
+                    });
+
+                    return (
+                      <TabsContent
+                        key={subject}
+                        value={subject}
+                        className="space-y-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-medium text-muted-foreground">
+                            Showing {subjectQuestions.length} questions in{" "}
+                            {Object.keys(questionsByChapter).length} chapters
+                          </h3>
+                          <span className="text-sm text-muted-foreground">
                             Selected: {selectedQuestionsBySubject[subject] || 0}{" "}
-                            / {questions.length}
-                            {subjectRequirements[subject] > 0 &&
-                              ` (${subjectRequirements[subject]} required)`}
+                            / {subjectRequirements[subject] || 0} required
                           </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSelectAllInSubject(subject)}
-                            className="h-8 text-xs"
-                          >
-                            {questions.every((q) =>
-                              selectedQuestions.includes(q.id)
-                            )
-                              ? "Deselect All"
-                              : "Select All"}
-                          </Button>
                         </div>
-                      </div>
 
-                      <div className="space-y-3">
-                        {questions.map((question) => (
-                          <div
-                            key={question.id}
-                            className={`rounded-lg border p-3 transition-colors ${
-                              selectedQuestions.includes(question.id)
-                                ? "border-blue-300 bg-blue-50 dark:bg-slate-900"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <Checkbox
-                                checked={selectedQuestions.includes(
-                                  question.id
-                                )}
-                                onCheckedChange={() =>
-                                  handleSelectQuestion(question.id)
-                                }
-                                className="mt-1"
-                              />
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant="outline"
-                                    className={`px-2 py-0 text-xs ${
-                                      question.difficulty === "BEGINNER"
-                                        ? "border-green-200 bg-green-50 text-green-700"
-                                        : question.difficulty === "MODERATE"
-                                        ? "border-amber-200 bg-amber-50 text-amber-700"
-                                        : "border-red-200 bg-red-50 text-red-700"
-                                    }`}
+                        <div className="space-y-4">
+                          {Object.entries(questionsByChapter).map(
+                            ([chapterId, chapterQuestions]) => {
+                              const chapterName =
+                                chapterQuestions[0]?.chapter?.name ||
+                                "Uncategorized";
+                              const isExpanded =
+                                expandedChapters[chapterId] || false;
+                              const allSelected = chapterQuestions.every((q) =>
+                                selectedQuestions.includes(q.id)
+                              );
+
+                              return (
+                                <div
+                                  key={chapterId}
+                                  className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm bg-white dark:bg-gray-900 overflow-hidden"
+                                >
+                                  <div
+                                    className="flex items-center p-4 cursor-pointer bg-gray-50 dark:bg-gray-800"
+                                    onClick={() => toggleChapter(chapterId)}
                                   >
-                                    {question.difficulty.charAt(0) +
-                                      question.difficulty
-                                        .slice(1)
-                                        .toLowerCase()}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    ID: {question.id}
-                                  </span>
-                                  {/* Marks selector - only show when question is selected */}
-                                  {selectedQuestions.includes(question.id) && (
-                                    <div className="flex items-center ml-auto">
-                                      <span className="text-xs font-medium mr-2">
-                                        Marks:
-                                      </span>
-                                      <div className="flex items-center border rounded-md">
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6 rounded-none"
-                                          onClick={() => {
-                                            const currentMarks =
-                                              questionMarks[question.id] || 4;
-                                            if (currentMarks > 1) {
-                                              handleMarksChange(
-                                                question.id,
-                                                currentMarks - 1
-                                              );
-                                            }
-                                          }}
-                                          disabled={
-                                            (questionMarks[question.id] || 4) <=
-                                            1
-                                          }
-                                        >
-                                          <Minus className="h-3 w-3" />
-                                          <span className="sr-only">
-                                            Decrease
-                                          </span>
-                                        </Button>
+                                    {isExpanded ? (
+                                      <ChevronDown className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
+                                    ) : (
+                                      <ChevronRight className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
+                                    )}
+                                    <FolderOpen className="h-5 w-5 mr-2 text-yellow-500" />
+                                    <h3 className="font-medium text-lg flex-1">
+                                      {chapterName}
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                        {chapterQuestions.length} questions
+                                      </Badge>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSelectAllInChapter(
+                                            chapterId,
+                                            chapterQuestions
+                                          );
+                                        }}
+                                        className="h-8 text-xs"
+                                      >
+                                        {allSelected
+                                          ? "Deselect All"
+                                          : "Select All"}
+                                      </Button>
+                                    </div>
+                                  </div>
 
-                                        <Select
-                                          value={(
-                                            questionMarks[question.id] || 4
-                                          ).toString()}
-                                          onValueChange={(value) =>
-                                            handleMarksChange(
-                                              question.id,
-                                              Number.parseInt(value)
+                                  {isExpanded && (
+                                    <div className="space-y-3 p-4">
+                                      {chapterQuestions.map((question) => (
+                                        <div
+                                          key={question.id}
+                                          className={`rounded-lg border p-3 transition-colors ${
+                                            selectedQuestions.includes(
+                                              question.id
                                             )
-                                          }
+                                              ? "border-blue-300 bg-blue-50 dark:bg-slate-900"
+                                              : "border-gray-200 hover:border-gray-300"
+                                          }`}
                                         >
-                                          <SelectTrigger className="h-6 w-12 border-0 focus:ring-0 focus:ring-offset-0 p-0 pl-2">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="1">1</SelectItem>
-                                            <SelectItem value="2">2</SelectItem>
-                                            <SelectItem value="3">3</SelectItem>
-                                            <SelectItem value="4">4</SelectItem>
-                                          </SelectContent>
-                                        </Select>
+                                          <div className="flex items-start gap-3">
+                                            <Checkbox
+                                              checked={selectedQuestions.includes(
+                                                question.id
+                                              )}
+                                              onCheckedChange={() =>
+                                                handleSelectQuestion(
+                                                  question.id
+                                                )
+                                              }
+                                              className="mt-1"
+                                            />
+                                            <div className="flex-1 space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <Badge
+                                                  variant="outline"
+                                                  className={`px-2 py-0 text-xs ${
+                                                    question.difficulty ===
+                                                    "BEGINNER"
+                                                      ? "border-green-200 bg-green-50 text-green-700"
+                                                      : question.difficulty ===
+                                                        "MODERATE"
+                                                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                                                      : "border-red-200 bg-red-50 text-red-700"
+                                                  }`}
+                                                >
+                                                  {question.difficulty.charAt(
+                                                    0
+                                                  ) +
+                                                    question.difficulty
+                                                      .slice(1)
+                                                      .toLowerCase()}
+                                                </Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                  ID: {question.id}
+                                                </span>
+                                                {/* Marks selector */}
+                                                {selectedQuestions.includes(
+                                                  question.id
+                                                ) && (
+                                                  <div className="flex items-center ml-auto">
+                                                    <span className="text-xs font-medium mr-2">
+                                                      Marks:
+                                                    </span>
+                                                    <div className="flex items-center border rounded-md">
+                                                      <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 rounded-none"
+                                                        onClick={() => {
+                                                          const currentMarks =
+                                                            questionMarks[
+                                                              question.id
+                                                            ] || 4;
+                                                          if (
+                                                            currentMarks > 1
+                                                          ) {
+                                                            handleMarksChange(
+                                                              question.id,
+                                                              currentMarks - 1
+                                                            );
+                                                          }
+                                                        }}
+                                                        disabled={
+                                                          (questionMarks[
+                                                            question.id
+                                                          ] || 4) <= 1
+                                                        }
+                                                      >
+                                                        <Minus className="h-3 w-3" />
+                                                        <span className="sr-only">
+                                                          Decrease
+                                                        </span>
+                                                      </Button>
 
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6 rounded-none"
-                                          onClick={() => {
-                                            const currentMarks =
-                                              questionMarks[question.id] || 4;
-                                            if (currentMarks < 4) {
-                                              handleMarksChange(
-                                                question.id,
-                                                currentMarks + 1
-                                              );
-                                            }
-                                          }}
-                                          disabled={
-                                            (questionMarks[question.id] || 4) >=
-                                            4
-                                          }
-                                        >
-                                          <Plus className="h-3 w-3" />
-                                          <span className="sr-only">
-                                            Increase
-                                          </span>
-                                        </Button>
-                                      </div>
+                                                      <Select
+                                                        value={(
+                                                          questionMarks[
+                                                            question.id
+                                                          ] || 4
+                                                        ).toString()}
+                                                        onValueChange={(
+                                                          value
+                                                        ) =>
+                                                          handleMarksChange(
+                                                            question.id,
+                                                            Number.parseInt(
+                                                              value
+                                                            )
+                                                          )
+                                                        }
+                                                      >
+                                                        <SelectTrigger className="h-6 w-12 border-0 focus:ring-0 focus:ring-offset-0 p-0 pl-2">
+                                                          <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          <SelectItem value="1">
+                                                            1
+                                                          </SelectItem>
+                                                          <SelectItem value="2">
+                                                            2
+                                                          </SelectItem>
+                                                          <SelectItem value="3">
+                                                            3
+                                                          </SelectItem>
+                                                          <SelectItem value="4">
+                                                            4
+                                                          </SelectItem>
+                                                        </SelectContent>
+                                                      </Select>
+
+                                                      <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 rounded-none"
+                                                        onClick={() => {
+                                                          const currentMarks =
+                                                            questionMarks[
+                                                              question.id
+                                                            ] || 4;
+                                                          if (
+                                                            currentMarks < 4
+                                                          ) {
+                                                            handleMarksChange(
+                                                              question.id,
+                                                              currentMarks + 1
+                                                            );
+                                                          }
+                                                        }}
+                                                        disabled={
+                                                          (questionMarks[
+                                                            question.id
+                                                          ] || 4) >= 4
+                                                        }
+                                                      >
+                                                        <Plus className="h-3 w-3" />
+                                                        <span className="sr-only">
+                                                          Increase
+                                                        </span>
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                              <p className="text-sm font-medium">
+                                                {question.question}
+                                              </p>
+                                              {question.image && (
+                                                <div className="mb-6">
+                                                  <div className="relative w-full h-48 rounded-md my-4 overflow-hidden">
+                                                    <Image
+                                                      src={
+                                                        question.image ||
+                                                        "https://ui.shadcn.com/placeholder.svg" ||
+                                                        "/placeholder.svg"
+                                                      }
+                                                      alt="Question image"
+                                                      fill
+                                                      className="object-contain"
+                                                    />
+                                                  </div>
+                                                </div>
+                                              )}
+                                              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
+                                                {question.options.map(
+                                                  (option, index) => {
+                                                    const optionLetter =
+                                                      String.fromCharCode(
+                                                        65 + index
+                                                      );
+                                                    return (
+                                                      <span
+                                                        key={index}
+                                                        className="text-xs block"
+                                                      >
+                                                        {option}
+                                                        {optionLetter ===
+                                                          question.correctAnswer && (
+                                                          <span className="ml-1 text-green-600">
+                                                            ✓
+                                                          </span>
+                                                        )}
+                                                      </span>
+                                                    );
+                                                  }
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
                                   )}
                                 </div>
-                                <p className="text-sm font-medium">
-                                  {question.question}
-                                </p>
-                                {question.image && (
-                                  <div className="mb-6">
-                                    <div className="relative w-full h-48 rounded-md my-4 overflow-hidden">
-                                      <Image
-                                        src={
-                                          question.image ||
-                                          "https://ui.shadcn.com/placeholder.svg"
-                                        }
-                                        alt="Question image"
-                                        fill
-                                        className="object-contain"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                  {question.options.map((option, index) => {
-                                    const optionLetter = String.fromCharCode(
-                                      65 + index
-                                    );
-                                    return (
-                                      <span
-                                        key={index}
-                                        className="text-xs block"
-                                      >
-                                        {option}
-                                        {optionLetter ===
-                                          question.correctAnswer && (
-                                          <span className="ml-1 text-green-600">
-                                            ✓
-                                          </span>
-                                        )}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
+                              );
+                            }
+                          )}
+
+                          {subjectQuestions.length === 0 && (
+                            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+                              <div className="rounded-full bg-slate-100 p-3">
+                                <X className="h-6 w-6 text-slate-400" />
                               </div>
+                              <h3 className="mt-2 text-sm font-medium">
+                                No questions found for {subject.toLowerCase()}
+                              </h3>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Try adjusting your filters or search query
+                              </p>
                             </div>
-                          </div>
-                        ))}
-
-                        {questions.length === 0 && (
-                          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-                            <div className="rounded-full bg-slate-100 p-3">
-                              <X className="h-6 w-6 text-slate-400" />
-                            </div>
-                            <h3 className="mt-2 text-sm font-medium">
-                              No questions found
-                            </h3>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Try adjusting your filters or search query
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-                  )
-                )}
-
-                {Object.keys(questionsBySubject).length === 0 && (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-                    <div className="rounded-full bg-slate-100 p-3">
-                      <X className="h-6 w-6 text-slate-400" />
-                    </div>
-                    <h3 className="mt-2 text-sm font-medium">
-                      No questions found
-                    </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Try adjusting your filters or search query
-                    </p>
-                  </div>
-                )}
+                          )}
+                        </div>
+                      </TabsContent>
+                    );
+                  })}
               </Tabs>
             </CardContent>
           </Card>

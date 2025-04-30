@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["connectionPooling"]
 }
 
 datasource db {
@@ -8,20 +9,20 @@ datasource db {
 }
 
 model User {
-  id              String           @id @default(uuid())
-  name            String
-  email           String           @unique
-  password        String
-  emailVerified   DateTime?
-  verificationToken String?
+  id                       String           @id @default(uuid())
+  name                     String
+  email                    String           @unique
+  password                 String
+  emailVerified            DateTime?
+  verificationToken        String?
   verificationTokenExpires DateTime?
-  resetToken      String?
-  resetTokenExpires DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  enrolledCourses EnrolledCourse[]
-  payments        Payment[]
-  results         TestResult[]
+  resetToken               String?
+  resetTokenExpires        DateTime?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  enrolledCourses          EnrolledCourse[]
+  payments                 Payment[]
+  results                  TestResult[]
 
   @@map("users")
 }
@@ -57,26 +58,18 @@ model EnrolledCourse {
   @@id([userId, courseId])
 }
 
-model Question {
-  id            String         @id @default(uuid())
-  image         String?
-  question      String
-  solution      String
-  options       String[]
-  correctAnswer String
-  subject       Subject
-  createdAt     DateTime       @default(now())
-  difficulty    Difficulty     @default(UNKNOWN)
-  testQuestions TestQuestion[]
-  testResponses TestResponse[]
-
-  @@map("questions")
+model Chapter {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  subjectId String // Foreign key to Subject
+  subject   Subject    @relation(fields: [subjectId], references: [id]) // Relationship to Subject
+  questions Question[]
 }
 
 model Test {
   id          String         @id @default(uuid())
   title       String
-  subjects    Subject[]
+  subjects    Subject[] // Many-to-many relationship with subjects
   description String?
   courseId    String
   createdAt   DateTime       @default(now())
@@ -122,7 +115,8 @@ model StudyMaterial {
   type        String
   url         String
   uploadedAt  DateTime @default(now())
-  subject     Subject
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
 
   @@map("study_materials")
 }
@@ -160,6 +154,34 @@ model TestResult {
   @@map("test_results")
 }
 
+model Subject {
+  id        String          @id @default(uuid())
+  name      String          @unique
+  chapters  Chapter[] // One-to-many relationship with Chapter
+  questions Question[] // Optional, if you want to store questions directly within a subject
+  tests     Test[] // Reverse relation with Test model
+  materials StudyMaterial[] // Reverse relation with StudyMaterial model
+}
+
+model Question {
+  id            String         @id @default(uuid())
+  image         String?
+  question      String
+  solution      String
+  options       String[]
+  correctAnswer String
+  subjectId     String
+  subject       Subject        @relation(fields: [subjectId], references: [id]) // Relationship to Subject
+  chapterId     String
+  chapter       Chapter        @relation(fields: [chapterId], references: [id]) // Relationship to Chapter
+  createdAt     DateTime       @default(now())
+  difficulty    Difficulty     @default(UNKNOWN)
+  testQuestions TestQuestion[]
+  testResponses TestResponse[]
+
+  @@map("questions")
+}
+
 enum DifficultyLevel {
   BEGINNER
   MODERATE
@@ -181,7 +203,7 @@ enum TestType {
   OTHER
 }
 
-enum Subject {
+enum SubjectEnum {
   PHYSICS
   CHEMISTRY
   MATHS
