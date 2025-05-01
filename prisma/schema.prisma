@@ -65,10 +65,17 @@ model Chapter {
   questions Question[]
 }
 
+enum TestSubject {
+  PHYSICS
+  CHEMISTRY
+  MATHS
+  BIOLOGY
+}
+
 model Test {
   id          String         @id @default(uuid())
   title       String
-  subjects    Subject[] // Many-to-many relationship with subjects
+  subjects    TestSubject[]  // Changed from Subject to TestSubject
   description String?
   courseId    String
   createdAt   DateTime       @default(now())
@@ -158,7 +165,6 @@ model Subject {
   name      String          @unique
   chapters  Chapter[] // One-to-many relationship with Chapter
   questions Question[] // Optional, if you want to store questions directly within a subject
-  tests     Test[] // Reverse relation with Test model
   materials StudyMaterial[] // Reverse relation with StudyMaterial model
 }
 
@@ -200,13 +206,6 @@ enum TestType {
   CRASH_COURSES
   INDIVIDUAL
   OTHER
-}
-
-enum SubjectEnum {
-  PHYSICS
-  CHEMISTRY
-  MATHS
-  BIOLOGY
 }
 
 enum Difficulty {

@@ -53,6 +53,7 @@ import Loader from "@/components/Loader";
 import { createTest } from "@/app/actions/test";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
+import { getAllCourses } from "@/app/actions/course";
 
 type Course = {
   id: string;
@@ -120,11 +121,22 @@ export default function CreateTestPage() {
     "MODERATE",
     "ADVANCED",
   ];
+  const getCourses = async (): Promise<void> => {
+    try {
+      const res = await fetch("/api/courses");
+      const data = await res.json();
+      setCourses(data.courses || []);
+    } catch (err) {
+      console.error("Failed to fetch courses:", err);
+      toast.error("Failed to fetch courses");
+    }
+  };
 
   useEffect(() => {
     const loadInitialData = async () => {
       await fetchChapters("");
       await fetchQuestions();
+      await getCourses();
     };
     loadInitialData();
   }, []);
@@ -138,6 +150,25 @@ export default function CreateTestPage() {
     };
     fetchData();
   }, [selectedSubject, selectedChapter]);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      const course = courses.find((c) => c.id === selectedCourse);
+      if (course) {
+        setTestType(
+          course.category === "NEET"
+            ? "NEET"
+            : course.category === "JEE"
+            ? "JEE"
+            : course.category === "CRASH_COURSES"
+            ? "CRASH_COURSES"
+            : course.category === "OTHER"
+            ? "OTHER"
+            : "INDIVIDUAL"
+        );
+      }
+    }
+  }, [selectedCourse, courses]);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -212,19 +243,25 @@ export default function CreateTestPage() {
 
     setTestLoader(true);
 
+    // Get unique subjects from selected questions
+    const selectedSubjects = Array.from(
+      new Set(
+        selectedQuestions
+          .map((id) => {
+            const question = questions.find((q) => q.id === id);
+            return question?.subject.name;
+          })
+          .filter(Boolean) as string[]
+      )
+    );
+
     const testData = {
       title: testTitle,
       duration: testDuration,
       category: testType,
-      subjects: Object.keys(questionsBySubject).filter((subject) =>
-        selectedQuestions.some((id) => {
-          const question = questions.find((q) => q.id === id);
-          return question?.subject === subject;
-        })
-      ),
+      subjects: selectedSubjects,
       description: testDescription,
       courseId: selectedCourse,
-      subjectRequirements,
       questions: selectedQuestions.map((id) => {
         return {
           questionId: id,
@@ -233,12 +270,13 @@ export default function CreateTestPage() {
       }),
     };
 
+    // console.log(testData)
+
     try {
-      const res = await createTest(testData as any);
+      const res = await createTest(testData);
 
       if (res.success) {
         toast.success("Test created successfully!");
-
         setTimeout(() => {
           router.push("/admin/dashboard/tests");
         }, 900);
@@ -490,7 +528,6 @@ export default function CreateTestPage() {
                   onChange={(e) => setTestDescription(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="course">Course</Label>
                 <Select
@@ -503,13 +540,12 @@ export default function CreateTestPage() {
                   <SelectContent>
                     {courses.map((course) => (
                       <SelectItem key={course.id} value={course.id}>
-                        {course.title}
+                        {course.title} ({course.category})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Test Type</Label>
                 <RadioGroup
@@ -530,26 +566,25 @@ export default function CreateTestPage() {
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="CRASH_COURSES" id="CRASH_COURSES" />
-                    <Label htmlFor="CRASH_COURSES" className="font-normal">
-                      CRASH COURSES
+                    <RadioGroupItem value="CRASH_COURSES" id="crash" />
+                    <Label htmlFor="crash" className="font-normal">
+                      Crash Courses
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="OTHER" id="OTHER" />
-                    <Label htmlFor="OTHER" className="font-normal">
-                      OTHER
+                    <RadioGroupItem value="OTHER" id="other" />
+                    <Label htmlFor="other" className="font-normal">
+                      Other
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="INDIVIDUAL" id="individual" />
                     <Label htmlFor="individual" className="font-normal">
-                      INDIVIDUAL SUBJECT
+                      Individual Subject
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
-
               {testType === "INDIVIDUAL" && (
                 <div className="space-y-2">
                   <Label htmlFor="subject">Select Subject</Label>
@@ -569,9 +604,7 @@ export default function CreateTestPage() {
                   </Select>
                 </div>
               )}
-
               <Separator />
-
               <div className="space-y-2">
                 <Label>Subject Requirements</Label>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -579,37 +612,73 @@ export default function CreateTestPage() {
                   subject
                 </p>
 
-                {(testType === "JEE"
-                  ? ["PHYSICS", "CHEMISTRY", "MATHS"]
-                  : testType === "NEET"
-                  ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
-                  : testType === "INDIVIDUAL" && selectedSubject
-                  ? [selectedSubject]
-                  : ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]
-                ).map((subject) => (
-                  <div key={subject} className="flex items-center gap-2">
-                    <Label htmlFor={`req-${subject}`} className="w-24">
-                      {subject.charAt(0) + subject.slice(1).toLowerCase()}
+                {testType === "INDIVIDUAL" ? (
+                  // For individual subject tests, show just one input for the selected subject
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`req-${selectedSubject}`} className="w-24">
+                      {selectedSubject?.charAt(0) +
+                        selectedSubject?.slice(1).toLowerCase() || "Subject"}
                     </Label>
                     <Input
-                      id={`req-${subject}`}
+                      id={`req-${selectedSubject}`}
                       type="number"
                       min="0"
                       placeholder="Required"
-                      value={subjectRequirements[subject] || ""}
+                      value={subjectRequirements[selectedSubject || ""] || ""}
                       onChange={(e) =>
-                        handleSubjectRequirementChange(subject, e.target.value)
+                        selectedSubject &&
+                        handleSubjectRequirementChange(
+                          selectedSubject,
+                          e.target.value
+                        )
                       }
                       className="w-24"
                     />
                     <span className="text-xs text-muted-foreground">
-                      Selected: {selectedQuestionsBySubject[subject] || 0} /{" "}
-                      {totalQuestionsBySubject[subject] || 0}
+                      Selected:{" "}
+                      {selectedSubject
+                        ? selectedQuestionsBySubject[selectedSubject] || 0
+                        : 0}{" "}
+                      /{" "}
+                      {selectedSubject
+                        ? totalQuestionsBySubject[selectedSubject] || 0
+                        : 0}
                     </span>
                   </div>
-                ))}
+                ) : (
+                  // For other test types, show inputs for all relevant subjects
+                  (testType === "JEE"
+                    ? ["PHYSICS", "CHEMISTRY", "MATHS"]
+                    : testType === "NEET"
+                    ? ["PHYSICS", "CHEMISTRY", "BIOLOGY"]
+                    : ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]
+                  ).map((subject) => (
+                    <div key={subject} className="flex items-center gap-2">
+                      <Label htmlFor={`req-${subject}`} className="w-24">
+                        {subject.charAt(0) + subject.slice(1).toLowerCase()}
+                      </Label>
+                      <Input
+                        id={`req-${subject}`}
+                        type="number"
+                        min="0"
+                        placeholder="Required"
+                        value={subjectRequirements[subject] || ""}
+                        onChange={(e) =>
+                          handleSubjectRequirementChange(
+                            subject,
+                            e.target.value
+                          )
+                        }
+                        className="w-24"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        Selected: {selectedQuestionsBySubject[subject] || 0} /{" "}
+                        {totalQuestionsBySubject[subject] || 0}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
-
               <div className="pt-4">
                 <div
                   className={`rounded-md ${

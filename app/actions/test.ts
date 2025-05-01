@@ -237,7 +237,7 @@ export async function updateTest(testId: string, data: UpdateTestData) {
           description: data.description,
           category: data.category,
           subjects: data.subjects,
-          duration:Number(data.duration),
+          duration: Number(data.duration),
           courseId: data.courseId,
         },
       });
@@ -301,7 +301,9 @@ export async function deleteTest(testId: string) {
   }
 }
 
-export async function fetchUpcomingTests(userId: string): Promise<TestItem[]|null> {
+export async function fetchUpcomingTests(
+  userId: string
+): Promise<TestItem[] | null> {
   try {
     const enrolledCourses = await prisma.enrolledCourse.findMany({
       where: { userId },
@@ -374,7 +376,11 @@ export async function fetchTest(testId: string): Promise<TestWithQuestion> {
       include: {
         questions: {
           include: {
-            question: true,
+            question: {
+              include: {
+                subject: true,
+              },
+            },
           },
           orderBy: {
             order: "asc",
@@ -575,6 +581,167 @@ export async function submitTest({
   }
 }
 
+// export async function fetchTestResult(
+//   resultId: string
+// ): Promise<TestResultWithDetails> {
+//   const result = await prisma.testResult.findUnique({
+//     where: { id: resultId },
+//     include: {
+//       test: {
+//         select: {
+//           id: true,
+//           title: true,
+//           category: true,
+//           subjects: true,
+//         },
+//       },
+//       responses: {
+//         include: {
+//           question: {
+//             select: {
+//               id: true,
+//               question: true,
+//               options: true,
+//               correctAnswer: true,
+//               subject: true,
+//               solution: true,
+//               image: true,
+//             },
+//           },
+//         },
+//       },
+//     },
+//   });
+
+//   if (!result) {
+//     throw new Error("Test result not found");
+//   }
+
+//   const testQuestions = await prisma.testQuestion.findMany({
+//     where: { testId: result.testId },
+//     include: {
+//       question: {
+//         select: {
+//           subject: true,
+//         },
+//       },
+//     },
+//   });
+
+//   const totalQuestions = testQuestions.length;
+
+//   const questionMarksMap = new Map<string, number>();
+//   const questionSubjectMap = new Map<string, Subject>();
+
+//   const subjectStats = new Map<
+//     Subject,
+//     {
+//       total: number; // Total questions in subject
+//       attempted: number; // Questions attempted in subject
+//       correct: number; // Correct answers in subject
+//       totalMarks: number; // Total possible marks in subject
+//       obtainedMarks: number; // Marks obtained in subject
+//     }
+//   >();
+
+//   testQuestions.forEach(({ question }) => {
+//     const subject = question.subject;
+//     if (!subjectStats.has(subject)) {
+//       subjectStats.set(subject, {
+//         total: 0,
+//         attempted: 0,
+//         correct: 0,
+//         totalMarks: 0,
+//         obtainedMarks: 0,
+//       });
+//     }
+//   });
+
+//   testQuestions.forEach(({ questionId, marks, question }) => {
+//     const subject = question.subject;
+//     questionMarksMap.set(questionId, marks);
+//     questionSubjectMap.set(questionId, subject);
+
+//     const stats = subjectStats.get(subject)!;
+//     subjectStats.set(subject, {
+//       ...stats,
+//       total: stats.total + 1,
+//       totalMarks: stats.totalMarks + marks,
+//     });
+//   });
+
+//   result.responses.forEach((response) => {
+//     const marks = questionMarksMap.get(response.questionId) || 0;
+//     const subject = questionSubjectMap.get(response.questionId);
+
+//     if (subject && subjectStats.has(subject)) {
+//       const stats = subjectStats.get(subject)!;
+//       subjectStats.set(subject, {
+//         ...stats,
+//         attempted: stats.attempted + 1,
+//         correct: stats.correct + (response.isCorrect ? 1 : 0),
+//         obtainedMarks: stats.obtainedMarks + (response.isCorrect ? marks : 0),
+//       });
+//     }
+//   });
+
+//   const subjectScores: SubjectResult[] = Array.from(subjectStats.entries()).map(
+//     ([subject, stats]) => ({
+//       subject,
+//       total: stats.total,
+//       attempted: stats.attempted,
+//       correct: stats.correct,
+//       score: stats.obtainedMarks,
+//       percentage:
+//         stats.totalMarks > 0
+//           ? (stats.obtainedMarks / stats.totalMarks) * 100
+//           : 0,
+//     })
+//   );
+
+//   const totalPossibleMarks = Array.from(subjectStats.values()).reduce(
+//     (sum, stats) => sum + stats.totalMarks,
+//     0
+//   );
+
+//   return {
+//     id: result.id,
+//     testId: result.testId,
+//     userId: result.userId,
+//     duration: result.duration,
+//     totalMarks: result.totalMarks,
+//     totalQuestions,
+//     attempted: result.attempted,
+//     correct: result.correct,
+//     wrong: result.wrong,
+//     score: result.score,
+//     percentage:
+//       totalPossibleMarks > 0 ? (result.score / totalPossibleMarks) * 100 : 0,
+//     submittedAt: result.submittedAt,
+//     test: {
+//       id: result.test.id,
+//       title: result.test.title,
+//       category: result.test.category,
+//       subjects: Array.from(subjectStats.keys()),
+//     },
+//     subjectScores,
+//     responses: result.responses.map((response) => ({
+//       questionId: response.questionId,
+//       selectedAnswer: response.selectedAnswer,
+//       isCorrect: response.isCorrect,
+//       question: {
+//         id: response.question.id,
+//         question: response.question.question,
+//         image: response.question.image,
+//         options: response.question.options,
+//         correctAnswer: response.question.correctAnswer,
+//         subject: response.question.subject,
+//         solution: response.question.solution,
+//       },
+//     })),
+//   };
+// }
+
 export async function fetchTestResult(
   resultId: string
 ): Promise<TestResultWithDetails> {
@@ -592,15 +759,9 @@ export async function fetchTestResult(
       responses: {
         include: {
           question: {
-            select: {
-              id: true,
-              question: true,
-              options: true,
-              correctAnswer: true,
-              subject: true,
-              solution: true,
-              image: true,
-            },
+            include: {
+              subject: true // Make sure to include the subject relation
+            }
           },
         },
       },
@@ -615,9 +776,9 @@ export async function fetchTestResult(
     where: { testId: result.testId },
     include: {
       question: {
-        select: {
-          subject: true,
-        },
+        include: {
+          subject: true // Include subject relation here too
+        }
       },
     },
   });
@@ -630,16 +791,17 @@ export async function fetchTestResult(
   const subjectStats = new Map<
     Subject,
     {
-      total: number;        // Total questions in subject
-      attempted: number;    // Questions attempted in subject
-      correct: number;      // Correct answers in subject
-      totalMarks: number;   // Total possible marks in subject
-      obtainedMarks: number;// Marks obtained in subject
+      total: number;
+      attempted: number;
+      correct: number;
+      totalMarks: number;
+      obtainedMarks: number;
     }
   >();
 
+  // Initialize subject stats
   testQuestions.forEach(({ question }) => {
-    const subject = question.subject;
+    const subject = question.subject.name as Subject; // Access subject name here
     if (!subjectStats.has(subject)) {
       subjectStats.set(subject, {
         total: 0,
@@ -652,7 +814,7 @@ export async function fetchTestResult(
   });
 
   testQuestions.forEach(({ questionId, marks, question }) => {
-    const subject = question.subject;
+    const subject = question.subject.name as Subject; // Access subject name here
     questionMarksMap.set(questionId, marks);
     questionSubjectMap.set(questionId, subject);
 
@@ -725,14 +887,16 @@ export async function fetchTestResult(
         image: response.question.image,
         options: response.question.options,
         correctAnswer: response.question.correctAnswer,
-        subject: response.question.subject,
+        subject: response.question.subject.name as Subject, // Access subject name here
         solution: response.question.solution,
       },
     })),
   };
 }
 
-export async function fetchTestResultWithQuestion(resultId: string): Promise<TestWithQuestion & { responses: QuestionResponse[] }> {
+export async function fetchTestResultWithQuestion(
+  resultId: string
+): Promise<TestWithQuestion & { responses: QuestionResponse[] }> {
   try {
     const result = await prisma.testResult.findUnique({
       where: { id: resultId },
@@ -741,7 +905,11 @@ export async function fetchTestResultWithQuestion(resultId: string): Promise<Tes
           include: {
             questions: {
               include: {
-                question: true,
+                question: {
+                  include: {
+                    subject: true
+                  }
+                }
               },
               orderBy: {
                 order: "asc",
@@ -753,16 +921,19 @@ export async function fetchTestResultWithQuestion(resultId: string): Promise<Tes
           include: {
             question: {
               include: {
+                subject: true,
                 testQuestions: {
                   where: {
-                    testId: prisma.testResult.findUnique({
-                      where: { id: resultId },
-                      select: { testId: true }
-                    }).then(r => r?.testId)
-                  }
-                }
-              }
-            }
+                    testId: prisma.testResult
+                      .findUnique({
+                        where: { id: resultId },
+                        select: { testId: true },
+                      })
+                      .then((r) => r?.testId),
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -772,13 +943,14 @@ export async function fetchTestResultWithQuestion(resultId: string): Promise<Tes
       throw new Error("Test result not found");
     }
 
-    const responseMap = new Map<string, typeof result.responses[0]>();
-    result.responses.forEach(response => {
+    const responseMap = new Map<string, (typeof result.responses)[0]>();
+    result.responses.forEach((response) => {
       responseMap.set(response.questionId, response);
     });
 
     // Group questions by subject (same logic as fetchTest)
-    const subjectGroups: Record<Subject, typeof result.test.questions> = {} as any;
+    const subjectGroups: Record<Subject, typeof result.test.questions> =
+      {} as any;
     result.test.questions.forEach((tq) => {
       const subject = tq.question.subject as Subject;
       if (!subjectGroups[subject]) {
@@ -800,7 +972,9 @@ export async function fetchTestResultWithQuestion(resultId: string): Promise<Tes
 
     questionsWithNewOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    const testWithQuestions: TestWithQuestion & { responses: QuestionResponse[] } = {
+    const testWithQuestions: TestWithQuestion & {
+      responses: QuestionResponse[];
+    } = {
       id: result.test.id,
       title: result.test.title,
       category: result.test.category as TestType,
@@ -844,25 +1018,27 @@ interface QuestionResponse {
   marksAwarded: number;
 }
 
-export async function fetchCompletedTests(userId: string): Promise<TestResultItem[]|null> {
+export async function fetchCompletedTests(
+  userId: string
+): Promise<TestResultItem[] | null> {
   try {
     const results = await prisma.testResult.findMany({
       where: { userId },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: { submittedAt: "desc" },
       include: {
         test: {
           include: {
-            questions: {  
+            questions: {
               select: {
-                questionId: true
-              }
-            }
-          }
-        }
-      }
+                questionId: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    return results.map(result => ({
+    return results.map((result) => ({
       id: result.id,
       testId: result.testId,
       userId: result.userId,
@@ -872,14 +1048,13 @@ export async function fetchCompletedTests(userId: string): Promise<TestResultIte
       correct: result.correct,
       wrong: result.wrong,
       score: result.score,
-      totalQuestions: result.test.questions.length, 
+      totalQuestions: result.test.questions.length,
       submittedAt: result.submittedAt,
       test: {
         title: result.test.title,
-        category: result.test.category as TestType
-      }
+        category: result.test.category as TestType,
+      },
     }));
-    
   } catch (error) {
     console.error("Error fetching completed tests:", error);
     return null;

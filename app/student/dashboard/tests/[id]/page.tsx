@@ -84,10 +84,11 @@ function QuestionNavigationPanel({
 }) {
   // Group questions by subject
   const groupedQuestions = questions.reduce((acc, question) => {
-    if (!acc[question.subject]) {
-      acc[question.subject] = [];
+    const subjectName = question.subject;
+    if (!acc[subjectName]) {
+      acc[subjectName] = [];
     }
-    acc[question.subject].push(question);
+    acc[subjectName].push(question);
     return acc;
   }, {} as Record<string, QuestionWithStatus[]>);
 
@@ -405,6 +406,7 @@ export default function TestInterface() {
         // Initialize questions with status
         const questionsWithStatus = testData.questions.map((q, index) => ({
           ...q,
+          subject: q.subject.name,
           status: index === 0 ? "current" : "unattempted",
           selectedOption:
             mode === "review"
@@ -452,6 +454,7 @@ export default function TestInterface() {
             const response = responseMap.get(question.id);
             return {
               ...question,
+              subject: question.subject.name,
               status: index === 0 ? "current" : "reviewed", // Changed from "unattempted" to "reviewed"
               selectedOption: response?.selectedAnswer || undefined,
               isCorrect: response?.isCorrect || false,

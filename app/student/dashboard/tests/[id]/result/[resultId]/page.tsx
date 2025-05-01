@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Download,
@@ -23,11 +23,17 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { TestResultWithDetails } from "@/lib/tests/types";
+import type { TestResponse, TestResultWithDetails } from "@/lib/tests/types";
 import { Loader2 } from "lucide-react";
-import { fetchTestResult, fetchTestResultWithQuestion } from "@/app/actions/test";
+import {
+  fetchTestResult,
+  fetchTestResultWithQuestion,
+} from "@/app/actions/test";
 import { sub } from "date-fns";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { Question, Subject } from "@prisma/client";
+
+type TestSubject = "PHYSICS" | "CHEMISTRY" | "BIOLOGY" | "MATHS";
 
 export default function TestResults() {
   const params = useParams();
@@ -37,13 +43,13 @@ export default function TestResults() {
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<TestResultWithDetails | null>(null);
 
+  // Main data loading effect
   useEffect(() => {
     async function loadResult() {
       setLoading(true);
       try {
         const resultData = await fetchTestResult(resultId as string);
         setResult(resultData);
-        console.log(resultData);
       } catch (error) {
         console.error("Error loading test result:", error);
       } finally {
@@ -54,6 +60,7 @@ export default function TestResults() {
     loadResult();
   }, [resultId]);
 
+  // Back button handler effect
   useEffect(() => {
     const handleBackButton = () => {
       router.push("/student/dashboard/tests");
@@ -66,6 +73,22 @@ export default function TestResults() {
       window.removeEventListener("popstate", handleBackButton);
     };
   }, [router]);
+
+  // Calculate subject scores (memoize if needed)
+  const subjectScores = useMemo(() => {
+    if (!result?.responses || !result.test?.questions) return [];
+    return calculateSubjectScores(result.responses, result.test.questions);
+  }, [result]);
+
+  // Early return for loading state
+  if (loading || !result) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background text-foreground justify-center items-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg">Loading results...</p>
+      </div>
+    );
+  }
 
   const handleViewAnswers = () => {
     router.push(
@@ -82,11 +105,11 @@ export default function TestResults() {
       console.error("No result data available");
       return;
     }
-  
+
     try {
       // Fetch complete test data including unattempted questions
       const testWithResponses = await fetchTestResultWithQuestion(result.id);
-  
+
       const pdfDoc = await PDFDocument.create();
       let page = pdfDoc.addPage([595.28, 841.89]);
       const { width, height } = page.getSize();
@@ -94,7 +117,7 @@ export default function TestResults() {
       const margin = 50;
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       let y = height - margin;
-  
+
       const drawText = (
         text: string,
         size = fontSize,
@@ -105,7 +128,7 @@ export default function TestResults() {
           page = pdfDoc.addPage([595.28, 841.89]);
           y = height - margin;
         }
-  
+
         const lines = text.split("\n");
         lines.forEach((line) => {
           page.drawText(line, {
@@ -118,7 +141,7 @@ export default function TestResults() {
           y -= lineGap;
         });
       };
-  
+
       // Header Section
       drawText(`Test Report - ${testWithResponses.title}`, 18, 24);
       drawText(
@@ -131,33 +154,35 @@ export default function TestResults() {
       drawText(
         `Correct: ${result.correct} || Incorrect: ${
           result.wrong
-        } || Unattempted: ${testWithResponses.questions.length - result.attempted}`,
+        } || Unattempted: ${
+          testWithResponses.questions.length - result.attempted
+        }`,
         fontSize,
         24
       );
-  
+
       // Questions Summary Section
       drawText("\nQuestions Summary", 16, 24);
-  
+
       // Process all questions (both attempted and unattempted)
       testWithResponses.questions.forEach((question, idx) => {
         const response = testWithResponses.responses.find(
           (r) => r.questionId === question.id
         );
-  
+
         // Question Text
         drawText(`\n${idx + 1}. ${question.question}`, fontSize, 18);
-  
+
         // Options
         question.options.forEach((opt: string, optIdx: number) => {
           const optionLabel = String.fromCharCode(65 + optIdx);
           drawText(`   ${optionLabel}. ${opt}`, fontSize - 1, 16, margin + 20);
         });
-  
+
         // Process user answer
         let userAnswerText = "Not answered";
         let isCorrect = response?.isCorrect || false;
-  
+
         if (response?.selectedAnswer) {
           // First try to match the exact option text
           const exactMatchIndex = question.options.findIndex(
@@ -170,7 +195,7 @@ export default function TestResults() {
           // If no exact match, try to parse as index (0-3) or letter (A-D)
           else {
             let optionIndex = -1;
-  
+
             // Check if it's a letter (A-D)
             if (/^[A-Da-d]$/.test(response.selectedAnswer)) {
               optionIndex =
@@ -181,7 +206,7 @@ export default function TestResults() {
             else if (/^[0-3]$/.test(response.selectedAnswer)) {
               optionIndex = parseInt(response.selectedAnswer);
             }
-  
+
             if (optionIndex >= 0 && optionIndex < question.options.length) {
               const optionLetter = String.fromCharCode(65 + optionIndex);
               userAnswerText = `${optionLetter}. ${question.options[optionIndex]}`;
@@ -191,12 +216,13 @@ export default function TestResults() {
             }
           }
         }
-  
+
         // Process correct answer
         let correctAnswerIndex = -1;
         if (/^[A-Da-d]$/.test(question.correctAnswer)) {
           correctAnswerIndex =
-            question.correctAnswer.toUpperCase().charCodeAt(0) - "A".charCodeAt(0);
+            question.correctAnswer.toUpperCase().charCodeAt(0) -
+            "A".charCodeAt(0);
         } else if (/^[0-3]$/.test(question.correctAnswer)) {
           correctAnswerIndex = parseInt(question.correctAnswer);
         } else {
@@ -204,14 +230,15 @@ export default function TestResults() {
             (opt) => opt === question.correctAnswer
           );
         }
-  
+
         const correctAnswerText =
-          correctAnswerIndex >= 0 && correctAnswerIndex < question.options.length
+          correctAnswerIndex >= 0 &&
+          correctAnswerIndex < question.options.length
             ? `${String.fromCharCode(65 + correctAnswerIndex)}. ${
                 question.options[correctAnswerIndex]
               }`
             : question.correctAnswer;
-  
+
         // Draw user answer
         drawText(
           `   Your answer: ${userAnswerText}`,
@@ -219,18 +246,13 @@ export default function TestResults() {
           16,
           margin + 20
         );
-        
-        const statusText = response 
+
+        const statusText = response
           ? `Status: ${isCorrect ? "CORRECT" : "INCORRECT"}`
           : "Status: UNATTEMPTED";
-        
-        drawText(
-          `   ${statusText}`,
-          fontSize,
-          16,
-          margin + 20
-        );
-  
+
+        drawText(`   ${statusText}`, fontSize, 16, margin + 20);
+
         if (!isCorrect || !response) {
           drawText(
             `   Correct answer: ${correctAnswerText}`,
@@ -239,16 +261,16 @@ export default function TestResults() {
             margin + 20
           );
         }
-  
+
         // Add space between questions
         drawText("", fontSize, 12);
       });
-  
+
       // Generate and download the PDF
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-  
+
       const link = document.createElement("a");
       link.href = url;
       link.download = `Test_Report_${testWithResponses.title.replace(
@@ -257,7 +279,7 @@ export default function TestResults() {
       )}_${new Date(result.submittedAt).toISOString().split("T")[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
-  
+
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
@@ -440,7 +462,7 @@ export default function TestResults() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {result.subjectScores.map((subject) => (
+                {subjectScores.map((subject) => (
                   <div key={subject.subject} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center">
@@ -501,4 +523,8 @@ export default function TestResults() {
       </main>
     </div>
   );
+}
+
+function calculateSubjectScores(responses: { questionId: string; selectedAnswer: string; isCorrect: boolean; question: { id: string; question: string; options: string[]; correctAnswer: string; subject: Subject; solution: string; }; }[], questions: any): any {
+  throw new Error("Function not implemented.");
 }

@@ -6,11 +6,15 @@ import { NEXT_AUTH } from "@/lib/auth";
 
 const testSchema = z.object({
   title: z.string().min(3, "Title is too short"),
-  category: z.enum(["JEE", "NEET", "CRASH_COURSES", "OTHER"]),
-  subjects: z
-    .array(z.enum(["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]))
-    .min(1),
-  questionIds: z.array(z.string()).min(1),
+  duration: z.string(),
+  category: z.enum(["JEE", "NEET", "CRASH_COURSES", "OTHER", "INDIVIDUAL"]),
+  subjects: z.array(z.enum(["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"])).min(1),
+  description: z.string().optional(),
+  courseId: z.string(),
+  questions: z.array(z.object({
+    questionId: z.string(),
+    marks: z.number(),
+  })),
 });
 
 // POST: Create a new test
@@ -27,9 +31,20 @@ export async function POST(req: NextRequest) {
     const newTest = await prisma.test.create({
       data: {
         title: parsedBody.title,
+        duration: parseInt(parsedBody.duration),
         category: parsedBody.category,
         subjects: parsedBody.subjects,
-        questions: { connect: parsedBody.questionIds.map((id) => ({ id })) },
+        description: parsedBody.description,
+        courseId: parsedBody.courseId,
+        questions: {
+          create: parsedBody.questions.map((q) => ({
+            question: { connect: { id: q.questionId } },
+            marks: q.marks,
+          })),
+        },
+      },
+      include: {
+        questions: true,
       },
     });
 
