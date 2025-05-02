@@ -65,6 +65,37 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import 'katex/dist/katex.min.css';
+import { InlineMath, BlockMath } from 'react-katex';
+
+function LatexRenderer({ content }: { content: string }) {
+  if (!content) return null;
+  
+  // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
+  const parts = content.split(/(\$[^$]*\$)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          const latex = part.slice(1, -1);
+          // Check if it's block math (double $$)
+          if (part.startsWith('$$') && part.endsWith('$$')) {
+            return <BlockMath key={index} math={latex} />;
+          }
+          try {
+            return <InlineMath key={index} math={latex} />;
+          } catch (e) {
+            console.error('Error rendering LaTeX:', e);
+            return <span key={index}>{part}</span>;
+          }
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 
 // Question Navigation Panel component
 function QuestionNavigationPanel({
@@ -882,7 +913,7 @@ export default function TestInterface() {
 
               <CardContent className="pt-4">
                 <div className="mb-6 text-lg font-medium">
-                  {currentQuestion.question}
+                  <LatexRenderer content={currentQuestion.question}/>
                 </div>
 
                 {currentQuestion.image && (
@@ -954,7 +985,7 @@ export default function TestInterface() {
                           <span className="font-semibold mr-3">
                             {optionId}.
                           </span>
-                          {option}
+                          <LatexRenderer content={option} />
                         </Label>
 
                         {isCorrect && (
@@ -976,7 +1007,7 @@ export default function TestInterface() {
                 {mode === "review" && (
                   <div className="mt-6 p-4 bg-muted rounded-lg">
                     <h3 className="font-semibold mb-2">Solution</h3>
-                    <p>{currentQuestion.solution}</p>
+                    <p><LatexRenderer content={currentQuestion.solution} /></p>
                   </div>
                 )}
               </CardContent>

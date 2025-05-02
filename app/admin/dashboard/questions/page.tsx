@@ -92,6 +92,7 @@ export default function QuestionsPage() {
   const [availableChapters, setAvailableChapters] = useState<
     ChapterWithQuestions[]
   >([]);
+  const [isNewChapter, setIsNewChapter] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [expandedChapters, setExpandedChapters] = useState<
@@ -133,19 +134,19 @@ export default function QuestionsPage() {
     try {
       let url = "/api/questions";
       const params = new URLSearchParams();
-  
+
       if (selectedSubject) {
         params.append("subject", selectedSubject);
       }
-  
+
       if (selectedChapter) {
         params.append("chapterId", selectedChapter);
       }
-  
+
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-  
+
       const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
 
@@ -229,7 +230,6 @@ export default function QuestionsPage() {
     };
 
     console.log(payload);
-    setLoading(true);
 
     try {
       const method = editingQuestion ? "PATCH" : "POST";
@@ -267,6 +267,7 @@ export default function QuestionsPage() {
         resetForm();
         setOpen(false);
         fetchQuestions();
+
         if (selectedSubject) {
           fetchChapters(selectedSubject);
         }
@@ -287,7 +288,7 @@ export default function QuestionsPage() {
       );
       console.error("Submission error:", err);
     } finally {
-      setLoading(false);
+      setLoading(true);
       setEditingQuestion(null);
     }
   };
@@ -324,7 +325,7 @@ export default function QuestionsPage() {
 
   const questionsByChapter = questions.reduce((acc, q) => {
     if (!q) return acc; // Skip if question is undefined/null
-    
+
     const chapterName = q.chapter?.name || "Uncategorized";
     if (!acc[chapterName]) {
       acc[chapterName] = [];
@@ -383,7 +384,9 @@ export default function QuestionsPage() {
                     <Select
                       value={subject}
                       onValueChange={(value) => {
-                        setSubject(value as "PHYSICS" | "CHEMISTRY" | "MATHS" | "BIOLOGY");
+                        setSubject(
+                          value as "PHYSICS" | "CHEMISTRY" | "MATHS" | "BIOLOGY"
+                        );
                         fetchChapters(value);
                       }}
                     >
@@ -424,15 +427,71 @@ export default function QuestionsPage() {
                   </div>
                 </div>
 
-                {/* Chapter */}
+                {/* Chapter Input Field */}
                 <div>
                   <Label>Chapter</Label>
-                  <Input
-                    placeholder="Enter chapter name (e.g., 'Chapter 1' or 'Kinematics')"
-                    value={chapter}
-                    onChange={(e) => setChapter(e.target.value)}
-                    className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
-                  />
+                  {!isNewChapter ? (
+                    <div className="flex gap-2">
+                      <Select
+                        value={
+                          availableChapters.find(
+                            (chap) => chap.name === chapter
+                          )?.id
+                        }
+                        onValueChange={(value) => {
+                          if (value === "new") {
+                            setIsNewChapter(true);
+                            setChapter("");
+                          } else {
+                            const selectedChapterObject =
+                              availableChapters.find(
+                                (chap) => chap.id === value
+                              );
+                            if (selectedChapterObject) {
+                              setChapter(selectedChapterObject.name);
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 flex-1">
+                          <SelectValue placeholder="Select a chapter">
+                            {chapter} {/* Display the chapter name */}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="dark:bg-gray-800 dark:text-gray-200">
+                          {availableChapters
+                            .filter((chap) => chap.subject.name === subject)
+                            .map((chap) => (
+                              <SelectItem key={chap.id} value={chap.id}>
+                                {chap.name}
+                              </SelectItem>
+                            ))}
+                          <SelectItem value="new">
+                            + Create New Chapter
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter new chapter name"
+                        value={chapter}
+                        onChange={(e) => setChapter(e.target.value)}
+                        className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsNewChapter(false);
+                          setChapter("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Question */}
@@ -706,12 +765,13 @@ export default function QuestionsPage() {
                                   setCorrectAnswer(q.correctAnswer);
                                   setSolution(q.solution);
                                   setChapter(q.chapter?.name || "");
+                                  // setChapter(q.chapter.id);
                                   setImage(q.image || null);
                                   setOpen(true);
 
-                                  console.log('Editing question:', {
+                                  console.log("Editing question:", {
                                     subject: q.subject,
-                                    chapter: q.chapter?.name
+                                    chapter: q.chapter?.name,
                                   });
                                 }}
                               >

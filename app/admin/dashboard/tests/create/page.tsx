@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -54,7 +53,8 @@ import { createTest } from "@/app/actions/test";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import { getAllCourses } from "@/app/actions/course";
-
+import 'katex/dist/katex.min.css';
+import { InlineMath, BlockMath } from 'react-katex';
 type Course = {
   id: string;
   title: string;
@@ -83,6 +83,34 @@ type Question = {
   image: string | null;
   createdAt: string;
 };
+
+function LatexRenderer({ content }: { content: string }) {
+  if (!content) return null;
+  
+  // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
+  const parts = content.split(/(\$[^$]*\$)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          const latex = part.slice(1, -1);
+          // Check if it's block math (double $$)
+          if (part.startsWith('$$') && part.endsWith('$$')) {
+            return <BlockMath key={index} math={latex} />;
+          }
+          try {
+            return <InlineMath key={index} math={latex} />;
+          } catch (e) {
+            console.error('Error rendering LaTeX:', e);
+            return <span key={index}>{part}</span>;
+          }
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+}
 
 export default function CreateTestPage() {
   const router = useRouter();
@@ -782,7 +810,6 @@ export default function CreateTestPage() {
           </Card>
 
           {/* Question Selection */}
-          {/* Question Selection Card */}
           <Card className="md:col-span-3">
             <CardHeader>
               <CardTitle>Select Questions</CardTitle>
@@ -1144,7 +1171,7 @@ export default function CreateTestPage() {
                                                 )}
                                               </div>
                                               <p className="text-sm font-medium">
-                                                {question.question}
+                                                <LatexRenderer content={question.question}/>
                                               </p>
                                               {question.image && (
                                                 <div className="mb-6">
@@ -1174,7 +1201,7 @@ export default function CreateTestPage() {
                                                         key={index}
                                                         className="text-xs block"
                                                       >
-                                                        {option}
+                                                        <LatexRenderer content={option} />
                                                         {optionLetter ===
                                                           question.correctAnswer && (
                                                           <span className="ml-1 text-green-600">

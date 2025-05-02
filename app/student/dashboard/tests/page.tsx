@@ -168,7 +168,7 @@ export default function TestsPage() {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Subject:</span>
                 <span className="text-sm font-medium">
-                  {selectedTest?.subjects[0]}
+                  {selectedTest?.subjects[0]?.name}
                 </span>
               </div>
             </div>
