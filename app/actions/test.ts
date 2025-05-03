@@ -123,7 +123,11 @@ export async function getAllTests() {
         },
         questions: {
           include: {
-            question: true,
+            question: {
+              include: {
+                subject: true
+              }
+            }
           },
         },
         results: {

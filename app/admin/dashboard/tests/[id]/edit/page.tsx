@@ -40,14 +40,30 @@ import {
 import { getTestById, updateTest } from "@/app/actions/test";
 import { getAllCourses } from "@/app/actions/course";
 import Image from "next/image";
-import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import "katex/dist/katex.min.css";
+import { InlineMath, BlockMath } from "react-katex";
 
 type Course = {
   id: string;
   title: string;
   category: string;
 };
+
+interface Subject {
+  id: string;
+  name: string;
+}
+
+interface Question {
+  id: string;
+  question: string;
+  subject: string | Subject; // Can be string or Subject object
+  difficulty: string;
+  options: string[];
+  correctAnswer: string;
+  image?: string;
+  // other fields...
+}
 
 export default function EditTestPage() {
   const router = useRouter();
@@ -111,16 +127,14 @@ export default function EditTestPage() {
       setSelectedQuestions(arr);
 
       const questionsCountBySubject: Record<string, number> = {};
-      if (testData) {
-        testData.questions.forEach((q: any) => {
-          const subject = q.question.subject;
-          if (!questionsCountBySubject[subject]) {
-            questionsCountBySubject[subject] = 0;
-          }
-          questionsCountBySubject[subject]++;
-        });
-      }
-
+      testData.questions.forEach((q: any) => {
+        const subject =
+          q.question.subject?.name || q.question.subject || "UNKNOWN";
+        if (!questionsCountBySubject[subject]) {
+          questionsCountBySubject[subject] = 0;
+        }
+        questionsCountBySubject[subject]++;
+      });
       setSubjectRequirements(questionsCountBySubject);
     } catch (error) {
       console.error("Error fetching test:", error);
@@ -135,7 +149,11 @@ export default function EditTestPage() {
     try {
       const res = await fetch("/api/questions");
       const data = await res.json();
-      setQuestions(data.questions || []);
+      const processedQuestions = data.questions.map((q) => ({
+        ...q,
+        subject: q.subject?.name || q.subject || "UNKNOWN",
+      }));
+      setQuestions(processedQuestions);
     } catch (err) {
       console.error("Failed to fetch questions:", err);
       toast.error("Failed to fetch questions");
@@ -175,13 +193,15 @@ export default function EditTestPage() {
 
   // Filter questions based on test type, subject, search query, and difficulty
   const filteredQuestions = questions.filter((question) => {
+    const subjectName = question.subject?.name || question.subject;
+
     // Filter by test type
-    if (testType === "JEE" && question.subject === "BIOLOGY") return false;
-    if (testType === "NEET" && question.subject === "MATHS") return false;
+    if (testType === "JEE" && subjectName === "BIOLOGY") return false;
+    if (testType === "NEET" && subjectName === "MATHS") return false;
     if (
       testType === "INDIVIDUAL" &&
       selectedSubject &&
-      question.subject !== selectedSubject
+      subjectName !== selectedSubject
     )
       return false;
 
@@ -205,10 +225,12 @@ export default function EditTestPage() {
   // Group questions by subject
   const questionsBySubject: Record<string, typeof questions> = {};
   filteredQuestions.forEach((question) => {
-    if (!questionsBySubject[question.subject]) {
-      questionsBySubject[question.subject] = [];
+    const subjectName = question.subject?.name || question.subject || "UNKNOWN";
+
+    if (!questionsBySubject[subjectName]) {
+      questionsBySubject[subjectName] = [];
     }
-    questionsBySubject[question.subject].push(question);
+    questionsBySubject[subjectName].push(question);
   });
 
   // Get total questions by subject
@@ -535,28 +557,33 @@ export default function EditTestPage() {
                 : testType === "INDIVIDUAL" && selectedSubject
                 ? [selectedSubject]
                 : ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"]
-              ).map((subject) => (
-                <div key={subject} className="flex items-center gap-2">
-                  <Label htmlFor={`req-${subject}`} className="w-24">
-                    {subject.charAt(0) + subject.slice(1).toLowerCase()}
-                  </Label>
-                  <Input
-                    id={`req-${subject}`}
-                    type="number"
-                    min="0"
-                    placeholder="Required"
-                    value={subjectRequirements[subject] || ""}
-                    onChange={(e) =>
-                      handleSubjectRequirementChange(subject, e.target.value)
-                    }
-                    className="w-24"
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    Selected: {selectedQuestionsBySubject[subject] || 0} /{" "}
-                    {totalQuestionsBySubject[subject] || 0}
-                  </span>
-                </div>
-              ))}
+              ).map((subject) => {
+                const subjectName =
+                  typeof subject === "string" ? subject : subject.name;
+                return (
+                  <div key={subjectName} className="flex items-center gap-2">
+                    <Label htmlFor={`req-${subjectName}`} className="w-24">
+                      {subjectName.charAt(0) +
+                        subjectName.slice(1).toLowerCase()}
+                    </Label>
+                    <Input
+                      id={`req-${subject}`}
+                      type="number"
+                      min="0"
+                      placeholder="Required"
+                      value={subjectRequirements[subject] || ""}
+                      onChange={(e) =>
+                        handleSubjectRequirementChange(subject, e.target.value)
+                      }
+                      className="w-24"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      Selected: {selectedQuestionsBySubject[subject] || 0} /{" "}
+                      {totalQuestionsBySubject[subject] || 0}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="pt-4">
@@ -597,15 +624,28 @@ export default function EditTestPage() {
                       </p>
                       {Object.entries(subjectRequirements)
                         .filter(([_, count]) => count > 0)
-                        .map(([subject, required]) => (
-                          <p key={subject}>
-                            {subject}:{" "}
-                            {selectedQuestionsBySubject[subject] || 0} /{" "}
-                            {required} required
-                            {(selectedQuestionsBySubject[subject] || 0) <
-                              required && " ⚠️"}
-                          </p>
-                        ))}
+                        .map(([subject, required]) => {
+                          // Ensure subject is a string
+                          const subjectName =
+                            typeof subject === "string"
+                              ? subject
+                              : subject.name || "UNKNOWN";
+
+                          // Format the display name
+                          const displayName =
+                            subjectName.charAt(0) +
+                            subjectName.slice(1).toLowerCase();
+
+                          return (
+                            <p key={subjectName}>
+                              {displayName}:{" "}
+                              {selectedQuestionsBySubject[subjectName] || 0} /{" "}
+                              {required} required
+                              {(selectedQuestionsBySubject[subjectName] || 0) <
+                                required && " ⚠️"}
+                            </p>
+                          );
+                        })}
                     </div>
                   </div>
                 </div>
@@ -720,18 +760,25 @@ export default function EditTestPage() {
               className="w-full"
             >
               <TabsList className="w-full justify-start mb-4 overflow-x-auto">
-                {Object.keys(questionsBySubject).map((subject) => (
-                  <TabsTrigger
-                    key={subject}
-                    value={subject}
-                    className="flex-shrink-0"
-                  >
-                    {subject.charAt(0) + subject.slice(1).toLowerCase()}
-                    <Badge variant="secondary" className="ml-1.5">
-                      {questionsBySubject[subject].length}
-                    </Badge>
-                  </TabsTrigger>
-                ))}
+                {Object.keys(questionsBySubject).map((subject) => {
+                  const subjectName =
+                    typeof subject === "string"
+                      ? subject.charAt(0) + subject.slice(1).toLowerCase()
+                      : subject;
+
+                  return (
+                    <TabsTrigger
+                      key={subject}
+                      value={subject}
+                      className="flex-shrink-0"
+                    >
+                      {subjectName}
+                      <Badge variant="secondary" className="ml-1.5">
+                        {questionsBySubject[subject].length}
+                      </Badge>
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
 
               {Object.entries(questionsBySubject).map(
@@ -886,7 +933,7 @@ export default function EditTestPage() {
                                 )}
                               </div>
                               <p className="text-sm font-medium">
-                              <LatexRenderer content={question.question}/>
+                                <LatexRenderer content={question.question} />
                               </p>
                               {question.image && (
                                 <div className="mb-6">
@@ -911,7 +958,7 @@ export default function EditTestPage() {
 
                                   return (
                                     <span key={index} className="text-xs block">
-                                      <LatexRenderer content={option}/>
+                                      <LatexRenderer content={option} />
                                       {optionLetter ===
                                         question.correctAnswer && (
                                         <span className="ml-1 text-green-600">
@@ -966,26 +1013,25 @@ export default function EditTestPage() {
   );
 }
 
-
 function LatexRenderer({ content }: { content: string }) {
   if (!content) return null;
-  
+
   // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
   const parts = content.split(/(\$[^$]*\$)/g);
-  
+
   return (
     <>
       {parts.map((part, index) => {
-        if (part.startsWith('$') && part.endsWith('$')) {
+        if (part.startsWith("$") && part.endsWith("$")) {
           const latex = part.slice(1, -1);
           // Check if it's block math (double $$)
-          if (part.startsWith('$$') && part.endsWith('$$')) {
+          if (part.startsWith("$$") && part.endsWith("$$")) {
             return <BlockMath key={index} math={latex} />;
           }
           try {
             return <InlineMath key={index} math={latex} />;
           } catch (e) {
-            console.error('Error rendering LaTeX:', e);
+            console.error("Error rendering LaTeX:", e);
             return <span key={index}>{part}</span>;
           }
         }
