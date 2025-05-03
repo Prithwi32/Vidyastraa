@@ -18,13 +18,14 @@ import {
   Difficulty,
   TestResult,
   TestResponse,
+  TestSubject,
 } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 
 export async function createTest(testData: {
   title: string;
   category: Category;
-  subjects: Subject[];
+  subjects: TestSubject[];
   description?: string;
   courseId: string;
   duration: number;
@@ -226,7 +227,7 @@ interface UpdateTestData {
   title: string;
   description?: string;
   category: TestType;
-  subjects: Subject[];
+  subjects: TestSubject[];
   courseId: string;
   duration: number;
   questions: Array<{

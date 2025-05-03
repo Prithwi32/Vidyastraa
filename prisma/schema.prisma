@@ -11,14 +11,14 @@ model User {
   id                       String           @id @default(uuid())
   name                     String
   email                    String           @unique
-  password                 String
-  emailVerified            DateTime?
-  verificationToken        String?
-  verificationTokenExpires DateTime?
-  resetToken               String?
-  resetTokenExpires        DateTime?
   createdAt                DateTime         @default(now())
   updatedAt                DateTime         @updatedAt
+  password                 String
+  emailVerified            DateTime?
+  resetToken               String?
+  resetTokenExpires        DateTime?
+  verificationToken        String?
+  verificationTokenExpires DateTime?
   enrolledCourses          EnrolledCourse[]
   payments                 Payment[]
   results                  TestResult[]
@@ -60,27 +60,20 @@ model EnrolledCourse {
 model Chapter {
   id        String     @id @default(uuid())
   name      String     @unique
-  subjectId String // Foreign key to Subject
-  subject   Subject    @relation(fields: [subjectId], references: [id]) // Relationship to Subject
+  subjectId String
+  subject   Subject    @relation(fields: [subjectId], references: [id])
   questions Question[]
-}
-
-enum TestSubject {
-  PHYSICS
-  CHEMISTRY
-  MATHS
-  BIOLOGY
 }
 
 model Test {
   id          String         @id @default(uuid())
   title       String
-  subjects    TestSubject[]  // Changed from Subject to TestSubject
   description String?
   courseId    String
   createdAt   DateTime       @default(now())
   duration    Int
   category    TestType
+  subjects    TestSubject[]
   questions   TestQuestion[]
   results     TestResult[]
   course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -163,9 +156,9 @@ model TestResult {
 model Subject {
   id        String          @id @default(uuid())
   name      String          @unique
-  chapters  Chapter[] // One-to-many relationship with Chapter
-  questions Question[] // Optional, if you want to store questions directly within a subject
-  materials StudyMaterial[] // Reverse relation with StudyMaterial model
+  chapters  Chapter[]
+  questions Question[]
+  materials StudyMaterial[]
 }
 
 model Question {
@@ -175,16 +168,23 @@ model Question {
   solution      String
   options       String[]
   correctAnswer String
-  subjectId     String
-  subject       Subject        @relation(fields: [subjectId], references: [id]) // Relationship to Subject
-  chapterId     String
-  chapter       Chapter        @relation(fields: [chapterId], references: [id]) // Relationship to Chapter
   createdAt     DateTime       @default(now())
   difficulty    Difficulty     @default(UNKNOWN)
+  chapterId     String
+  subjectId     String
+  chapter       Chapter        @relation(fields: [chapterId], references: [id])
+  subject       Subject        @relation(fields: [subjectId], references: [id])
   testQuestions TestQuestion[]
   testResponses TestResponse[]
 
   @@map("questions")
+}
+
+enum TestSubject {
+  PHYSICS
+  CHEMISTRY
+  MATHS
+  BIOLOGY
 }
 
 enum DifficultyLevel {

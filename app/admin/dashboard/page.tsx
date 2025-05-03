@@ -64,7 +64,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Total Students"
-          value={stats.totalStudents}
+          value={stats.totalStudents - 1}
           icon={<Users className="h-4 w-4 text-blue-600" />}
         />
         <StatCard

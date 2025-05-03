@@ -1,4 +1,4 @@
-import type { Subject, TestType, Difficulty } from "@prisma/client"
+import type { Subject, TestType, Difficulty, TestSubject } from "@prisma/client"
 
 // Types based on Prisma schema
 export interface TestItem {
@@ -48,7 +48,7 @@ export interface TestWithQuestion {
   id: string
   title: string
   category: TestType
-  subjects: Subject[]
+  subjects: TestSubject[]
   description?: string
   duration: number
   questions: QuestionItem[]
