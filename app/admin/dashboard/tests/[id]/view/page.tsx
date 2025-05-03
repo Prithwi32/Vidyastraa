@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CircleHelpIcon, ClipboardList, Edit, Loader2, TimerIcon, Trash } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleHelpIcon,
+  ClipboardList,
+  Edit,
+  Loader2,
+  TimerIcon,
+  Trash,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,7 +77,7 @@ export default function ViewTestPage() {
         setTimeout(() => {
           router.push("/admin/dashboard/tests");
         }, 800);
-      }else{
+      } else {
         toast.error("An error occurred while deleting test");
       }
     } catch (error) {
@@ -85,11 +93,13 @@ export default function ViewTestPage() {
   const questionsBySubject: Record<string, any[]> = {};
   if (test) {
     test.questions.forEach((q: any) => {
-      const subject = q.question.subject;
-      if (!questionsBySubject[subject]) {
-        questionsBySubject[subject] = [];
+      const subjectName =
+        q.question.subject?.name || q.question.subject || "UNKNOWN";
+
+      if (!questionsBySubject[subjectName]) {
+        questionsBySubject[subjectName] = [];
       }
-      questionsBySubject[subject].push(q);
+      questionsBySubject[subjectName].push(q);
     });
   }
 
@@ -336,17 +346,19 @@ export default function ViewTestPage() {
                           <Badge
                             variant="outline"
                             className={`${
-                              q.question.subject === "PHYSICS"
+                              q.question.subject.name === "PHYSICS"
                                 ? "border-blue-200 bg-blue-50 text-blue-700"
-                                : q.question.subject === "CHEMISTRY"
+                                : q.question.subject.name === "CHEMISTRY"
                                 ? "border-green-200 bg-green-50 text-green-700"
-                                : q.question.subject === "MATHS"
+                                : q.question.subject.name === "MATHS"
                                 ? "border-purple-200 bg-purple-50 text-purple-700"
                                 : "border-amber-200 bg-amber-50 text-amber-700"
                             }`}
                           >
-                            {q.question.subject.charAt(0) +
-                              q.question.subject.slice(1).toLowerCase()}
+                            {q.question.subject.name
+                              ? q.question.subject.name.charAt(0) +
+                                q.question.subject.name.slice(1).toLowerCase()
+                              : "Unknown"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -393,7 +405,7 @@ export default function ViewTestPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-muted-foreground">
-                <CircleHelpIcon className="mr-2 h-4 w-4" />
+                  <CircleHelpIcon className="mr-2 h-4 w-4" />
                   <span>Total Marks</span>
                 </div>
                 <span className="font-medium">
@@ -511,7 +523,7 @@ export default function ViewTestPage() {
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
-                  window.open(`/api/export/tests/${test.id}`)
+                  window.open(`/api/export/tests/${test.id}`);
                   toast.success("Test exported successfully!");
                 }}
               >

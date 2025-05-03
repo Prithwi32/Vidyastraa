@@ -40,6 +40,8 @@ import {
 import { getTestById, updateTest } from "@/app/actions/test";
 import { getAllCourses } from "@/app/actions/course";
 import Image from "next/image";
+import 'katex/dist/katex.min.css';
+import { InlineMath, BlockMath } from 'react-katex';
 
 type Course = {
   id: string;
@@ -884,7 +886,7 @@ export default function EditTestPage() {
                                 )}
                               </div>
                               <p className="text-sm font-medium">
-                                {question.question}
+                              <LatexRenderer content={question.question}/>
                               </p>
                               {question.image && (
                                 <div className="mb-6">
@@ -909,7 +911,7 @@ export default function EditTestPage() {
 
                                   return (
                                     <span key={index} className="text-xs block">
-                                      {option}
+                                      <LatexRenderer content={option}/>
                                       {optionLetter ===
                                         question.correctAnswer && (
                                         <span className="ml-1 text-green-600">
@@ -961,5 +963,34 @@ export default function EditTestPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+
+function LatexRenderer({ content }: { content: string }) {
+  if (!content) return null;
+  
+  // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
+  const parts = content.split(/(\$[^$]*\$)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          const latex = part.slice(1, -1);
+          // Check if it's block math (double $$)
+          if (part.startsWith('$$') && part.endsWith('$$')) {
+            return <BlockMath key={index} math={latex} />;
+          }
+          try {
+            return <InlineMath key={index} math={latex} />;
+          } catch (e) {
+            console.error('Error rendering LaTeX:', e);
+            return <span key={index}>{part}</span>;
+          }
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
   );
 }

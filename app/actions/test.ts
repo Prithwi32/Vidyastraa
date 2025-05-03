@@ -188,7 +188,11 @@ export async function getTestById(id: string) {
       include: {
         questions: {
           include: {
-            question: true,
+            question: {
+              include: {
+                subject: true
+              }
+            }
           },
           orderBy: {
             order: "asc",

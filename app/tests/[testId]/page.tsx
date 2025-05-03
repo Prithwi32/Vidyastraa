@@ -41,7 +41,7 @@ type QuestionStatus = "unattempted" | "attempted" | "review" | "current";
 // Define question interface with all state information
 interface Question {
   id: number;
-  subject: "Physics" | "Chemistry" | "Mathematics";
+  subject?: string;
   text: string;
   options: { id: string; text: string }[];
   status: QuestionStatus;
