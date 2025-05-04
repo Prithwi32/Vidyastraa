@@ -195,7 +195,8 @@ export async function getTestById(id: string) {
           include: {
             question: {
               include: {
-                subject: true
+                subject: true,
+                chapter:true
               }
             }
           },

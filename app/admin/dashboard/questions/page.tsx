@@ -334,16 +334,19 @@ export default function QuestionsPage() {
     return acc;
   }, {} as Record<string, Question[]>);
 
-  // Filter chapters based on search query
-  const filteredChapters = availableChapters.filter((chapter) => {
-    const chapterMatches = chapter.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const questionMatches = chapter.questions.some((q) =>
-      q.question.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredChapters = availableChapters
+    .map((chapter) => ({
+      ...chapter,
+      questions: chapter.questions.filter((q) =>
+        q.question.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    }))
+    .filter(
+      (chapter) =>
+        searchQuery === "" ||
+        chapter.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chapter.questions.length > 0
     );
-    return chapterMatches || questionMatches;
-  });
 
   return (
     <main className="p-6 max-w-7xl mx-auto text-gray-900 dark:text-gray-200">

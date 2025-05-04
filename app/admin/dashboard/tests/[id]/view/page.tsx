@@ -41,6 +41,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { deleteTest, getTestById } from "@/app/actions/test";
+import { QuestionDetailModal } from "@/components/QuestionDetailModal";
+
 
 export default function ViewTestPage() {
   const params = useParams();
@@ -49,6 +51,7 @@ export default function ViewTestPage() {
   const [test, setTest] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -333,7 +336,11 @@ export default function ViewTestPage() {
                   </TableHeader>
                   <TableBody>
                     {test.questions.map((q: any, index: number) => (
-                      <TableRow key={index}>
+                      <TableRow
+                        key={index}
+                        onClick={() => setSelectedQuestion(q.question)}
+                        className="cursor-pointer"
+                      >
                         <TableCell className="font-medium">
                           {index + 1}
                         </TableCell>
@@ -383,6 +390,11 @@ export default function ViewTestPage() {
                 </Table>
               </div>
             </CardContent>
+            <QuestionDetailModal
+              question={selectedQuestion}
+              open={!!selectedQuestion}
+              onOpenChange={(open) => !open && setSelectedQuestion(null)}
+            />
           </Card>
         </div>
 
