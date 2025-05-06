@@ -82,12 +82,13 @@ model Test {
 }
 
 model TestQuestion {
-  testId     String
-  questionId String
-  marks      Int      @default(4)
-  order      Int?
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  test       Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId         String
+  questionId     String
+  marks          Int      @default(4)
+  negativeMark   Float    @default(-1)
+  partialMarking Boolean  @default(false)
+  question       Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  test           Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
 
   @@id([testId, questionId])
   @@map("test_questions")
@@ -121,14 +122,21 @@ model StudyMaterial {
 }
 
 model TestResponse {
-  id             String     @id @default(uuid())
-  testResultId   String
-  questionId     String
-  selectedAnswer String
-  isCorrect      Boolean
-  createdAt      DateTime   @default(now())
-  question       Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  testResult     TestResult @relation(fields: [testResultId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  testResultId String
+  questionId   String
+  // Stores:
+  // - For MCQ/Matching/assertion-reasoning: option ID
+  // - For Multi-select: comma-separated option IDs
+  // - For Fill-in-blank: text answer
+  answer       String[]
+  marksAwarded Float // Supports partial marks
+  isCorrect    Boolean
+  isAnswered   Boolean  @default(false) // For unattempted tracking
+  createdAt    DateTime @default(now())
+
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  testResult TestResult @relation(fields: [testResultId], references: [id], onDelete: Cascade)
 
   @@unique([testResultId, questionId])
   @@map("test_responses")
@@ -161,23 +169,60 @@ model Subject {
   materials StudyMaterial[]
 }
 
+enum QuestionType {
+  MCQ // Multiple Choice (single correct answer)
+  MULTI_SELECT // Multiple correct answers
+  ASSERTION_REASON // Assertion-Reason type
+  FILL_IN_BLANK // Fill in the blank
+  MATCHING // Match the following 
+}
+
 model Question {
-  id            String         @id @default(uuid())
-  image         String?
-  question      String
-  solution      String
-  options       String[]
-  correctAnswer String
-  createdAt     DateTime       @default(now())
-  difficulty    Difficulty     @default(UNKNOWN)
+  id            String       @id @default(uuid())
+  type          QuestionType @default(MCQ)
+  questionText  String
+  questionImage String?
+  solutionText  String?
+  solutionImage String?
+  difficulty    Difficulty   @default(UNKNOWN)
+  createdAt     DateTime     @default(now())
   chapterId     String
   subjectId     String
-  chapter       Chapter        @relation(fields: [chapterId], references: [id])
-  subject       Subject        @relation(fields: [subjectId], references: [id])
+
+  // Relationships
+  chapter       Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  subject       Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   testQuestions TestQuestion[]
   testResponses TestResponse[]
+  options       QuestionOption[]
+  matchingPairs MatchingPair[] // Keep this for storing the actual pairs
 
   @@map("questions")
+}
+
+model QuestionOption {
+  id          String  @id @default(uuid())
+  questionId  String
+  optionText  String? // For matching questions: "1-(a),2-(b),3-(c),4-(d)"
+  optionImage String?
+  isCorrect   Boolean @default(false) // multiple opitons true for MULTI-SELECT
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_options")
+}
+
+model MatchingPair {
+  id         String  @id @default(uuid())
+  questionId String
+  leftText   String // Left column item (e.g., "Country")
+  leftImage  String? // Optional image for left item
+  rightText  String // Right column item (e.g., "Capital")
+  rightImage String? // Optional image for right item
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("matching_pairs")
 }
 
 enum TestSubject {
