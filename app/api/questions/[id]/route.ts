@@ -1,192 +1,3 @@
-// import { NextResponse } from "next/server";
-// import { prisma } from "@/lib/prisma";
-// import cloudinary from "@/lib/cloudinary/cloudinary";
-// import { getServerSession } from "next-auth";
-// import { NEXT_AUTH } from "@/lib/auth";
-
-// function getCloudinaryPublicId(url: string): string | null {
-//   try {
-//     const parts = url.split("/");
-//     const uploadsIndex = parts.findIndex((part) => part === "uploads");
-//     if (uploadsIndex === -1) return null;
-
-//     const publicIdParts = parts.slice(uploadsIndex).join("/");
-//     return publicIdParts.replace(/\.[^/.]+$/, ""); // remove extension
-//   } catch (err) {
-//     console.error("❌ Error extracting public_id:", err);
-//     return null;
-//   }
-// }
-
-// export async function PATCH(
-//   request: Request,
-//   context: { params: { id: string } }
-// ) {
-//   const { id } = context.params;
-
-//   try {
-//     const session = await getServerSession(NEXT_AUTH);
-//     if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-//       return new NextResponse("Unauthorized", { status: 401 });
-//     }
-
-//     const data = await request.json();
-
-//     // Validate required fields
-//     if (!data.subject || !data.chapter || !data.question || !data.options || !data.correctAnswer) {
-//       return NextResponse.json(
-//         { error: "Missing required fields" },
-//         { status: 400 }
-//       );
-//     }
-
-//     const existing = await prisma.question.findUnique({
-//       where: { id },
-//       include: {
-//         subject: true,
-//         chapter: true,
-//       }
-//     });
-
-//     if (!existing) {
-//       return NextResponse.json({ error: "Question not found" }, { status: 404 });
-//     }
-
-//     let imageToUpdate = existing.image;
-
-//     // Handle image updates
-//     if (data.image === "") {
-//       // Remove image
-//       if (existing.image) {
-//         const publicId = getCloudinaryPublicId(existing.image);
-//         if (publicId) {
-//           await cloudinary.uploader.destroy(publicId);
-//         }
-//       }
-//       imageToUpdate = null;
-//     } else if (data.image && data.image !== existing.image) {
-//       // Replace image
-//       if (existing.image) {
-//         const publicId = getCloudinaryPublicId(existing.image);
-//         if (publicId) {
-//           await cloudinary.uploader.destroy(publicId);
-//         }
-//       }
-//       imageToUpdate = data.image;
-//     }
-
-//     // Find or create chapter
-//     let chapter = await prisma.chapter.findFirst({
-//       where: { name: data.chapter, subjectId: existing.subjectId }
-//     });
-
-//     if (!chapter) {
-//       chapter = await prisma.chapter.create({
-//         data: {
-//           name: data.chapter,
-//           subjectId: existing.subjectId
-//         }
-//       });
-//     }
-
-//     const updatedQuestion = await prisma.question.update({
-//       where: { id },
-//       data: {
-//         question: data.question,
-//         options: data.options,
-//         correctAnswer: data.correctAnswer,
-//         solution: data.solution,
-//         difficulty: data.difficulty,
-//         image: imageToUpdate,
-//         chapterId: chapter.id
-//       },
-//       include: {
-//         chapter: {
-//           select: {
-//             name: true
-//           }
-//         },
-//         subject: {
-//           select: {
-//             name: true
-//           }
-//         }
-//       }
-//     });
-
-//     return NextResponse.json({
-//       message: "Updated successfully",
-//       question: updatedQuestion,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error updating question:", error);
-//     return NextResponse.json(
-//       { error: "Failed to update question" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// export async function DELETE(
-//   request: Request,
-//   { params }: { params: { id: string } }
-// ) {
-//   const { id } = params;
-
-//   try {
-//     const session = await getServerSession(NEXT_AUTH);
-//     if (!session || session.user?.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-//       return new NextResponse("Unauthorized", { status: 401 });
-//     }
-
-//     // 1. Fetch the question with related data
-//     const existing = await prisma.question.findUnique({ 
-//       where: { id },
-//       include: {
-//         testQuestions: true,
-//         testResponses: true
-//       }
-//     });
-
-//     if (!existing) {
-//       return NextResponse.json({ error: "Question not found" }, { status: 404 });
-//     }
-
-//     // 2. Delete image from Cloudinary if it exists
-//     if (existing.image) {
-//       const publicId = getCloudinaryPublicId(existing.image);
-//       if (publicId) {
-//         await cloudinary.uploader.destroy(publicId);
-//       }
-//     }
-
-//     // 3. Delete related test questions and responses first
-//     if (existing.testQuestions.length > 0) {
-//       await prisma.testQuestion.deleteMany({
-//         where: { questionId: id }
-//       });
-//     }
-
-//     if (existing.testResponses.length > 0) {
-//       await prisma.testResponse.deleteMany({
-//         where: { questionId: id }
-//       });
-//     }
-
-//     // 4. Delete the question
-//     const deletedQuestion = await prisma.question.delete({ where: { id } });
-
-//     return NextResponse.json({ 
-//       message: "Deleted successfully",
-//       question: deletedQuestion
-//     });
-//   } catch (error) {
-//     console.error("❌ Delete error:", error);
-//     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
-//   }
-// }
-
-
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import cloudinary from "@/lib/cloudinary/cloudinary"
@@ -194,7 +5,6 @@ import { getServerSession } from "next-auth"
 import { NEXT_AUTH } from "@/lib/auth"
 import { z } from "zod"
 
-// Define schemas for different question types (same as in the main route file)
 const baseQuestionSchema = z.object({
   type: z.enum(["MCQ", "MULTI_SELECT", "ASSERTION_REASON", "FILL_IN_BLANK", "MATCHING"]),
   questionText: z.string().min(5),
@@ -221,7 +31,6 @@ const matchingPairSchema = z.object({
   rightImage: z.string().url().optional().nullable(),
 })
 
-// Combined schema with conditional validation based on question type
 const questionSchema = z.intersection(
   baseQuestionSchema,
   z.union([
@@ -239,6 +48,7 @@ const questionSchema = z.intersection(
     z.object({
       type: z.literal("MATCHING"),
       matchingPairs: z.array(matchingPairSchema).min(2),
+      options: z.array(optionSchema).min(2), // Added options for matching type
     }),
   ]),
 )
@@ -269,7 +79,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     const data = await request.json()
     const parsedData = questionSchema.parse(data)
 
-    // Find the existing question
+    // Find the existing question with all relations
     const existing = await prisma.question.findUnique({
       where: { id },
       include: {
@@ -286,8 +96,8 @@ export async function PATCH(request: Request, context: { params: { id: string } 
 
     // Handle image updates for question image
     let questionImageToUpdate = existing.questionImage
-    if (parsedData.questionImage === "") {
-      // Remove image
+    if (parsedData.questionImage === null || parsedData.questionImage === "") {
+      // Remove image if set to null or empty string
       if (existing.questionImage) {
         const publicId = getCloudinaryPublicId(existing.questionImage)
         if (publicId) {
@@ -296,7 +106,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       }
       questionImageToUpdate = null
     } else if (parsedData.questionImage && parsedData.questionImage !== existing.questionImage) {
-      // Replace image
+      // Replace image if new URL is provided and different from existing
       if (existing.questionImage) {
         const publicId = getCloudinaryPublicId(existing.questionImage)
         if (publicId) {
@@ -308,8 +118,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
 
     // Handle image updates for solution image
     let solutionImageToUpdate = existing.solutionImage
-    if (parsedData.solutionImage === "") {
-      // Remove image
+    if (parsedData.solutionImage === null || parsedData.solutionImage === "") {
       if (existing.solutionImage) {
         const publicId = getCloudinaryPublicId(existing.solutionImage)
         if (publicId) {
@@ -318,7 +127,6 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       }
       solutionImageToUpdate = null
     } else if (parsedData.solutionImage && parsedData.solutionImage !== existing.solutionImage) {
-      // Replace image
       if (existing.solutionImage) {
         const publicId = getCloudinaryPublicId(existing.solutionImage)
         if (publicId) {
@@ -332,21 +140,32 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     let chapter = await prisma.chapter.findFirst({
       where: {
         name: parsedData.chapter,
-        subjectId: existing.subject.id,
+        subject: {
+          name: parsedData.subject,
+        },
       },
     })
 
     if (!chapter) {
+      // Find the subject first
+      const subject = await prisma.subject.findUnique({
+        where: { name: parsedData.subject },
+      })
+
+      if (!subject) {
+        return NextResponse.json({ error: "Invalid subject" }, { status: 400 })
+      }
+
       chapter = await prisma.chapter.create({
         data: {
           name: parsedData.chapter,
-          subjectId: existing.subject.id,
+          subjectId: subject.id,
         },
       })
     }
 
     // Prepare base question data for update
-    const questionUpdateData = {
+    const questionUpdateData: any = {
       type: parsedData.type,
       questionText: parsedData.questionText,
       questionImage: questionImageToUpdate,
@@ -356,76 +175,83 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       chapterId: chapter.id,
     }
 
-    // Handle type-specific updates
-    if (parsedData.type === "MCQ" || parsedData.type === "MULTI_SELECT" || parsedData.type === "ASSERTION_REASON") {
-      // Delete existing options
-      await prisma.questionOption.deleteMany({
+    // Start a transaction for all database operations
+    const transactionOperations = []
+
+    // Delete existing options (for all types, we'll recreate them if needed)
+    transactionOperations.push(
+      prisma.questionOption.deleteMany({
         where: { questionId: id },
       })
+    )
 
+    // Delete existing matching pairs (for all types, we'll recreate them if needed)
+    transactionOperations.push(
+      prisma.matchingPair.deleteMany({
+        where: { questionId: id },
+      })
+    )
+
+    // Handle type-specific data
+    if (parsedData.type === "MCQ" || parsedData.type === "MULTI_SELECT" || parsedData.type === "ASSERTION_REASON") {
       // Create new options
-      await Promise.all(
-        parsedData.options.map((option) =>
-          prisma.questionOption.create({
-            data: {
-              questionId: id,
-              optionText: option.optionText,
-              optionImage: option.optionImage,
-              isCorrect: option.isCorrect,
-            },
-          }),
-        ),
+      transactionOperations.push(
+        prisma.question.update({
+          where: { id },
+          data: {
+            ...questionUpdateData,
+            options: {
+              create: parsedData.options.map(option => ({
+                optionText: option.optionText,
+                optionImage: option.optionImage,
+                isCorrect: option.isCorrect,
+              }))
+            }
+          }
+        })
       )
     } else if (parsedData.type === "FILL_IN_BLANK") {
-      // Update correctAnswer field
-      questionUpdateData["correctAnswer"] = parsedData.correctAnswer
-
-      // Delete any existing options if question type changed
-      if (existing.options.length > 0) {
-        await prisma.questionOption.deleteMany({
-          where: { questionId: id },
+      // For fill in blank, we store the correct answer in the question itself
+      questionUpdateData.correctAnswer = parsedData.correctAnswer
+      transactionOperations.push(
+        prisma.question.update({
+          where: { id },
+          data: questionUpdateData
         })
-      }
-
-      // Delete any existing matching pairs if question type changed
-      if (existing.matchingPairs && existing.matchingPairs.length > 0) {
-        await prisma.matchingPair.deleteMany({
-          where: { questionId: id },
-        })
-      }
-    } else if (parsedData.type === "MATCHING") {
-      // Delete existing matching pairs
-      await prisma.matchingPair.deleteMany({
-        where: { questionId: id },
-      })
-
-      // Create new matching pairs
-      await Promise.all(
-        parsedData.matchingPairs.map((pair) =>
-          prisma.matchingPair.create({
-            data: {
-              questionId: id,
-              leftText: pair.leftText,
-              leftImage: pair.leftImage,
-              rightText: pair.rightText,
-              rightImage: pair.rightImage,
-            },
-          }),
-        ),
       )
-
-      // Delete any existing options if question type changed
-      if (existing.options.length > 0) {
-        await prisma.questionOption.deleteMany({
-          where: { questionId: id },
+    } else if (parsedData.type === "MATCHING") {
+      // For matching type, create matching pairs and options
+      transactionOperations.push(
+        prisma.question.update({
+          where: { id },
+          data: {
+            ...questionUpdateData,
+            matchingPairs: {
+              create: parsedData.matchingPairs.map(pair => ({
+                leftText: pair.leftText,
+                leftImage: pair.leftImage,
+                rightText: pair.rightText,
+                rightImage: pair.rightImage,
+              }))
+            },
+            options: {
+              create: parsedData.options.map(option => ({
+                optionText: option.optionText,
+                optionImage: option.optionImage,
+                isCorrect: option.isCorrect,
+              }))
+            }
+          }
         })
-      }
+      )
     }
 
-    // Update the question
-    const updatedQuestion = await prisma.question.update({
+    // Execute all operations in a transaction
+    const [updatedQuestion] = await prisma.$transaction(transactionOperations)
+
+    // Fetch the fully updated question with all relations
+    const fullQuestion = await prisma.question.findUnique({
       where: { id },
-      data: questionUpdateData,
       include: {
         chapter: {
           select: {
@@ -444,10 +270,13 @@ export async function PATCH(request: Request, context: { params: { id: string } 
 
     return NextResponse.json({
       message: "Updated successfully",
-      question: updatedQuestion,
+      question: fullQuestion,
     })
   } catch (error) {
     console.error("❌ Error updating question:", error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Validation error", details: error.errors }, { status: 400 })
+    }
     return NextResponse.json({ error: "Failed to update question: " + (error as Error).message }, { status: 500 })
   }
 }
