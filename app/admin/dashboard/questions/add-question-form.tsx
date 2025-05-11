@@ -263,6 +263,17 @@ export default function AddQuestionForm({
     }
   }, [subject]);
 
+useEffect(() => {
+  // If changing FROM MULTI_SELECT to any other type
+  if (questionType !== "MULTI_SELECT") {
+    const resetOptions = options.map(opt => ({
+      ...opt,
+      isCorrect: false
+    }));
+    setOptions(resetOptions);
+  }
+}, [questionType]);
+
   const resetForm = () => {
     setQuestionType("MCQ");
     setQuestionText("");
