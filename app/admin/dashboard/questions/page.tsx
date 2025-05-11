@@ -40,7 +40,6 @@ import {
 interface ChapterWithQuestions extends Chapter {
   questions: Question[];
 }
-
 interface Chapter {
   id: string;
   name: string;
@@ -271,7 +270,7 @@ export default function QuestionsPage() {
           return;
         }
 
-        toast.error(`❌ Failed: Unknown error`, {
+        toast.error(`❌ Failed: Check Input Fields!`, {
           containerId: "main-toast",
         });
       }
@@ -285,6 +284,7 @@ export default function QuestionsPage() {
         }
       );
       console.error("Submission error:", err);
+      return;
     }
   };
 
@@ -810,7 +810,6 @@ export default function QuestionsPage() {
         setOpen={setOpen}
         onSubmit={handleSubmit}
         editingQuestion={editingQuestion}
-        availableChapters={availableChapters}
         subjects={subjects}
         difficulties={difficulties}
       />

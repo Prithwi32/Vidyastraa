@@ -55,7 +55,6 @@ interface QuestionFormProps {
   setOpen: (open: boolean) => void
   onSubmit: (data: any) => Promise<void>
   editingQuestion: any | null
-  availableChapters: Chapter[]
   subjects: Subject[]
   difficulties: Difficulty[]
 }
@@ -65,11 +64,9 @@ export default function AddQuestionForm({
   setOpen,
   onSubmit,
   editingQuestion,
-  availableChapters,
   subjects,
   difficulties,
 }: QuestionFormProps) {
-  // Common fields
   const [questionType, setQuestionType] = useState<QuestionType>("MCQ")
   const [questionText, setQuestionText] = useState("")
   const [questionImage, setQuestionImage] = useState<string | null>(null)
@@ -80,6 +77,7 @@ export default function AddQuestionForm({
   const [chapter, setChapter] = useState("")
   const [isNewChapter, setIsNewChapter] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [availableChapters, setAvailableChapters] = useState<Chapter[]>([]);
 
   // MCQ and Multi-select fields
   const [options, setOptions] = useState<QuestionOption[]>([
@@ -206,6 +204,25 @@ export default function AddQuestionForm({
     }
   }, [editingQuestion])
 
+  useEffect(() => {
+  const fetchChapters = async () => {
+    try {
+      const res = await fetch(`/api/chapters?subject=${subject}`);
+      const data = await res.json();
+      setAvailableChapters(data.chapters || []);
+    } catch (err) {
+      console.error("Error fetching chapters:", err);
+      toast.error("Failed to fetch chapters", { containerId: "main-toast" });
+    }
+  };
+
+  if (subject) {
+    fetchChapters();
+  } else {
+    setAvailableChapters([]);
+  }
+}, [subject]);
+
   const resetForm = () => {
     setQuestionType("MCQ")
     setQuestionText("")
@@ -214,6 +231,7 @@ export default function AddQuestionForm({
     setArOption(-1)
     setQuestionImage(null)
     setSolutionText("")
+    setCorrectAnswer("")
     setSolutionImage(null)
     setSubject("PHYSICS")
     setDifficulty("BEGINNER")
@@ -410,8 +428,6 @@ export default function AddQuestionForm({
       }
 
       await onSubmit(payload)
-      resetForm()
-      setOpen(false)
     } catch (error) {
       console.error("Error submitting question:", error)
       toast.error("Failed to save question", { containerId: "main-toast" })
