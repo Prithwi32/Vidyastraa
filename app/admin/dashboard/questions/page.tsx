@@ -210,12 +210,33 @@ export default function QuestionsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          questionImage: data.questionImage || null,
+          solutionImage: data.solutionImage || null,
+          options: data.options?.map((opt) => ({
+            ...opt,
+            optionText: opt.optionText || null,
+            optionImage: opt.optionImage || null,
+          })),
           negativeMarking:
             data.type === "MCQ" ? data.negativeMarking || -1 : null,
           partialMarking:
             data.type === "MULTI_SELECT" ? data.partialMarking || false : null,
         }),
       });
+
+      console.log("Submitting payload:", {
+        ...data,
+        negativeMarking:
+          data.type === "MCQ" ? data.negativeMarking || -1 : null,
+        partialMarking:
+          data.type === "MULTI_SELECT" ? data.partialMarking || false : null,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || "Failed to save question");
+      }
 
       if (res.ok) {
         const responseData = await res.json();
@@ -255,12 +276,9 @@ export default function QuestionsPage() {
         }
 
         if (!data.solutionText && data.solutionImage) {
-          toast.error(
-            "❌ Please provide a solution text also.",
-            {
-              containerId: "main-toast",
-            }
-          );
+          toast.error("❌ Please provide a solution text also.", {
+            containerId: "main-toast",
+          });
           return;
         }
 
@@ -285,7 +303,7 @@ export default function QuestionsPage() {
         }
       );
       console.error("Submission error:", err);
-      return;
+      return false;
     }
   };
 

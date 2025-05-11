@@ -25,10 +25,13 @@ const baseQuestionSchema = z.object({
 
 const optionSchema = z.object({
   id: z.string().optional(),
-  optionText: z.string().min(1).nullable(),
+  optionText: z.string().min(1).optional().nullable(),
   optionImage: z.string().url().optional().nullable(),
   isCorrect: z.boolean(),
-});
+}).refine(
+  (data) => data.optionText || data.optionImage,
+  "Either optionText or optionImage must be provided"
+);
 
 const matchingPairSchema = z.object({
   id: z.string().optional(),

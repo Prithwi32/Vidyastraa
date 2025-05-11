@@ -491,7 +491,11 @@ export default function AddQuestionForm({
         });
       }
 
-      await onSubmit(payload);
+      // await onSubmit(payload);
+    const success = await onSubmit(payload);
+    if (success) {
+      resetForm(); // Only reset if submission was successful
+    }
       resetForm();
     } catch (error) {
       console.error("Error submitting question:", error);
