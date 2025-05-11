@@ -39,6 +39,7 @@ const matchingPairSchema = z.object({
   leftImage: z.string().url().optional().nullable(),
   rightText: z.string().min(1),
   rightImage: z.string().url().optional().nullable(),
+  order: z.number().int().min(0),
 });
 
 // Combined schema with conditional validation based on question type
@@ -267,6 +268,7 @@ export async function PATCH(
               leftImage: pair.leftImage,
               rightText: pair.rightText,
               rightImage: pair.rightImage,
+              order: pair.order,
             },
           })
         )

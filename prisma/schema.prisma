@@ -214,6 +214,7 @@ model QuestionOption {
 
 model MatchingPair {
   id         String  @id @default(uuid())
+  order      Int
   questionId String
   leftText   String // Left column item (e.g., "Country")
   leftImage  String? // Optional image for left item

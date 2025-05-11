@@ -59,6 +59,7 @@ interface MatchingPair {
   leftImage?: string | null;
   rightText: string;
   rightImage?: string | null;
+  order: number;
 }
 
 interface QuestionOption {
@@ -115,10 +116,34 @@ export default function AddQuestionForm({
 
   // Matching type fields
   const [matchingPairs, setMatchingPairs] = useState<MatchingPair[]>([
-    { leftText: "", leftImage: null, rightText: "", rightImage: null },
-    { leftText: "", leftImage: null, rightText: "", rightImage: null },
-    { leftText: "", leftImage: null, rightText: "", rightImage: null },
-    { leftText: "", leftImage: null, rightText: "", rightImage: null },
+    {
+      leftText: "",
+      leftImage: null,
+      rightText: "",
+      rightImage: null,
+      order: 0,
+    },
+    {
+      leftText: "",
+      leftImage: null,
+      rightText: "",
+      rightImage: null,
+      order: 1,
+    },
+    {
+      leftText: "",
+      leftImage: null,
+      rightText: "",
+      rightImage: null,
+      order: 2,
+    },
+    {
+      leftText: "",
+      leftImage: null,
+      rightText: "",
+      rightImage: null,
+      order: 3,
+    },
   ]);
 
   // Table headers for matching
@@ -128,37 +153,170 @@ export default function AddQuestionForm({
   const [rightColumnSubheader, setRightColumnSubheader] = useState("");
 
   // Reset form when editing question changes
-  useEffect(() => {
-    if (editingQuestion) {
-      setQuestionType(editingQuestion.type || "MCQ");
+  // useEffect(() => {
+  //   if (editingQuestion) {
+  //     setQuestionType(editingQuestion.type || "MCQ");
 
-      if (editingQuestion.type === "ASSERTION_REASON") {
-        // Parse assertion and reason from questionText if it contains the delimiter
-        const parts = editingQuestion.questionText.split("\n---\n");
-        if (parts.length === 2) {
-          setAssertion(parts[0]);
-          setReason(parts[1]);
-        } else {
-          setQuestionText(editingQuestion.questionText || "");
-        }
+  //     if (editingQuestion.type === "ASSERTION_REASON") {
+  //       // Parse assertion and reason from questionText if it contains the delimiter
+  //       const parts = editingQuestion.questionText.split("\n---\n");
+  //       if (parts.length === 2) {
+  //         setAssertion(parts[0]);
+  //         setReason(parts[1]);
+  //       } else {
+  //         setQuestionText(editingQuestion.questionText || "");
+  //       }
 
-        // Find the correct option index
-        const correctOptionIndex =
-          editingQuestion.options?.findIndex((opt: any) => opt.isCorrect) || -1;
-        setArOption(correctOptionIndex);
+  //       // Find the correct option index
+  //       const correctOptionIndex =
+  //         editingQuestion.options?.findIndex((opt: any) => opt.isCorrect) || -1;
+  //       setArOption(correctOptionIndex);
+  //     } else {
+  //       setQuestionText(editingQuestion.questionText || "");
+  //     }
+
+  //     setQuestionImage(editingQuestion.questionImage || null);
+  //     setSolutionText(editingQuestion.solutionText || null);
+  //     setSolutionImage(editingQuestion.solutionImage || null);
+  //     setSubject(editingQuestion.subject?.name || "PHYSICS");
+  //     setDifficulty(editingQuestion.difficulty || "BEGINNER");
+  //     setChapter(editingQuestion.chapter?.name || "");
+
+  //     // Set options based on question type
+  //     if (editingQuestion.options) {
+  //       // Preserve the original order by sorting if needed
+  //       const orderedOptions = [...editingQuestion.options].sort((a, b) => {
+  //         // Add any sorting logic if your options have an order field
+  //         return 0; // Default to original order
+  //       });
+  //       setOptions(orderedOptions);
+  //     }
+
+  //     if (
+  //       editingQuestion.options &&
+  //       ["MCQ", "MULTI_SELECT", "ASSERTION_REASON"].includes(
+  //         editingQuestion.type
+  //       )
+  //     ) {
+  //       setOptions(
+  //         editingQuestion.options.map((opt: any) => ({
+  //           id: opt.id,
+  //           optionText: opt.optionText || "",
+  //           optionImage: opt.optionImage || null,
+  //           isCorrect: opt.isCorrect || false,
+  //         }))
+  //       );
+
+  //       // Extract solution options from solutionText if available
+  //       setSolutionText(editingQuestion.solutionText || "");
+  //     }
+
+  //     // Set matching pairs if available
+  //     if (
+  //       editingQuestion.matchingPairs &&
+  //       editingQuestion.type === "MATCHING"
+  //     ) {
+  //       setMatchingPairs(
+  //         editingQuestion.matchingPairs.map((pair: any) => ({
+  //           id: pair.id,
+  //           leftText: pair.leftText || "",
+  //           leftImage: pair.leftImage || null,
+  //           rightText: pair.rightText || "",
+  //           rightImage: pair.rightImage || null,
+  //         }))
+  //       );
+
+  //       // Try to extract table headers from questionText
+  //       try {
+  //         const tableData = JSON.parse(editingQuestion.questionText);
+  //         if (tableData.headers) {
+  //           setLeftColumnHeader(tableData.headers.left || "List I");
+  //           setRightColumnHeader(tableData.headers.right || "List II");
+  //           setLeftColumnSubheader(tableData.headers.leftSub || "");
+  //           setRightColumnSubheader(tableData.headers.rightSub || "");
+  //           setQuestionText(
+  //             tableData.instruction || "Match List I with List II."
+  //           );
+  //         }
+  //       } catch (e) {
+  //         // If not JSON, just use the text as is
+  //         setQuestionText(editingQuestion.questionText);
+  //       }
+
+  //       // Set options for matching questions if available
+  //       if (editingQuestion.options && editingQuestion.options.length > 0) {
+  //         setOptions(
+  //           editingQuestion.options.map((opt: any) => ({
+  //             id: opt.id,
+  //             optionText: opt.optionText || "",
+  //             optionImage: opt.optionImage || null,
+  //             isCorrect: opt.isCorrect || false,
+  //           }))
+  //         );
+  //       }
+  //     }
+
+  //     // Set correct answer for numerical questions
+  //     if (editingQuestion.type === "FILL_IN_BLANK") {
+  //       // Find the correct option
+  //       const correctOpt = editingQuestion.options?.find(
+  //         (opt: any) => opt.isCorrect
+  //       );
+  //       setCorrectAnswer(correctOpt?.optionText || "");
+  //     }
+  //   } else {
+  //     resetForm();
+  //   }
+  // }, [editingQuestion]);
+
+  // Remove this standalone block (it's causing the error)
+// if (editingQuestion.matchingPairs && editingQuestion.type === "MATCHING") {
+//   setMatchingPairs(
+//     editingQuestion.matchingPairs
+//       .map((pair: any) => ({
+//         id: pair.id,
+//         leftText: pair.leftText || "",
+//         leftImage: pair.leftImage || null,
+//         rightText: pair.rightText || "",
+//         rightImage: pair.rightImage || null,
+//         order: pair.order || 0, // Default to 0 if order is missing
+//       }))
+//       .sort((a, b) => a.order - b.order) // Sort by order
+//   );
+// }
+
+// Update the useEffect that handles editingQuestion changes
+useEffect(() => {
+  if (editingQuestion) {
+    setQuestionType(editingQuestion.type || "MCQ");
+
+    if (editingQuestion.type === "ASSERTION_REASON") {
+      // Parse assertion and reason from questionText if it contains the delimiter
+      const parts = editingQuestion.questionText.split("\n---\n");
+      if (parts.length === 2) {
+        setAssertion(parts[0]);
+        setReason(parts[1]);
       } else {
         setQuestionText(editingQuestion.questionText || "");
       }
 
-      setQuestionImage(editingQuestion.questionImage || null);
-      setSolutionText(editingQuestion.solutionText || null);
-      setSolutionImage(editingQuestion.solutionImage || null);
-      setSubject(editingQuestion.subject?.name || "PHYSICS");
-      setDifficulty(editingQuestion.difficulty || "BEGINNER");
-      setChapter(editingQuestion.chapter?.name || "");
+      // Find the correct option index
+      const correctOptionIndex =
+        editingQuestion.options?.findIndex((opt: any) => opt.isCorrect) || -1;
+      setArOption(correctOptionIndex);
+    } else {
+      setQuestionText(editingQuestion.questionText || "");
+    }
 
-      // Set options based on question type
-      if (editingQuestion.options) {
+    setQuestionImage(editingQuestion.questionImage || null);
+    setSolutionText(editingQuestion.solutionText || null);
+    setSolutionImage(editingQuestion.solutionImage || null);
+    setSubject(editingQuestion.subject?.name || "PHYSICS");
+    setDifficulty(editingQuestion.difficulty || "BEGINNER");
+    setChapter(editingQuestion.chapter?.name || "");
+
+    // Set options based on question type
+    if (editingQuestion.options) {
       // Preserve the original order by sorting if needed
       const orderedOptions = [...editingQuestion.options].sort((a, b) => {
         // Add any sorting logic if your options have an order field
@@ -167,12 +325,62 @@ export default function AddQuestionForm({
       setOptions(orderedOptions);
     }
 
-      if (
-        editingQuestion.options &&
-        ["MCQ", "MULTI_SELECT", "ASSERTION_REASON"].includes(
-          editingQuestion.type
-        )
-      ) {
+    if (
+      editingQuestion.options &&
+      ["MCQ", "MULTI_SELECT", "ASSERTION_REASON"].includes(
+        editingQuestion.type
+      )
+    ) {
+      setOptions(
+        editingQuestion.options.map((opt: any) => ({
+          id: opt.id,
+          optionText: opt.optionText || "",
+          optionImage: opt.optionImage || null,
+          isCorrect: opt.isCorrect || false,
+        }))
+      );
+
+      // Extract solution options from solutionText if available
+      setSolutionText(editingQuestion.solutionText || "");
+    }
+
+    // Set matching pairs if available
+    if (
+      editingQuestion.matchingPairs &&
+      editingQuestion.type === "MATCHING"
+    ) {
+      setMatchingPairs(
+        editingQuestion.matchingPairs
+          .map((pair: any) => ({
+            id: pair.id,
+            leftText: pair.leftText || "",
+            leftImage: pair.leftImage || null,
+            rightText: pair.rightText || "",
+            rightImage: pair.rightImage || null,
+            order: pair.order || 0,
+          }))
+          .sort((a, b) => (a.order || 0) - (b.order || 0)) // Sort by order
+      );
+
+      // Try to extract table headers from questionText
+      try {
+        const tableData = JSON.parse(editingQuestion.questionText);
+        if (tableData.headers) {
+          setLeftColumnHeader(tableData.headers.left || "List I");
+          setRightColumnHeader(tableData.headers.right || "List II");
+          setLeftColumnSubheader(tableData.headers.leftSub || "");
+          setRightColumnSubheader(tableData.headers.rightSub || "");
+          setQuestionText(
+            tableData.instruction || "Match List I with List II."
+          );
+        }
+      } catch (e) {
+        // If not JSON, just use the text as is
+        setQuestionText(editingQuestion.questionText);
+      }
+
+      // Set options for matching questions if available
+      if (editingQuestion.options && editingQuestion.options.length > 0) {
         setOptions(
           editingQuestion.options.map((opt: any) => ({
             id: opt.id,
@@ -181,68 +389,21 @@ export default function AddQuestionForm({
             isCorrect: opt.isCorrect || false,
           }))
         );
-
-        // Extract solution options from solutionText if available
-        setSolutionText(editingQuestion.solutionText || "");
       }
-
-      // Set matching pairs if available
-      if (
-        editingQuestion.matchingPairs &&
-        editingQuestion.type === "MATCHING"
-      ) {
-        setMatchingPairs(
-          editingQuestion.matchingPairs.map((pair: any) => ({
-            id: pair.id,
-            leftText: pair.leftText || "",
-            leftImage: pair.leftImage || null,
-            rightText: pair.rightText || "",
-            rightImage: pair.rightImage || null,
-          }))
-        );
-
-        // Try to extract table headers from questionText
-        try {
-          const tableData = JSON.parse(editingQuestion.questionText);
-          if (tableData.headers) {
-            setLeftColumnHeader(tableData.headers.left || "List I");
-            setRightColumnHeader(tableData.headers.right || "List II");
-            setLeftColumnSubheader(tableData.headers.leftSub || "");
-            setRightColumnSubheader(tableData.headers.rightSub || "");
-            setQuestionText(
-              tableData.instruction || "Match List I with List II."
-            );
-          }
-        } catch (e) {
-          // If not JSON, just use the text as is
-          setQuestionText(editingQuestion.questionText);
-        }
-
-        // Set options for matching questions if available
-        if (editingQuestion.options && editingQuestion.options.length > 0) {
-          setOptions(
-            editingQuestion.options.map((opt: any) => ({
-              id: opt.id,
-              optionText: opt.optionText || "",
-              optionImage: opt.optionImage || null,
-              isCorrect: opt.isCorrect || false,
-            }))
-          );
-        }
-      }
-
-      // Set correct answer for numerical questions
-      if (editingQuestion.type === "FILL_IN_BLANK") {
-        // Find the correct option
-        const correctOpt = editingQuestion.options?.find(
-          (opt: any) => opt.isCorrect
-        );
-        setCorrectAnswer(correctOpt?.optionText || "");
-      }
-    } else {
-      resetForm();
     }
-  }, [editingQuestion]);
+
+    // Set correct answer for numerical questions
+    if (editingQuestion.type === "FILL_IN_BLANK") {
+      // Find the correct option
+      const correctOpt = editingQuestion.options?.find(
+        (opt: any) => opt.isCorrect
+      );
+      setCorrectAnswer(correctOpt?.optionText || "");
+    }
+  } else {
+    resetForm();
+  }
+}, [editingQuestion]);
 
   useEffect(() => {
     const fetchChapters = async () => {
@@ -263,16 +424,16 @@ export default function AddQuestionForm({
     }
   }, [subject]);
 
-useEffect(() => {
-  // If changing FROM MULTI_SELECT to any other type
-  if (questionType !== "MULTI_SELECT") {
-    const resetOptions = options.map(opt => ({
-      ...opt,
-      isCorrect: false
-    }));
-    setOptions(resetOptions);
-  }
-}, [questionType]);
+  useEffect(() => {
+    // If changing FROM MULTI_SELECT to any other type
+    if (questionType !== "MULTI_SELECT") {
+      const resetOptions = options.map((opt) => ({
+        ...opt,
+        isCorrect: false,
+      }));
+      setOptions(resetOptions);
+    }
+  }, [questionType]);
 
   const resetForm = () => {
     setQuestionType("MCQ");
@@ -296,10 +457,34 @@ useEffect(() => {
     ]);
     setCorrectAnswer("");
     setMatchingPairs([
-      { leftText: "", leftImage: null, rightText: "", rightImage: null },
-      { leftText: "", leftImage: null, rightText: "", rightImage: null },
-      { leftText: "", leftImage: null, rightText: "", rightImage: null },
-      { leftText: "", leftImage: null, rightText: "", rightImage: null },
+      {
+        leftText: "",
+        leftImage: null,
+        rightText: "",
+        rightImage: null,
+        order: 0,
+      },
+      {
+        leftText: "",
+        leftImage: null,
+        rightText: "",
+        rightImage: null,
+        order: 1,
+      },
+      {
+        leftText: "",
+        leftImage: null,
+        rightText: "",
+        rightImage: null,
+        order: 2,
+      },
+      {
+        leftText: "",
+        leftImage: null,
+        rightText: "",
+        rightImage: null,
+        order: 3,
+      },
     ]);
     setLeftColumnHeader("List I");
     setRightColumnHeader("List II");
@@ -489,6 +674,12 @@ useEffect(() => {
         // Use the options as they are, just like MCQ
         payload.options = options;
         payload.matchingPairs = matchingPairs;
+        if (questionType === "MATCHING") {
+          payload.matchingPairs = matchingPairs.map((pair, index) => ({
+            ...pair,
+            order: index, // Ensure current order is preserved
+          }));
+        }
 
         // Store table headers in the question text as JSON
         payload.questionText = JSON.stringify({
@@ -503,10 +694,10 @@ useEffect(() => {
       }
 
       // await onSubmit(payload);
-    const success = await onSubmit(payload);
-    if (success) {
-      resetForm(); // Only reset if submission was successful
-    }
+      const success = await onSubmit(payload);
+      if (success) {
+        resetForm(); // Only reset if submission was successful
+      }
       resetForm();
     } catch (error) {
       console.error("Error submitting question:", error);
@@ -863,84 +1054,110 @@ useEffect(() => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {matchingPairs.map((pair, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
-                          {String.fromCharCode(65 + index)}.
-                        </TableCell>
-                        <TableCell className="border border-gray-300 dark:border-gray-700">
-                          <Textarea
-                            value={pair.leftText}
-                            onChange={(e) =>
-                              handleMatchingPairChange(
-                                index,
-                                "leftText",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Use $ for inline math and $$ for display math"
-                          />
-                          {pair.leftText && (
-                            <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                              {renderMathContent(pair.leftText)}
-                            </div>
-                          )}
-                          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                            <FileUpload
-                              key={`left-image-${index}-${pair.leftImage || "new"}`}
-                              onUpload={(url) => handleMatchingPairChange(index, "leftImage", url)}
-                              label="Left Image (Optional)"
+                    {matchingPairs
+                      .sort((a, b) => a.order - b.order)
+                      .map((pair, index) => (
+                        <TableRow key={pair.id || index}>
+                          <TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
+                            {String.fromCharCode(65 + index)}.
+                          </TableCell>
+                          <TableCell className="border border-gray-300 dark:border-gray-700">
+                            <Textarea
+                              value={pair.leftText}
+                              onChange={(e) =>
+                                handleMatchingPairChange(
+                                  index,
+                                  "leftText",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Use $ for inline math and $$ for display math"
                             />
-                            {pair.leftImage && (
-                              <div className="w-20 h-20 mt-2 border rounded-md overflow-hidden">
-                                <img
-                                  src={pair.leftImage || "/placeholder.svg"}
-                                  alt={`Left ${String.fromCharCode(65 + index)}`}
-                                  className="w-full h-full object-cover"
-                                />
+                            {pair.leftText && (
+                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                {renderMathContent(pair.leftText)}
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
-                          {index + 1}.
-                        </TableCell>
-                        <TableCell className="border border-gray-300 dark:border-gray-700">
-                          <Textarea
-                            value={pair.rightText}
-                            onChange={(e) =>
-                              handleMatchingPairChange(
-                                index,
-                                "rightText",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Use $ for inline math and $$ for display math"
-                          />
-                          {pair.rightText && (
-                            <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                              {renderMathContent(pair.rightText)}
+                            <div
+                              className="mt-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <FileUpload
+                                key={`left-image-${index}-${
+                                  pair.leftImage || "new"
+                                }`}
+                                onUpload={(url) =>
+                                  handleMatchingPairChange(
+                                    index,
+                                    "leftImage",
+                                    url
+                                  )
+                                }
+                                label="Left Image (Optional)"
+                              />
+                              {pair.leftImage && (
+                                <div className="w-20 h-20 mt-2 border rounded-md overflow-hidden">
+                                  <img
+                                    src={pair.leftImage || "/placeholder.svg"}
+                                    alt={`Left ${String.fromCharCode(
+                                      65 + index
+                                    )}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
                             </div>
-                          )}
-                          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                            <FileUpload
-                              key={`right-image-${index}-${pair.rightImage || "new"}`}
-                              onUpload={(url) => handleMatchingPairChange(index, "rightImage", url)}
-                              label="Right Image (Optional)"
+                          </TableCell>
+                          <TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
+                            {index + 1}.
+                          </TableCell>
+                          <TableCell className="border border-gray-300 dark:border-gray-700">
+                            <Textarea
+                              value={pair.rightText}
+                              onChange={(e) =>
+                                handleMatchingPairChange(
+                                  index,
+                                  "rightText",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Use $ for inline math and $$ for display math"
                             />
-                            {pair.rightImage && (
-                              <div className="w-20 h-20 mt-2 border rounded-md overflow-hidden">
-                                <img
-                                  src={pair.rightImage || "/placeholder.svg"}
-                                  alt={`Right ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
+                            {pair.rightText && (
+                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                {renderMathContent(pair.rightText)}
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            <div
+                              className="mt-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <FileUpload
+                                key={`right-image-${index}-${
+                                  pair.rightImage || "new"
+                                }`}
+                                onUpload={(url) =>
+                                  handleMatchingPairChange(
+                                    index,
+                                    "rightImage",
+                                    url
+                                  )
+                                }
+                                label="Right Image (Optional)"
+                              />
+                              {pair.rightImage && (
+                                <div className="w-20 h-20 mt-2 border rounded-md overflow-hidden">
+                                  <img
+                                    src={pair.rightImage || "/placeholder.svg"}
+                                    alt={`Right ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </div>

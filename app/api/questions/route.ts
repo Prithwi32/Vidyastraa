@@ -53,6 +53,7 @@ const matchingPairSchema = z.object({
   leftImage: z.string().url().optional().nullable(),
   rightText: z.string().min(1),
   rightImage: z.string().url().optional().nullable(),
+  order: z.number().int().min(0),
 })
 
 // Combined schema with conditional validation based on question type
@@ -162,6 +163,7 @@ export async function POST(req: NextRequest) {
               leftImage: pair.leftImage,
               rightText: pair.rightText,
               rightImage: pair.rightImage,
+              order: pair.order,
             },
           }),
         ),
@@ -231,7 +233,11 @@ export async function GET(req: Request) {
         subject: true,
         chapter: true,
         options: true,
-        matchingPairs: true,
+         matchingPairs: {
+      orderBy: {
+        order: "asc", // Ensure matching pairs are returned in order
+      },
+    },
       },
       orderBy: {
         createdAt: "desc",
