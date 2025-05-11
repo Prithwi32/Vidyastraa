@@ -244,8 +244,34 @@ export default function QuestionsPage() {
           fetchChapters(selectedSubject);
         }
       } else {
-        const errorData = await res.json();
-        toast.error(`❌ Failed: ${errorData.error || "Unknown error"}`, {
+        if (!data.solutionText && !data.solutionImage) {
+          toast.error(
+            "❌ Please provide either a solution text or a solution image.",
+            {
+              containerId: "main-toast",
+            }
+          );
+          return;
+        }
+
+        if (!data.solutionText && data.solutionImage) {
+          toast.error(
+            "❌ Please provide a solution text also.",
+            {
+              containerId: "main-toast",
+            }
+          );
+          return;
+        }
+
+        if (data.solutionText && data.solutionText.trim().length < 5) {
+          toast.error("❌ Solution text must be at least 5 characters long.", {
+            containerId: "main-toast",
+          });
+          return;
+        }
+
+        toast.error(`❌ Failed: Unknown error`, {
           containerId: "main-toast",
         });
       }
@@ -424,9 +450,7 @@ export default function QuestionsPage() {
                       : ""
                   }`}
                 >
-                  {opt.optionText
-                    ? renderMathContent(opt.optionText)
-                    : "No text"}
+                  {opt.optionText ? renderMathContent(opt.optionText) : ""}
                 </div>
                 {opt.optionImage && (
                   <img

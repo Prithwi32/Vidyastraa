@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth"
 import { NEXT_AUTH } from "@/lib/auth"
 import { z } from "zod"
 
+// Define schemas for different question types (same as in the main route file)
 const baseQuestionSchema = z.object({
   type: z.enum(["MCQ", "MULTI_SELECT", "ASSERTION_REASON", "FILL_IN_BLANK", "MATCHING"]),
   questionText: z.string().min(5),
@@ -31,6 +32,7 @@ const matchingPairSchema = z.object({
   rightImage: z.string().url().optional().nullable(),
 })
 
+// Combined schema with conditional validation based on question type
 const questionSchema = z.intersection(
   baseQuestionSchema,
   z.union([
@@ -48,7 +50,7 @@ const questionSchema = z.intersection(
     z.object({
       type: z.literal("MATCHING"),
       matchingPairs: z.array(matchingPairSchema).min(2),
-      options: z.array(optionSchema).min(2), // Added options for matching type
+      options: z.array(optionSchema).min(2),
     }),
   ]),
 )
@@ -79,7 +81,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     const data = await request.json()
     const parsedData = questionSchema.parse(data)
 
-    // Find the existing question with all relations
+    // Find the existing question
     const existing = await prisma.question.findUnique({
       where: { id },
       include: {
@@ -94,10 +96,15 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       return NextResponse.json({ error: "Question not found" }, { status: 404 })
     }
 
+    // Prevent changing the subject
+    if (parsedData.subject !== existing.subject.name) {
+      return NextResponse.json({ error: "Subject cannot be changed when editing a question" }, { status: 400 })
+    }
+
     // Handle image updates for question image
     let questionImageToUpdate = existing.questionImage
-    if (parsedData.questionImage === null || parsedData.questionImage === "") {
-      // Remove image if set to null or empty string
+    if (parsedData.questionImage === "") {
+      // Remove image
       if (existing.questionImage) {
         const publicId = getCloudinaryPublicId(existing.questionImage)
         if (publicId) {
@@ -106,7 +113,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       }
       questionImageToUpdate = null
     } else if (parsedData.questionImage && parsedData.questionImage !== existing.questionImage) {
-      // Replace image if new URL is provided and different from existing
+      // Replace image
       if (existing.questionImage) {
         const publicId = getCloudinaryPublicId(existing.questionImage)
         if (publicId) {
@@ -118,7 +125,8 @@ export async function PATCH(request: Request, context: { params: { id: string } 
 
     // Handle image updates for solution image
     let solutionImageToUpdate = existing.solutionImage
-    if (parsedData.solutionImage === null || parsedData.solutionImage === "") {
+    if (parsedData.solutionImage === "") {
+      // Remove image
       if (existing.solutionImage) {
         const publicId = getCloudinaryPublicId(existing.solutionImage)
         if (publicId) {
@@ -127,6 +135,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       }
       solutionImageToUpdate = null
     } else if (parsedData.solutionImage && parsedData.solutionImage !== existing.solutionImage) {
+      // Replace image
       if (existing.solutionImage) {
         const publicId = getCloudinaryPublicId(existing.solutionImage)
         if (publicId) {
@@ -140,32 +149,21 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     let chapter = await prisma.chapter.findFirst({
       where: {
         name: parsedData.chapter,
-        subject: {
-          name: parsedData.subject,
-        },
+        subjectId: existing.subject.id,
       },
     })
 
     if (!chapter) {
-      // Find the subject first
-      const subject = await prisma.subject.findUnique({
-        where: { name: parsedData.subject },
-      })
-
-      if (!subject) {
-        return NextResponse.json({ error: "Invalid subject" }, { status: 400 })
-      }
-
       chapter = await prisma.chapter.create({
         data: {
           name: parsedData.chapter,
-          subjectId: subject.id,
+          subjectId: existing.subject.id,
         },
       })
     }
 
     // Prepare base question data for update
-    const questionUpdateData: any = {
+    const questionUpdateData = {
       type: parsedData.type,
       questionText: parsedData.questionText,
       questionImage: questionImageToUpdate,
@@ -175,83 +173,110 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       chapterId: chapter.id,
     }
 
-    // Start a transaction for all database operations
-    const transactionOperations = []
-
-    // Delete existing options (for all types, we'll recreate them if needed)
-    transactionOperations.push(
-      prisma.questionOption.deleteMany({
-        where: { questionId: id },
-      })
-    )
-
-    // Delete existing matching pairs (for all types, we'll recreate them if needed)
-    transactionOperations.push(
-      prisma.matchingPair.deleteMany({
-        where: { questionId: id },
-      })
-    )
-
-    // Handle type-specific data
+    // Handle type-specific updates
     if (parsedData.type === "MCQ" || parsedData.type === "MULTI_SELECT" || parsedData.type === "ASSERTION_REASON") {
+      // Delete existing options
+      await prisma.questionOption.deleteMany({
+        where: { questionId: id },
+      })
+
       // Create new options
-      transactionOperations.push(
-        prisma.question.update({
-          where: { id },
-          data: {
-            ...questionUpdateData,
-            options: {
-              create: parsedData.options.map(option => ({
-                optionText: option.optionText,
-                optionImage: option.optionImage,
-                isCorrect: option.isCorrect,
-              }))
-            }
-          }
-        })
+      await Promise.all(
+        parsedData.options.map((option) =>
+          prisma.questionOption.create({
+            data: {
+              questionId: id,
+              optionText: option.optionText,
+              optionImage: option.optionImage,
+              isCorrect: option.isCorrect,
+            },
+          }),
+        ),
       )
     } else if (parsedData.type === "FILL_IN_BLANK") {
-      // For fill in blank, we store the correct answer in the question itself
+      // For fill in blank, we store the correct answer in options
       questionUpdateData.correctAnswer = parsedData.correctAnswer
+
+      const transactionOperations = []
+
+      // Create a new option with the correct answer
       transactionOperations.push(
-        prisma.question.update({
-          where: { id },
-          data: questionUpdateData
-        })
-      )
-    } else if (parsedData.type === "MATCHING") {
-      // For matching type, create matching pairs and options
-      transactionOperations.push(
-        prisma.question.update({
-          where: { id },
+        prisma.questionOption.create({
           data: {
-            ...questionUpdateData,
-            matchingPairs: {
-              create: parsedData.matchingPairs.map(pair => ({
-                leftText: pair.leftText,
-                leftImage: pair.leftImage,
-                rightText: pair.rightText,
-                rightImage: pair.rightImage,
-              }))
-            },
-            options: {
-              create: parsedData.options.map(option => ({
-                optionText: option.optionText,
-                optionImage: option.optionImage,
-                isCorrect: option.isCorrect,
-              }))
-            }
-          }
+            questionId: id,
+            optionText: parsedData.correctAnswer,
+            isCorrect: true,
+          },
+        }),
+      )
+
+      transactionOperations.push(
+        prisma.question.update({
+          where: { id },
+          data: questionUpdateData,
+        }),
+      )
+
+      await prisma.$transaction(transactionOperations)
+
+      // Delete any existing options if question type changed
+      if (existing.options.length > 0) {
+        await prisma.questionOption.deleteMany({
+          where: { questionId: id },
         })
+      }
+
+      // Delete any existing matching pairs if question type changed
+      if (existing.matchingPairs && existing.matchingPairs.length > 0) {
+        await prisma.matchingPair.deleteMany({
+          where: { questionId: id },
+        })
+      }
+    } else if (parsedData.type === "MATCHING") {
+      // Delete existing matching pairs
+      await prisma.matchingPair.deleteMany({
+        where: { questionId: id },
+      })
+
+      // Create new matching pairs
+      await Promise.all(
+        parsedData.matchingPairs.map((pair) =>
+          prisma.matchingPair.create({
+            data: {
+              questionId: id,
+              leftText: pair.leftText,
+              leftImage: pair.leftImage,
+              rightText: pair.rightText,
+              rightImage: pair.rightImage,
+            },
+          }),
+        ),
+      )
+
+      // Delete any existing options if question type changed
+      await prisma.questionOption.deleteMany({
+        where: { questionId: id },
+      })
+
+      // Create new options
+      await Promise.all(
+        parsedData.options.map((option) =>
+          prisma.questionOption.create({
+            data: {
+              questionId: id,
+              optionText: option.optionText,
+              optionImage: option.optionImage,
+              isCorrect: option.isCorrect,
+            },
+          }),
+        ),
       )
     }
 
-    // Execute all operations in a transaction
-    const [updatedQuestion] = await prisma.$transaction(transactionOperations)
-
-    // Fetch the fully updated question with all relations
-    const fullQuestion = await prisma.question.findUnique({
+    // Update the question
+    const updatedQuestion = await prisma.question.update({
       where: { id },
+      data: questionUpdateData,
       include: {
         chapter: {
           select: {
@@ -270,13 +295,10 @@ export async function PATCH(request: Request, context: { params: { id: string } 
 
     return NextResponse.json({
       message: "Updated successfully",
-      question: fullQuestion,
+      question: updatedQuestion,
     })
   } catch (error) {
     console.error("❌ Error updating question:", error)
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation error", details: error.errors }, { status: 400 })
-    }
     return NextResponse.json({ error: "Failed to update question: " + (error as Error).message }, { status: 500 })
   }
 }
