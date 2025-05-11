@@ -242,6 +242,7 @@ export default function QuestionsPage() {
         if (selectedSubject) {
           fetchChapters(selectedSubject);
         }
+        return true;
       } else {
         if (!data.solutionText && !data.solutionImage) {
           toast.error(
@@ -250,7 +251,7 @@ export default function QuestionsPage() {
               containerId: "main-toast",
             }
           );
-          return;
+          return false;
         }
 
         if (!data.solutionText && data.solutionImage) {
