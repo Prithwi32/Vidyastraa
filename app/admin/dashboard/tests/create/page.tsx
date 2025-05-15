@@ -1462,9 +1462,9 @@ export default function CreateTestPage() {
                                                         className="p-2 rounded-md"
                                                       >
                                                         <p className="text-sm font-semibold">
-                                                        <LatexRenderer
-                                                          content={part}
-                                                        />
+                                                          <LatexRenderer
+                                                            content={part}
+                                                          />
                                                         </p>
                                                       </div>
                                                     ))}
@@ -1472,7 +1472,7 @@ export default function CreateTestPage() {
                                                   {/* Options (always shown, not just when selected) */}
                                                   {question.options.length >
                                                     0 && (
-                                                    <div className="p-2 bg-blue-50 rounded-md">
+                                                    <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-md">
                                                       <p className="font-medium">
                                                         Options:
                                                       </p>
@@ -1516,7 +1516,7 @@ export default function CreateTestPage() {
                                               {question.type ===
                                                 "FILL_IN_BLANK" && (
                                                 <div className="mt-2 space-y-2 text-xs">
-                                                  <div className="p-2 bg-blue-50 rounded-md">
+                                                  <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-md">
                                                     <p className="font-medium">
                                                       Correct Answer:
                                                     </p>
@@ -1543,23 +1543,23 @@ export default function CreateTestPage() {
                                                       return (
                                                         <>
                                                           {/* Instruction */}
-                                                          <div className="p-2 bg-gray-50 rounded-md">
+                                                          <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-md">
                                                             <p className="text-sm font-semibold">
                                                               Instruction:
                                                             </p>
                                                             <p className="text-sm font-semibold">
-                                                            <LatexRenderer
-                                                              content={
-                                                                matchingData.instruction
-                                                              }
-                                                            />
+                                                              <LatexRenderer
+                                                                content={
+                                                                  matchingData.instruction
+                                                                }
+                                                              />
                                                             </p>
                                                           </div>
 
                                                           {/* Matching Table */}
                                                           <div className="border rounded-md overflow-hidden">
                                                             <table className="w-full border-collapse">
-                                                              <thead className="bg-gray-100">
+                                                              <thead className="bg-gray-100 dark:bg-slate-800">
                                                                 <tr>
                                                                   <th className="p-2 text-left border-b w-1/2">
                                                                     {matchingData
@@ -1604,7 +1604,7 @@ export default function CreateTestPage() {
                                                                       key={
                                                                         pair.id
                                                                       }
-                                                                      className="border-b hover:bg-gray-50"
+                                                                      className="border-b hover:bg-gray-50 dark:bg-slate-900"
                                                                     >
                                                                       <td className="p-2">
                                                                         <div className="flex items-center gap-2">
@@ -1661,7 +1661,7 @@ export default function CreateTestPage() {
                                                     } catch (e) {
                                                       // Fallback display if JSON parsing fails
                                                       return (
-                                                        <div className="p-2 bg-gray-50 rounded-md">
+                                                        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-md">
                                                           <LatexRenderer
                                                             content={
                                                               question.questionText
@@ -1678,7 +1678,7 @@ export default function CreateTestPage() {
                                                   ) &&
                                                     question.options.length >
                                                       0 && (
-                                                      <div className="p-2 bg-blue-50 rounded-md mt-2">
+                                                      <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-md mt-2">
                                                         <p className="font-medium">
                                                           Options:
                                                         </p>
