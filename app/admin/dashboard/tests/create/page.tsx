@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -14,6 +15,11 @@ import {
   ChevronRight,
   ChevronDown,
   FolderOpen,
+  FileQuestion,
+  ListChecks,
+  AlignJustify,
+  SplitSquareVertical,
+  CircleHelp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,9 +58,9 @@ import Loader from "@/components/Loader";
 import { createTest } from "@/app/actions/test";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
-import { getAllCourses } from "@/app/actions/course";
-import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import "katex/dist/katex.min.css";
+import { InlineMath, BlockMath } from "react-katex";
+
 type Course = {
   id: string;
   title: string;
@@ -68,41 +74,66 @@ type Chapter = {
   questions: Question[];
 };
 
+type MatchingPair = {
+  id: string;
+  leftText: string;
+  rightText: string;
+  leftImage?: string | null;
+  rightImage?: string | null;
+};
+
+type QuestionOption = {
+  id: string;
+  optionText: string | null;
+  optionImage: string | null;
+  isCorrect: boolean;
+};
+
 type Question = {
   id: string;
-  question: string;
-  options: string[];
-  correctAnswer: string;
-  solution: string;
+  type:
+    | "MCQ"
+    | "MULTI_SELECT"
+    | "ASSERTION_REASON"
+    | "FILL_IN_BLANK"
+    | "MATCHING";
+  questionText: string;
+  questionImage: string | null;
+  solutionText: string | null;
+  solutionImage: string | null;
   difficulty: "BEGINNER" | "MODERATE" | "ADVANCED";
-  subject: string;
+  subject: {
+    id: string;
+    name: string;
+  };
   chapter: {
     id: string;
     name: string;
   };
-  image: string | null;
+  options: QuestionOption[];
+  matchingPairs?: MatchingPair[];
   createdAt: string;
 };
 
 function LatexRenderer({ content }: { content: string }) {
   if (!content) return null;
-  
+
   // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
   const parts = content.split(/(\$[^$]*\$)/g);
-  
+
   return (
     <>
       {parts.map((part, index) => {
-        if (part.startsWith('$') && part.endsWith('$')) {
+        if (part.startsWith("$") && part.endsWith("$")) {
           const latex = part.slice(1, -1);
           // Check if it's block math (double $$)
-          if (part.startsWith('$$') && part.endsWith('$$')) {
+          if (part.startsWith("$$") && part.endsWith("$$")) {
             return <BlockMath key={index} math={latex} />;
           }
           try {
             return <InlineMath key={index} math={latex} />;
           } catch (e) {
-            console.error('Error rendering LaTeX:', e);
+            console.error("Error rendering LaTeX:", e);
             return <span key={index}>{part}</span>;
           }
         }
@@ -110,6 +141,23 @@ function LatexRenderer({ content }: { content: string }) {
       })}
     </>
   );
+}
+
+function QuestionTypeIcon({ type }: { type: Question["type"] }) {
+  switch (type) {
+    case "MCQ":
+      return <FileQuestion className="h-4 w-4" />;
+    case "MULTI_SELECT":
+      return <ListChecks className="h-4 w-4" />;
+    case "ASSERTION_REASON":
+      return <CircleHelp className="h-4 w-4" />;
+    case "FILL_IN_BLANK":
+      return <AlignJustify className="h-4 w-4" />;
+    case "MATCHING":
+      return <SplitSquareVertical className="h-4 w-4" />;
+    default:
+      return <FileQuestion className="h-4 w-4" />;
+  }
 }
 
 export default function CreateTestPage() {
@@ -129,6 +177,7 @@ export default function CreateTestPage() {
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
+  const [questionTypeFilter, setQuestionTypeFilter] = useState<string[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -149,6 +198,15 @@ export default function CreateTestPage() {
     "MODERATE",
     "ADVANCED",
   ];
+
+  const questionTypes: Question["type"][] = [
+    "MCQ",
+    "MULTI_SELECT",
+    "ASSERTION_REASON",
+    "FILL_IN_BLANK",
+    "MATCHING",
+  ];
+
   const getCourses = async (): Promise<void> => {
     try {
       const res = await fetch("/api/courses");
@@ -294,11 +352,11 @@ export default function CreateTestPage() {
         return {
           questionId: id,
           marks: questionMarks[id] || 4,
+          negativeMark: -1, // Default negative mark
+          partialMarking: false, // Default partial marking setting
         };
       }),
     };
-
-    // console.log(testData)
 
     try {
       const res = await createTest(testData);
@@ -309,7 +367,7 @@ export default function CreateTestPage() {
           router.push("/admin/dashboard/tests");
         }, 900);
       } else {
-        toast.error("An unexpected error occurred");
+        toast.error(res.message || "An unexpected error occurred");
       }
     } catch (error) {
       console.error("Error creating test:", error);
@@ -386,9 +444,20 @@ export default function CreateTestPage() {
     });
   };
 
+  const handleQuestionTypeFilterChange = (type: string) => {
+    setQuestionTypeFilter((prev) => {
+      if (prev.includes(type)) {
+        return prev.filter((t) => t !== type);
+      } else {
+        return [...prev, type];
+      }
+    });
+  };
+
   const clearFilters = () => {
     setSearchQuery("");
     setDifficultyFilter([]);
+    setQuestionTypeFilter([]);
   };
 
   const handleSubjectRequirementChange = (subject: string, value: string) => {
@@ -423,7 +492,7 @@ export default function CreateTestPage() {
     }));
   };
 
-  // Filter questions based on test type, subject, search query, and difficulty
+  // Filter questions based on test type, subject, search query, difficulty, and question type
   const filteredQuestions = questions.filter((question) => {
     // Filter by test type
     if (testType === "JEE" && question.subject.name === "BIOLOGY") return false;
@@ -438,7 +507,7 @@ export default function CreateTestPage() {
     // Filter by search query
     if (
       searchQuery &&
-      !question.question.toLowerCase().includes(searchQuery.toLowerCase())
+      !question.questionText.toLowerCase().includes(searchQuery.toLowerCase())
     )
       return false;
 
@@ -446,6 +515,13 @@ export default function CreateTestPage() {
     if (
       difficultyFilter.length > 0 &&
       !difficultyFilter.includes(question.difficulty)
+    )
+      return false;
+
+    // Filter by question type
+    if (
+      questionTypeFilter.length > 0 &&
+      !questionTypeFilter.includes(question.type)
     )
       return false;
 
@@ -505,6 +581,41 @@ export default function CreateTestPage() {
       selectedQuestionsBySubject[subjectName]++;
     }
   });
+
+  // Get question type distribution
+  const questionTypeDistribution: Record<string, number> = {
+    MCQ: 0,
+    MULTI_SELECT: 0,
+    ASSERTION_REASON: 0,
+    FILL_IN_BLANK: 0,
+    MATCHING: 0,
+  };
+
+  selectedQuestions.forEach((id) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      questionTypeDistribution[question.type] =
+        (questionTypeDistribution[question.type] || 0) + 1;
+    }
+  });
+
+  // Get question type badge color
+  const getQuestionTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case "MCQ":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "MULTI_SELECT":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "ASSERTION_REASON":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "FILL_IN_BLANK":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "MATCHING":
+        return "bg-pink-100 text-pink-800 border-pink-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -707,6 +818,27 @@ export default function CreateTestPage() {
                   ))
                 )}
               </div>
+
+              {/* Question Type Distribution */}
+              {selectedQuestions.length > 0 && (
+                <div className="pt-2">
+                  <Label>Question Type Distribution</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {Object.entries(questionTypeDistribution)
+                      .filter(([_, count]) => count > 0)
+                      .map(([type, count]) => (
+                        <Badge
+                          key={type}
+                          variant="outline"
+                          className={`${getQuestionTypeBadgeColor(type)}`}
+                        >
+                          {type}: {count}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               <div className="pt-4">
                 <div
                   className={`rounded-md ${
@@ -833,17 +965,49 @@ export default function CreateTestPage() {
                     <Button variant="outline" className="gap-1">
                       <Filter className="h-4 w-4" />
                       Filter
-                      {difficultyFilter.length > 0 && (
+                      {(difficultyFilter.length > 0 ||
+                        questionTypeFilter.length > 0) && (
                         <Badge
                           variant="secondary"
                           className="ml-1 rounded-sm px-1 font-normal"
                         >
-                          {difficultyFilter.length}
+                          {difficultyFilter.length + questionTypeFilter.length}
                         </Badge>
                       )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Question Type</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      {questionTypes.map((type) => (
+                        <DropdownMenuItem
+                          key={type}
+                          onClick={() => handleQuestionTypeFilterChange(type)}
+                        >
+                          <Checkbox
+                            checked={questionTypeFilter.includes(type)}
+                            className="mr-2 h-4 w-4"
+                          />
+                          <span className="flex items-center gap-2">
+                            <QuestionTypeIcon type={type} />
+                            {type === "MCQ"
+                              ? "Multiple Choice"
+                              : type === "MULTI_SELECT"
+                              ? "Multi-Select"
+                              : type === "ASSERTION_REASON"
+                              ? "Assertion-Reason"
+                              : type === "FILL_IN_BLANK"
+                              ? "Fill in Blank"
+                              : type === "MATCHING"
+                              ? "Matching"
+                              : type}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+
+                    <DropdownMenuSeparator />
                     <DropdownMenuLabel>Difficulty Level</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
@@ -1057,9 +1221,22 @@ export default function CreateTestPage() {
                                                       .slice(1)
                                                       .toLowerCase()}
                                                 </Badge>
+
+                                                <Badge
+                                                  variant="outline"
+                                                  className={`px-2 py-0 text-xs ${getQuestionTypeBadgeColor(
+                                                    question.type
+                                                  )}`}
+                                                >
+                                                  {question.type}
+                                                </Badge>
+
                                                 <span className="text-xs text-muted-foreground">
-                                                  ID: {question.id}
+                                                  ID:{" "}
+                                                  {question.id.substring(0, 8)}
+                                                  ...
                                                 </span>
+
                                                 {/* Marks selector */}
                                                 {selectedQuestions.includes(
                                                   question.id
@@ -1170,16 +1347,29 @@ export default function CreateTestPage() {
                                                   </div>
                                                 )}
                                               </div>
-                                              <p className="text-sm font-medium">
-                                                <LatexRenderer content={question.question}/>
-                                              </p>
-                                              {question.image && (
+                                              {[
+                                                "FILL_IN_BLANK",
+                                                "MCQ",
+                                                "MULTI_SELECT",
+                                              ].includes(question.type) && (
+                                                <p className="text-sm font-medium">
+                                                  <LatexRenderer
+                                                    content={
+                                                      question.questionText
+                                                    }
+                                                  />
+                                                </p>
+                                              )}
+
+                                              {question.questionImage && (
                                                 <div className="mb-6">
                                                   <div className="relative w-full h-48 rounded-md my-4 overflow-hidden">
                                                     <Image
                                                       src={
-                                                        question.image ||
+                                                        question.questionImage ||
                                                         "https://ui.shadcn.com/placeholder.svg" ||
+                                                        "/placeholder.svg" ||
+                                                        "/placeholder.svg" ||
                                                         "/placeholder.svg"
                                                       }
                                                       alt="Question image"
@@ -1189,30 +1379,349 @@ export default function CreateTestPage() {
                                                   </div>
                                                 </div>
                                               )}
-                                              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                                {question.options.map(
-                                                  (option, index) => {
-                                                    const optionLetter =
-                                                      String.fromCharCode(
-                                                        65 + index
-                                                      );
-                                                    return (
-                                                      <span
-                                                        key={index}
-                                                        className="text-xs block"
-                                                      >
-                                                        <LatexRenderer content={option} />
-                                                        {optionLetter ===
-                                                          question.correctAnswer && (
-                                                          <span className="ml-1 text-green-600">
-                                                            ✓
+
+                                              {/* Render different question types */}
+                                              {question.type === "MCQ" && (
+                                                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
+                                                  {question.options.map(
+                                                    (option, index) => {
+                                                      const optionLetter =
+                                                        String.fromCharCode(
+                                                          65 + index
+                                                        );
+                                                      return (
+                                                        <span
+                                                          key={option.id}
+                                                          className="text-xs block"
+                                                        >
+                                                          <span className="font-medium mr-1">
+                                                            {optionLetter}.
                                                           </span>
+                                                          <LatexRenderer
+                                                            content={
+                                                              option.optionText ||
+                                                              ""
+                                                            }
+                                                          />
+                                                          {option.isCorrect && (
+                                                            <span className="ml-1 text-green-600">
+                                                              ✓
+                                                            </span>
+                                                          )}
+                                                        </span>
+                                                      );
+                                                    }
+                                                  )}
+                                                </div>
+                                              )}
+
+                                              {question.type ===
+                                                "MULTI_SELECT" && (
+                                                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
+                                                  {question.options.map(
+                                                    (option, index) => {
+                                                      const optionLetter =
+                                                        String.fromCharCode(
+                                                          65 + index
+                                                        );
+                                                      return (
+                                                        <span
+                                                          key={option.id}
+                                                          className="text-xs block"
+                                                        >
+                                                          <span className="font-medium mr-1">
+                                                            {optionLetter}.
+                                                          </span>
+                                                          <LatexRenderer
+                                                            content={
+                                                              option.optionText ||
+                                                              ""
+                                                            }
+                                                          />
+                                                          {option.isCorrect && (
+                                                            <span className="ml-1 text-green-600">
+                                                              ✓
+                                                            </span>
+                                                          )}
+                                                        </span>
+                                                      );
+                                                    }
+                                                  )}
+                                                </div>
+                                              )}
+
+                                              {question.type ===
+                                                "ASSERTION_REASON" && (
+                                                <div className="mt-2 space-y-2 text-xs">
+                                                  {/* Split assertion and reason by "---" */}
+                                                  {question.questionText
+                                                    .split("\n---\n")
+                                                    .map((part, index) => (
+                                                      <div
+                                                        key={index}
+                                                        className="p-2 rounded-md"
+                                                      >
+                                                        <p className="text-sm font-semibold">
+                                                        <LatexRenderer
+                                                          content={part}
+                                                        />
+                                                        </p>
+                                                      </div>
+                                                    ))}
+
+                                                  {/* Options (always shown, not just when selected) */}
+                                                  {question.options.length >
+                                                    0 && (
+                                                    <div className="p-2 bg-blue-50 rounded-md">
+                                                      <p className="font-medium">
+                                                        Options:
+                                                      </p>
+                                                      <div className="grid grid-cols-1 gap-1 mt-1">
+                                                        {question.options.map(
+                                                          (option, index) => {
+                                                            const optionLetter =
+                                                              String.fromCharCode(
+                                                                65 + index
+                                                              );
+                                                            return (
+                                                              <div
+                                                                key={option.id}
+                                                                className="text-xs"
+                                                              >
+                                                                <span className="font-medium mr-1">
+                                                                  {optionLetter}
+                                                                  .
+                                                                </span>
+                                                                <LatexRenderer
+                                                                  content={
+                                                                    option.optionText ||
+                                                                    ""
+                                                                  }
+                                                                />
+                                                                {option.isCorrect && (
+                                                                  <span className="ml-1 text-green-600">
+                                                                    ✓
+                                                                  </span>
+                                                                )}
+                                                              </div>
+                                                            );
+                                                          }
                                                         )}
-                                                      </span>
-                                                    );
-                                                  }
-                                                )}
-                                              </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+
+                                              {question.type ===
+                                                "FILL_IN_BLANK" && (
+                                                <div className="mt-2 space-y-2 text-xs">
+                                                  <div className="p-2 bg-blue-50 rounded-md">
+                                                    <p className="font-medium">
+                                                      Correct Answer:
+                                                    </p>
+                                                    <p>
+                                                      {
+                                                        question.options.find(
+                                                          (o) => o.isCorrect
+                                                        )?.optionText
+                                                      }
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                              {question.type === "MATCHING" && (
+                                                <div className="mt-2 space-y-2 text-xs">
+                                                  {/* Parse and display the matching question */}
+                                                  {(() => {
+                                                    try {
+                                                      const matchingData =
+                                                        JSON.parse(
+                                                          question.questionText
+                                                        );
+                                                      return (
+                                                        <>
+                                                          {/* Instruction */}
+                                                          <div className="p-2 bg-gray-50 rounded-md">
+                                                            <p className="text-sm font-semibold">
+                                                              Instruction:
+                                                            </p>
+                                                            <p className="text-sm font-semibold">
+                                                            <LatexRenderer
+                                                              content={
+                                                                matchingData.instruction
+                                                              }
+                                                            />
+                                                            </p>
+                                                          </div>
+
+                                                          {/* Matching Table */}
+                                                          <div className="border rounded-md overflow-hidden">
+                                                            <table className="w-full border-collapse">
+                                                              <thead className="bg-gray-100">
+                                                                <tr>
+                                                                  <th className="p-2 text-left border-b w-1/2">
+                                                                    {matchingData
+                                                                      .headers
+                                                                      .left ||
+                                                                      "List I"}
+                                                                    {matchingData
+                                                                      .headers
+                                                                      .leftSub && (
+                                                                      <span className="block text-xs text-muted-foreground">
+                                                                        {
+                                                                          matchingData
+                                                                            .headers
+                                                                            .leftSub
+                                                                        }
+                                                                      </span>
+                                                                    )}
+                                                                  </th>
+                                                                  <th className="p-2 text-left border-b w-1/2">
+                                                                    {matchingData
+                                                                      .headers
+                                                                      .right ||
+                                                                      "List II"}
+                                                                    {matchingData
+                                                                      .headers
+                                                                      .rightSub && (
+                                                                      <span className="block text-xs text-muted-foreground">
+                                                                        {
+                                                                          matchingData
+                                                                            .headers
+                                                                            .rightSub
+                                                                        }
+                                                                      </span>
+                                                                    )}
+                                                                  </th>
+                                                                </tr>
+                                                              </thead>
+                                                              <tbody>
+                                                                {question.matchingPairs?.map(
+                                                                  (pair) => (
+                                                                    <tr
+                                                                      key={
+                                                                        pair.id
+                                                                      }
+                                                                      className="border-b hover:bg-gray-50"
+                                                                    >
+                                                                      <td className="p-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                          {pair.leftImage && (
+                                                                            <div className="relative w-16 h-16">
+                                                                              <Image
+                                                                                src={
+                                                                                  pair.leftImage ||
+                                                                                  "/placeholder.svg"
+                                                                                }
+                                                                                alt="Left column image"
+                                                                                fill
+                                                                                className="object-contain"
+                                                                              />
+                                                                            </div>
+                                                                          )}
+                                                                          <LatexRenderer
+                                                                            content={
+                                                                              pair.leftText
+                                                                            }
+                                                                          />
+                                                                        </div>
+                                                                      </td>
+                                                                      <td className="p-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                          {pair.rightImage && (
+                                                                            <div className="relative w-16 h-16">
+                                                                              <Image
+                                                                                src={
+                                                                                  pair.rightImage ||
+                                                                                  "/placeholder.svg"
+                                                                                }
+                                                                                alt="Right column image"
+                                                                                fill
+                                                                                className="object-contain"
+                                                                              />
+                                                                            </div>
+                                                                          )}
+                                                                          <LatexRenderer
+                                                                            content={
+                                                                              pair.rightText
+                                                                            }
+                                                                          />
+                                                                        </div>
+                                                                      </td>
+                                                                    </tr>
+                                                                  )
+                                                                )}
+                                                              </tbody>
+                                                            </table>
+                                                          </div>
+                                                        </>
+                                                      );
+                                                    } catch (e) {
+                                                      // Fallback display if JSON parsing fails
+                                                      return (
+                                                        <div className="p-2 bg-gray-50 rounded-md">
+                                                          <LatexRenderer
+                                                            content={
+                                                              question.questionText
+                                                            }
+                                                          />
+                                                        </div>
+                                                      );
+                                                    }
+                                                  })()}
+
+                                                  {/* Options (shown when selected) */}
+                                                  {selectedQuestions.includes(
+                                                    question.id
+                                                  ) &&
+                                                    question.options.length >
+                                                      0 && (
+                                                      <div className="p-2 bg-blue-50 rounded-md mt-2">
+                                                        <p className="font-medium">
+                                                          Options:
+                                                        </p>
+                                                        <div className="grid grid-cols-1 gap-1 mt-1">
+                                                          {question.options.map(
+                                                            (option, index) => {
+                                                              const optionLetter =
+                                                                String.fromCharCode(
+                                                                  65 + index
+                                                                );
+                                                              return (
+                                                                <div
+                                                                  key={
+                                                                    option.id
+                                                                  }
+                                                                  className="text-xs"
+                                                                >
+                                                                  <span className="font-medium mr-1">
+                                                                    {
+                                                                      optionLetter
+                                                                    }
+                                                                    .
+                                                                  </span>
+                                                                  <LatexRenderer
+                                                                    content={
+                                                                      option.optionText ||
+                                                                      ""
+                                                                    }
+                                                                  />
+                                                                  {option.isCorrect && (
+                                                                    <span className="ml-1 text-green-600">
+                                                                      ✓
+                                                                    </span>
+                                                                  )}
+                                                                </div>
+                                                              );
+                                                            }
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
