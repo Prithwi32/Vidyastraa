@@ -191,6 +191,12 @@ export default function CreateTestPage() {
     Record<string, boolean>
   >({});
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [partialMarking, setPartialMarking] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [negativeMarks, setNegativeMarks] = useState<Record<string, number>>(
+    {}
+  );
 
   const subjects: string[] = ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"];
   const difficulties: ("BEGINNER" | "MODERATE" | "ADVANCED")[] = [
@@ -352,8 +358,11 @@ export default function CreateTestPage() {
         return {
           questionId: id,
           marks: questionMarks[id] || 4,
-          negativeMark: -1, // Default negative mark
-          partialMarking: false, // Default partial marking setting
+          negativeMark: negativeMarks[id] || 0,
+          partialMarking:
+            question?.type === "MULTI_SELECT"
+              ? partialMarking[id] || false
+              : false,
         };
       }),
     };
@@ -388,6 +397,21 @@ export default function CreateTestPage() {
             ...prevMarks,
             [questionId]: 4,
           }));
+        }
+        if (!negativeMarks[questionId]) {
+          setNegativeMarks((prev) => ({
+            ...prev,
+            [questionId]: 1, // Default negative mark of 1
+          }));
+        }
+        if (!partialMarking[questionId]) {
+          const question = questions.find((q) => q.id === questionId);
+          if (question?.type === "MULTI_SELECT") {
+            setPartialMarking((prev) => ({
+              ...prev,
+              [questionId]: false, // Default partial marking false
+            }));
+          }
         }
         return [...prev, questionId];
       }
@@ -431,6 +455,20 @@ export default function CreateTestPage() {
     setQuestionMarks((prevMarks) => ({
       ...prevMarks,
       [questionId]: marks,
+    }));
+  };
+
+  const handlePartialMarkingChange = (questionId: string, value: boolean) => {
+    setPartialMarking((prev) => ({
+      ...prev,
+      [questionId]: value,
+    }));
+  };
+
+  const handleNegativeMarkChange = (questionId: string, value: number) => {
+    setNegativeMarks((prev) => ({
+      ...prev,
+      [questionId]: value,
     }));
   };
 
@@ -1417,20 +1455,19 @@ export default function CreateTestPage() {
 
                                               {question.type ===
                                                 "MULTI_SELECT" && (
-                                                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
-                                                  {question.options.map(
-                                                    (option, index) => {
-                                                      const optionLetter =
-                                                        String.fromCharCode(
-                                                          65 + index
-                                                        );
-                                                      return (
+                                                <>
+                                                  <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mt-2">
+                                                    {question.options.map(
+                                                      (option, index) => (
                                                         <span
                                                           key={option.id}
                                                           className="text-xs block"
                                                         >
                                                           <span className="font-medium mr-1">
-                                                            {optionLetter}.
+                                                            {String.fromCharCode(
+                                                              65 + index
+                                                            )}
+                                                            .
                                                           </span>
                                                           <LatexRenderer
                                                             content={
@@ -1444,11 +1481,41 @@ export default function CreateTestPage() {
                                                             </span>
                                                           )}
                                                         </span>
-                                                      );
-                                                    }
+                                                      )
+                                                    )}
+                                                  </div>
+                                                  {selectedQuestions.includes(
+                                                    question.id
+                                                  ) && (
+                                                    <div className="flex items-center mt-2">
+                                                      <Checkbox
+                                                        id={`partial-marking-${question.id}`}
+                                                        checked={
+                                                          partialMarking[
+                                                            question.id
+                                                          ] || false
+                                                        }
+                                                        onCheckedChange={(
+                                                          checked
+                                                        ) =>
+                                                          handlePartialMarkingChange(
+                                                            question.id,
+                                                            checked as boolean
+                                                          )
+                                                        }
+                                                        className="mr-2"
+                                                      />
+                                                      <Label
+                                                        htmlFor={`partial-marking-${question.id}`}
+                                                        className="text-xs"
+                                                      >
+                                                        Partial Marking
+                                                      </Label>
+                                                    </div>
                                                   )}
-                                                </div>
+                                                </>
                                               )}
+
 
                                               {question.type ===
                                                 "ASSERTION_REASON" && (
@@ -1720,6 +1787,42 @@ export default function CreateTestPage() {
                                                         </div>
                                                       </div>
                                                     )}
+                                                </div>
+                                              )}
+
+                                              
+                                              {/* Negative marks input (for all selected questions) */}
+                                              {selectedQuestions.includes(
+                                                question.id
+                                              ) && (
+                                                <div className="flex items-center mt-2">
+                                                  <Label
+                                                    htmlFor={`negative-mark-${question.id}`}
+                                                    className="text-xs mr-2"
+                                                  >
+                                                    Negative Mark:
+                                                  </Label>
+                                                  <Input
+                                                    id={`negative-mark-${question.id}`}
+                                                    type="number"
+                                                    min="-4"
+                                                    step="1"
+                                                    max="4"
+                                                    value={
+                                                      negativeMarks[
+                                                        question.id
+                                                      ] || 0
+                                                    }
+                                                    onChange={(e) =>
+                                                      handleNegativeMarkChange(
+                                                        question.id,
+                                                        parseFloat(
+                                                          e.target.value
+                                                        ) || 0
+                                                      )
+                                                    }
+                                                    className="w-16 h-6 text-xs"
+                                                  />
                                                 </div>
                                               )}
                                             </div>
