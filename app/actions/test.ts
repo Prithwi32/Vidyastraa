@@ -22,85 +22,82 @@ import {
 } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 
-export async function createTest(testData: {
+interface QuestionData {
+  questionId: string;
+  marks: number;
+  negativeMark: number;
+  partialMarking: boolean;
+}
+
+interface CreateTestData {
   title: string;
-  category: Category;
+  duration: number;
+  category: TestType;
   subjects: TestSubject[];
   description?: string;
   courseId: string;
-  duration: number;
-  questions: Array<{ questionId: string; marks?: number }>;
-}) {
+  questions: QuestionData[];
+}
+
+export async function createTest(testData: CreateTestData) {
   try {
-    const newTest = await prisma.$transaction(async (prisma) => {
+    const session = await getServerSession(NEXT_AUTH);
+
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const validSubjects = ["PHYSICS", "CHEMISTRY", "MATHS", "BIOLOGY"];
+    const invalidSubjects = testData.subjects.filter(
+      (subject) => !validSubjects.includes(subject)
+    );
+
+    if (invalidSubjects.length > 0) {
+      throw new Error(`Invalid subjects: ${invalidSubjects.join(", ")}`);
+    }
+
+    const result = await prisma.$transaction(async (prisma) => {
       const test = await prisma.test.create({
         data: {
           title: testData.title,
-          category: testData.category,
-          subjects: testData.subjects,
           description: testData.description,
-          courseId: testData.courseId,
           duration: Number(testData.duration),
+          category: testData.category,
+          courseId: testData.courseId,
+          subjects: testData.subjects,
         },
       });
 
-      const testQuestions = await Promise.all(
-        testData.questions.map((q, index) =>
+      await Promise.all(
+        testData.questions.map((question) =>
           prisma.testQuestion.create({
             data: {
               testId: test.id,
-              questionId: q.questionId,
-              marks: q.marks || 4,
-              order: index,
+              questionId: question.questionId,
+              marks: question.marks,
+              negativeMark: question.negativeMark,
+              partialMarking: question.partialMarking,
             },
           })
         )
       );
 
-      return { ...test, questions: testQuestions };
+      return test;
     });
 
-    return { success: true, test: newTest };
+    return {
+      success: true,
+      message: "Test created successfully",
+      testId: result.id,
+    };
   } catch (error) {
     console.error("Error creating test:", error);
-    return { success: false, error: "Failed to create test" };
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to create test",
+    };
   }
 }
-
-//   try {
-//     const tests = await prisma.test.findMany({
-//       include: {
-//         course: {
-//           select: {
-//             id: true,
-//             title: true,
-//             detailedDescription: true,
-//             thumbnail: true,
-//             category: true,
-//           },
-//         },
-//         questions: {
-//           select: {
-//             order: true,
-//             marks: true,
-//             question: true,
-//           },
-//           orderBy: {
-//             order: "asc",
-//           },
-//         },
-//       },
-//       orderBy: {
-//         createdAt: "desc",
-//       },
-//     });
-
-//     return { success: true, tests };
-//   } catch (error) {
-//     console.error("Error fetching tests:", error);
-//     return { success: false, error: "Failed to fetch tests" };
-//   }
-// }
 
 // In your test action file
 export async function getAllTests() {
@@ -126,9 +123,9 @@ export async function getAllTests() {
           include: {
             question: {
               include: {
-                subject: true
-              }
-            }
+                subject: true,
+              },
+            },
           },
         },
         results: {
@@ -196,9 +193,9 @@ export async function getTestById(id: string) {
             question: {
               include: {
                 subject: true,
-                chapter:true
-              }
-            }
+                chapter: true,
+              },
+            },
           },
           orderBy: {
             order: "asc",
@@ -770,8 +767,8 @@ export async function fetchTestResult(
         include: {
           question: {
             include: {
-              subject: true // Make sure to include the subject relation
-            }
+              subject: true, // Make sure to include the subject relation
+            },
           },
         },
       },
@@ -787,8 +784,8 @@ export async function fetchTestResult(
     include: {
       question: {
         include: {
-          subject: true // Include subject relation here too
-        }
+          subject: true, // Include subject relation here too
+        },
       },
     },
   });
@@ -858,7 +855,10 @@ export async function fetchTestResult(
       attempted: stats.attempted,
       correct: stats.correct,
       score: stats.obtainedMarks,
-      percentage: stats.totalMarks > 0 ? (stats.obtainedMarks / stats.totalMarks) * 100 : 0,
+      percentage:
+        stats.totalMarks > 0
+          ? (stats.obtainedMarks / stats.totalMarks) * 100
+          : 0,
     })
   );
 
@@ -878,13 +878,14 @@ export async function fetchTestResult(
     correct: result.correct,
     wrong: result.wrong,
     score: result.score,
-    percentage: totalPossibleMarks > 0 ? (result.score / totalPossibleMarks) * 100 : 0,
+    percentage:
+      totalPossibleMarks > 0 ? (result.score / totalPossibleMarks) * 100 : 0,
     submittedAt: result.submittedAt,
     test: {
       id: result.test.id,
       title: result.test.title,
       category: result.test.category,
-      subjects: Array.from(subjectStats.keys()), 
+      subjects: Array.from(subjectStats.keys()),
     },
     subjectScores,
     responses: result.responses.map((response) => ({
@@ -917,9 +918,9 @@ export async function fetchTestResultWithQuestion(
               include: {
                 question: {
                   include: {
-                    subject: true
-                  }
-                }
+                    subject: true,
+                  },
+                },
               },
               orderBy: {
                 order: "asc",

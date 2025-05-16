@@ -731,7 +731,7 @@ export default function TestsPage() {
                                 : test.category === "NEET"
                                   ? "border-green-200 bg-green-50 text-green-700"
                                   : "border-purple-200 bg-purple-50 text-purple-700"
-                            }`}
+                            } text-center`}
                           >
                             {test.category.split("_").join(" ")}
                           </Badge>

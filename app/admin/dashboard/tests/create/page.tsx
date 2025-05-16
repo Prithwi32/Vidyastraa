@@ -359,16 +359,13 @@ export default function CreateTestPage() {
           questionId: id,
           marks: questionMarks[id] || 4,
           negativeMark: negativeMarks[id] || 0,
-          partialMarking:
-            question?.type === "MULTI_SELECT"
-              ? partialMarking[id] || false
-              : false,
+          partialMarking: partialMarking[id] || false,
         };
       }),
     };
 
     try {
-      const res = await createTest(testData);
+      const res = await createTest(testData as any);
 
       if (res.success) {
         toast.success("Test created successfully!");
@@ -1805,7 +1802,7 @@ export default function CreateTestPage() {
                                                   <Input
                                                     id={`negative-mark-${question.id}`}
                                                     type="number"
-                                                    min="-4"
+                                                    min="0"
                                                     step="1"
                                                     max="4"
                                                     value={
