@@ -42,6 +42,35 @@ import {
 } from "@/components/ui/dialog";
 import { deleteTest, getTestById } from "@/app/actions/test";
 import { QuestionDetailModal } from "@/components/QuestionDetailModal";
+import { BlockMath, InlineMath } from "react-katex";
+
+function LatexRenderer({ content }: { content: string }) {
+  if (!content) return null;
+
+  // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
+  const parts = content.split(/(\$[^$]*\$)/g);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith("$") && part.endsWith("$")) {
+          const latex = part.slice(1, -1);
+          // Check if it's block math (double $$)
+          if (part.startsWith("$$") && part.endsWith("$$")) {
+            return <BlockMath key={index} math={latex} />;
+          }
+          try {
+            return <InlineMath key={index} math={latex} />;
+          } catch (e) {
+            console.error("Error rendering LaTeX:", e);
+            return <span key={index}>{part}</span>;
+          }
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+}
 
 export default function ViewTestPage() {
   const params = useParams();
@@ -336,7 +365,7 @@ export default function ViewTestPage() {
                   <TableBody>
                     {test.questions.map((q: any, index: number) => (
                       <TableRow
-                        key={index}
+                        key={q.question.id}
                         onClick={() => setSelectedQuestion(q.question)}
                         className="cursor-pointer"
                       >
@@ -345,41 +374,66 @@ export default function ViewTestPage() {
                         </TableCell>
                         <TableCell>
                           <div className="max-w-md truncate">
-                            {q.question.question}
+                            {q.question.type === "MATCHING" ? (
+                              <>
+                                {(() => {
+                                  try {
+                                    const matchData = JSON.parse(
+                                      q.question.questionText
+                                    );
+                                    const pairsPreview =
+                                      q.question.matchingPairs
+                                        ?.slice(0, 2)
+                                        .map(
+                                          (pair) =>
+                                            `${pair.leftText} → ${pair.rightText}`
+                                        )
+                                        .join(", ");
+
+                                    return (
+                                      <span className="text-muted-foreground">
+                                        {matchData.instruction || "Match items"}{" "}
+                                        - {pairsPreview}
+                                        {q.question.matchingPairs?.length > 2 &&
+                                          "..."}
+                                      </span>
+                                    );
+                                  } catch {
+                                    // Fallback if JSON parsing fails
+                                    const fallbackPairs =
+                                      q.question.matchingPairs
+                                        ?.slice(0, 2)
+                                        .map(
+                                          (pair) =>
+                                            `${pair.leftText} → ${pair.rightText}`
+                                        )
+                                        .join(", ");
+
+                                    return (
+                                      <span className="text-muted-foreground">
+                                        Match the following - {fallbackPairs}
+                                        {q.question.matchingPairs?.length > 2 &&
+                                          "..."}
+                                      </span>
+                                    );
+                                  }
+                                })()}
+                              </>
+                            ) : (
+                              <LatexRenderer
+                                content={q.question.questionText}
+                              />
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={`${
-                              q.question.subject.name === "PHYSICS"
-                                ? "border-blue-200 bg-blue-50 text-blue-700"
-                                : q.question.subject.name === "CHEMISTRY"
-                                ? "border-green-200 bg-green-50 text-green-700"
-                                : q.question.subject.name === "MATHS"
-                                ? "border-purple-200 bg-purple-50 text-purple-700"
-                                : "border-amber-200 bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            {q.question.subject.name
-                              ? q.question.subject.name.charAt(0) +
-                                q.question.subject.name.slice(1).toLowerCase()
-                              : "Unknown"}
+                          <Badge variant="outline">
+                            {q.question.subject.name}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={`${
-                              q.question.difficulty === "BEGINNER"
-                                ? "border-green-200 bg-green-50 text-green-700"
-                                : q.question.difficulty === "MODERATE"
-                                ? "border-amber-200 bg-amber-50 text-amber-700"
-                                : "border-red-200 bg-red-50 text-red-700"
-                            }`}
-                          >
-                            {q.question.difficulty.charAt(0) +
-                              q.question.difficulty.slice(1).toLowerCase()}
+                          <Badge variant="outline">
+                            {q.question.difficulty}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">{q.marks}</TableCell>

@@ -796,18 +796,6 @@ export default function TestsPage() {
                                 <Download className="mr-2 h-4 w-4" />
                                 <span>Export as PDF</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/admin/dashboard/tests/${test.id}/results`)}
-                              >
-                                <BarChart className="mr-2 h-4 w-4" />
-                                <span>View Results</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/admin/dashboard/tests/${test.id}/students`)}
-                              >
-                                <Users className="mr-2 h-4 w-4" />
-                                <span>Student Performance</span>
-                              </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
