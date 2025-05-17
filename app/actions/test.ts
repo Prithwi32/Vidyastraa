@@ -232,7 +232,14 @@ export async function getTestById(id: string) {
               include: {
                 subject: true,
                 chapter: true,
-                options: true,
+                options: {
+                  select: {
+                    id: true,
+                    optionText: true,
+                    optionImage: true,
+                    isCorrect: true,
+                  },
+                },
                 matchingPairs: true,
               },
             },
@@ -273,6 +280,7 @@ export async function getTestById(id: string) {
             id: opt.id,
             text: opt.optionText,
             image: opt.optionImage,
+            isCorrect: opt.isCorrect,
           })),
         },
       })),

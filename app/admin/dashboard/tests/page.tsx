@@ -709,7 +709,6 @@ export default function TestsPage() {
                   <TableHead>Subjects</TableHead>
                   <TableHead className="text-center">Questions</TableHead>
                   <TableHead className="text-center">Question Types</TableHead>
-                  <TableHead className="text-center">Attempts</TableHead>
                   <TableHead>Created On</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -772,7 +771,6 @@ export default function TestsPage() {
                               ))}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">{test.attempts || 0}</TableCell>
                         <TableCell>{formatDate(test.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
