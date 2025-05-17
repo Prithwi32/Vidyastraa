@@ -183,44 +183,6 @@ export type TestWithQuestions = Test & {
   };
 };
 
-// export async function getTestById(id: string) {
-//   try {
-//     const test = await prisma.test.findUnique({
-//       where: { id },
-//       include: {
-//         questions: {
-//           include: {
-//             question: {
-//               include: {
-//                 subject: true,
-//                 chapter: true,
-//               },
-//             },
-//           },
-//           orderBy: {
-//             order: "asc",
-//           },
-//         },
-//         course: {
-//           select: {
-//             id: true,
-//             title: true,
-//           },
-//         },
-//       },
-//     });
-
-//     if (!test) {
-//       return null;
-//     }
-
-//     return test;
-//   } catch (error) {
-//     console.error("Error fetching test:", error);
-//     throw new Error("Failed to fetch test details");
-//   }
-// }
-
 export async function getTestById(id: string) {
   try {
     const test = await prisma.test.findUnique({
@@ -301,6 +263,8 @@ interface UpdateTestData {
   courseId: string;
   duration: number;
   questions: Array<{
+    partialMarking?: boolean;
+    negativeMark?: number;
     questionId: string;
     marks: number;
   }>;
@@ -332,6 +296,8 @@ export async function updateTest(testId: string, data: UpdateTestData) {
               testId,
               questionId: question.questionId,
               marks: question.marks,
+              negativeMark: question.negativeMark || 0,
+              partialMarking: question.partialMarking || false,
               order: index + 1,
             },
           });
@@ -450,23 +416,29 @@ export async function fetchUpcomingTests(
 
 export async function fetchTest(testId: string): Promise<TestWithQuestion> {
   try {
-    const test = await prisma.test.findUnique({
-      where: { id: testId },
-      include: {
-        questions: {
+  const test = await prisma.test.findUnique({
+  where: { id: testId },
+  include: {
+    questions: {
+      select: {
+        marks: true,
+        negativeMark: true,
+        partialMarking: true,
+        order: true,
+        question: {
           include: {
-            question: {
-              include: {
-                subject: true,
-              },
-            },
-          },
-          orderBy: {
-            order: "asc",
+            subject: true,
+            options: true, // In case options are also needed
           },
         },
       },
-    });
+      orderBy: {
+        order: "asc",
+      },
+    },
+  },
+});
+
 
     if (!test) {
       throw new Error("Test not found");
@@ -511,6 +483,8 @@ export async function fetchTest(testId: string): Promise<TestWithQuestion> {
         difficulty: tq.question.difficulty as Difficulty,
         solution: tq.question.solution,
         marks: tq.marks,
+        negativeMark: tq.negativeMark || 0,
+        partialMarking: tq.partialMarking || false,
         order: tq.order || undefined,
       })),
     };
