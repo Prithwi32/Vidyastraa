@@ -488,7 +488,6 @@ export default function TestsPage() {
             description: test.description ?? "",
             questions: test.questions,
             createdAt: test.createdAt,
-            attempts: test.attempts || 0,
           })
         }
 

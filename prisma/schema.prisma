@@ -85,7 +85,7 @@ model TestQuestion {
   testId         String
   questionId     String
   marks          Int      @default(4)
-  negativeMark   Float    @default(-1)
+  negativeMark   Float    @default(0)
   partialMarking Boolean  @default(false)
   question       Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   test           Test     @relation(fields: [testId], references: [id], onDelete: Cascade)

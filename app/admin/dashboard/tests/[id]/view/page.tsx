@@ -80,6 +80,8 @@ export default function ViewTestPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
+  const [negativeMarking, setNegativeMarking] = useState(undefined);
+  const [partialMarking, setPartialMarking] = useState(undefined);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -366,7 +368,10 @@ export default function ViewTestPage() {
                     {test.questions.map((q: any, index: number) => (
                       <TableRow
                         key={q.question.id}
-                        onClick={() => setSelectedQuestion(q.question)}
+                        onClick={() => {setSelectedQuestion(q.question);
+                        setNegativeMarking(q.negativeMark);
+                        setPartialMarking(q.partialMarking);
+                        }}
                         className="cursor-pointer"
                       >
                         <TableCell className="font-medium">
@@ -447,6 +452,8 @@ export default function ViewTestPage() {
               question={selectedQuestion}
               open={!!selectedQuestion}
               onOpenChange={(open) => !open && setSelectedQuestion(null)}
+              negativeMarking={negativeMarking}
+              partialMarking={partialMarking}
             />
           </Card>
         </div>
