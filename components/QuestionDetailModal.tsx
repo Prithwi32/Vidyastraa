@@ -41,9 +41,9 @@ interface QuestionDetailModalProps {
     }>;
     correctAnswer: string | string[];
     marks?: number;
-    negativeMark?: number;
-    partialMarking?: boolean;
   } | null;
+  negativeMarking?: number;
+  partialMarking?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -52,6 +52,8 @@ export function QuestionDetailModal({
   question,
   open,
   onOpenChange,
+  negativeMarking,
+  partialMarking,
 }: QuestionDetailModalProps) {
   const { theme } = useTheme();
   const [showSolution, setShowSolution] = useState(false);
@@ -60,7 +62,6 @@ export function QuestionDetailModal({
     return null;
   }
 
-  console.log(question);
 
   const difficultyColors = {
     BEGINNER: {
@@ -132,13 +133,6 @@ export function QuestionDetailModal({
   const renderWithLatex = (text?: string | null) => {
     if (!text) return null;
     return <Latex>{text}</Latex>;
-  };
-
-  const isCorrectAnswer = (optionId: string) => {
-    if (Array.isArray(question.correctAnswer)) {
-      return question.correctAnswer.includes(optionId);
-    }
-    return question.correctAnswer === optionId;
   };
 
   const renderMCQOptions = () => (
@@ -374,12 +368,12 @@ export function QuestionDetailModal({
                   {question.marks} {question.marks === 1 ? "mark" : "marks"}
                 </Badge>
               )}
-              {question?.negativeMark && (
+              {negativeMarking!==undefined && negativeMarking>0 && (
                 <Badge variant="outline" className="font-mono text-red-600 dark:text-red-400">
-                  -{question.negativeMark} penalty
+                  -{negativeMarking} penalty
                 </Badge>
               )}
-              {question?.partialMarking && (
+              {partialMarking && (
                 <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
                   Partial Marking
                 </Badge>

@@ -255,25 +255,25 @@ export async function getTestById(id: string) {
   }
 }
 
-interface UpdateTestData {
+export interface UpdateTestData {
   title: string;
   description?: string;
-  category: TestType;
-  subjects: TestSubject[];
+  category: "JEE" | "NEET" | "CRASH_COURSES" | "INDIVIDUAL" | "OTHER";
+  subjects: ("PHYSICS" | "CHEMISTRY" | "MATHS" | "BIOLOGY")[];
   courseId: string;
-  duration: number;
+  duration: number | string;
   questions: Array<{
-    partialMarking?: boolean;
-    negativeMark?: number;
     questionId: string;
     marks: number;
+    negativeMark?: number;
+    partialMarking?: boolean;
   }>;
 }
 
 export async function updateTest(testId: string, data: UpdateTestData) {
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedTest = await prisma.test.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedTest = await tx.test.update({
         where: { id: testId },
         data: {
           title: data.title,
@@ -285,29 +285,28 @@ export async function updateTest(testId: string, data: UpdateTestData) {
         },
       });
 
-      await prisma.testQuestion.deleteMany({
+      await tx.testQuestion.deleteMany({
         where: { testId },
       });
 
-      const testQuestions = await Promise.all(
-        data.questions.map(async (question, index) => {
-          return prisma.testQuestion.create({
-            data: {
-              testId,
-              questionId: question.questionId,
-              marks: question.marks,
-              negativeMark: question.negativeMark || 0,
-              partialMarking: question.partialMarking || false,
-              order: index + 1,
-            },
-          });
-        })
-      );
+      await tx.testQuestion.createMany({
+        data: data.questions.map((q) => ({
+          testId,
+          questionId: q.questionId,
+          marks: q.marks,
+          negativeMark: q.negativeMark ?? 0,
+          partialMarking: q.partialMarking ?? false,
+        })),
+      });
 
-      return {
-        ...updatedTest,
-        questions: testQuestions,
-      };
+      const testWithQuestions = await tx.test.findUnique({
+        where: { id: testId },
+        include: {
+          questions: true,
+        },
+      });
+
+      return testWithQuestions;
     });
 
     return { success: true, test: result };

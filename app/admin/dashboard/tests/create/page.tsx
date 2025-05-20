@@ -384,6 +384,17 @@ export default function CreateTestPage() {
   };
 
   const handleSelectQuestion = (questionId: string) => {
+    const question = questions.find((q) => q.id === questionId);
+    if (!question) return;
+
+    // Prevent selection if requirement is not set or zero
+    if (!canSelectSubject(question.subject.name)) {
+      toast.error(
+        `Set a requirement for ${question.subject.name} before selecting questions.`
+      );
+      return;
+    }
+
     setSelectedQuestions((prev) => {
       if (prev.includes(questionId)) {
         return prev.filter((id) => id !== questionId);
@@ -402,8 +413,7 @@ export default function CreateTestPage() {
           }));
         }
         if (!partialMarking[questionId]) {
-          const question = questions.find((q) => q.id === questionId);
-          if (question?.type === "MULTI_SELECT") {
+          if (question.type === "MULTI_SELECT") {
             setPartialMarking((prev) => ({
               ...prev,
               [questionId]: false, // Default partial marking false
@@ -419,6 +429,15 @@ export default function CreateTestPage() {
     chapterId: string,
     questions: Question[]
   ) => {
+    if (questions.length === 0) return;
+    const subject = questions[0].subject.name;
+    if (!canSelectSubject(subject)) {
+      toast.error(
+        `Set a requirement for ${subject} before selecting questions.`
+      );
+      return;
+    }
+
     const chapterQuestionIds = questions.map((q) => q.id);
     const allSelected = chapterQuestionIds.every((id) =>
       selectedQuestions.includes(id)
@@ -497,10 +516,52 @@ export default function CreateTestPage() {
 
   const handleSubjectRequirementChange = (subject: string, value: string) => {
     const numValue = Number.parseInt(value) || 0;
+
     setSubjectRequirements((prev) => ({
       ...prev,
       [subject]: numValue,
     }));
+
+    // If requirement is set to 0, deselect all questions of this subject
+    if (numValue === 0) {
+      setSelectedQuestions((prev) =>
+        prev.filter((id) => {
+          const question = questions.find((q) => q.id === id);
+          return question?.subject.name !== subject;
+        })
+      );
+      setQuestionMarks((prev) => {
+        const updated = { ...prev };
+        questions.forEach((q) => {
+          if (q.subject.name === subject) {
+            delete updated[q.id];
+          }
+        });
+        return updated;
+      });
+      setNegativeMarks((prev) => {
+        const updated = { ...prev };
+        questions.forEach((q) => {
+          if (q.subject.name === subject) {
+            delete updated[q.id];
+          }
+        });
+        return updated;
+      });
+      setPartialMarking((prev) => {
+        const updated = { ...prev };
+        questions.forEach((q) => {
+          if (q.subject.name === subject) {
+            delete updated[q.id];
+          }
+        });
+        return updated;
+      });
+    }
+  };
+
+  const canSelectSubject = (subject: string) => {
+    return !!subjectRequirements[subject] && subjectRequirements[subject] > 0;
   };
 
   const areRequirementsMet = () => {
@@ -1202,11 +1263,17 @@ export default function CreateTestPage() {
                                           );
                                         }}
                                         className="h-8 text-xs"
+                                        disabled={!canSelectSubject(subject)}
                                       >
                                         {allSelected
                                           ? "Deselect All"
                                           : "Select All"}
                                       </Button>
+                                      {!canSelectSubject(subject) && (
+                                        <span className="text-xs text-amber-600 ml-2">
+                                          Set requirement first
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
 
@@ -1234,6 +1301,11 @@ export default function CreateTestPage() {
                                                 )
                                               }
                                               className="mt-1"
+                                              disabled={
+                                                !canSelectSubject(
+                                                  question.subject.name
+                                                )
+                                              }
                                             />
                                             <div className="flex-1 space-y-1">
                                               <div className="flex items-center gap-2">
@@ -1513,7 +1585,6 @@ export default function CreateTestPage() {
                                                 </>
                                               )}
 
-
                                               {question.type ===
                                                 "ASSERTION_REASON" && (
                                                 <div className="mt-2 space-y-2 text-xs">
@@ -1787,7 +1858,6 @@ export default function CreateTestPage() {
                                                 </div>
                                               )}
 
-                                              
                                               {/* Negative marks input (for all selected questions) */}
                                               {selectedQuestions.includes(
                                                 question.id
