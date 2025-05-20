@@ -52,7 +52,7 @@ model EnrolledCourse {
   progress  Float    @default(0.0)
   createdAt DateTime @default(now())
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userzzzId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, courseId])
 }
