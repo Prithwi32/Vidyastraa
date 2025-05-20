@@ -71,7 +71,7 @@ export function QuestionDetailModal({
       light: "bg-amber-50 text-amber-700 border-amber-200",
       dark: "bg-amber-900/30 text-amber-300 border-amber-700",
     },
-    HARD: {
+    ADVANCED:{
       light: "bg-red-50 text-red-700 border-red-200",
       dark: "bg-red-900/30 text-red-300 border-red-700",
     },

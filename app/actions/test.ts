@@ -346,10 +346,79 @@ export async function deleteTest(testId: string) {
   }
 }
 
+// export async function fetchUpcomingTests(
+//   userId: string
+// ): Promise<TestItem[] | null> {
+//   try {
+//     const enrolledCourses = await prisma.enrolledCourse.findMany({
+//       where: { userId },
+//       select: { courseId: true },
+//     });
+
+//     const enrolledCourseIds = enrolledCourses.map((ec) => ec.courseId);
+//     if (enrolledCourseIds.length === 0) return [];
+
+//     const takenTests = await prisma.testResult.findMany({
+//       where: { userId },
+//       select: { testId: true },
+//     });
+//     const takenTestIds = takenTests.map((tt) => tt.testId);
+
+//     const upcomingTests = await prisma.test.findMany({
+//       where: {
+//         courseId: { in: enrolledCourseIds },
+//         id: { notIn: takenTestIds },
+//       },
+//       include: {
+//         questions: {
+//           select: {
+//             marks: true,
+//             question: {
+//               select: {
+//                 subject: true,
+//               },
+//             },
+//           },
+//           orderBy: {
+//             order: "asc",
+//           },
+//         },
+//       },
+//       orderBy: {
+//         createdAt: "asc",
+//       },
+//     });
+
+//     return upcomingTests.map((test) => {
+//       const totalQuestions = test.questions.length;
+
+//       const subjects = Array.from(
+//         new Set(test.questions.map((tq) => tq.question.subject))
+//       );
+
+//       return {
+//         id: test.id,
+//         title: test.title,
+//         category: test.category as TestType,
+//         subjects: subjects as Subject[],
+//         courseId: test.courseId,
+//         createdAt: test.createdAt,
+//         totalQuestions,
+//         duration: test.duration,
+//         description: test.description || undefined,
+//       };
+//     });
+//   } catch (error) {
+//     console.error("Error fetching upcoming tests:", error);
+//     return null;
+//   }
+// }
+
 export async function fetchUpcomingTests(
   userId: string
 ): Promise<TestItem[] | null> {
   try {
+    // 1. Get enrolled course IDs for the user
     const enrolledCourses = await prisma.enrolledCourse.findMany({
       where: { userId },
       select: { courseId: true },
@@ -358,49 +427,38 @@ export async function fetchUpcomingTests(
     const enrolledCourseIds = enrolledCourses.map((ec) => ec.courseId);
     if (enrolledCourseIds.length === 0) return [];
 
+    // 2. Get test IDs already taken by the user
     const takenTests = await prisma.testResult.findMany({
       where: { userId },
       select: { testId: true },
     });
     const takenTestIds = takenTests.map((tt) => tt.testId);
 
+    // 3. Fetch tests not yet taken by the user
     const upcomingTests = await prisma.test.findMany({
       where: {
         courseId: { in: enrolledCourseIds },
         id: { notIn: takenTestIds },
       },
       include: {
-        questions: {
-          select: {
-            marks: true,
-            question: {
-              select: {
-                subject: true,
-              },
-            },
-          },
-          orderBy: {
-            order: "asc",
-          },
-        },
+        questions: true,
       },
       orderBy: {
         createdAt: "asc",
       },
     });
 
+    // 4. Format for UI
     return upcomingTests.map((test) => {
       const totalQuestions = test.questions.length;
 
-      const subjects = Array.from(
-        new Set(test.questions.map((tq) => tq.question.subject))
-      );
+      const subjects = test.subjects.map((ts) => ts.subject);
 
       return {
         id: test.id,
         title: test.title,
-        category: test.category as TestType,
-        subjects: subjects as Subject[],
+        category: test.category,
+        subjects: subjects,
         courseId: test.courseId,
         createdAt: test.createdAt,
         totalQuestions,
@@ -414,85 +472,177 @@ export async function fetchUpcomingTests(
   }
 }
 
+// export async function fetchTest(testId: string): Promise<TestWithQuestion> {
+//   try {
+//   const test = await prisma.test.findUnique({
+//   where: { id: testId },
+//   include: {
+//     questions: {
+//       select: {
+//         marks: true,
+//         negativeMark: true,
+//         partialMarking: true,
+//         question: {
+//           include: {
+//             subject: true,
+//             options: true, // In case options are also needed
+//           },
+//         },
+//       },
+//       orderBy: {
+//         order: "asc",
+//       },
+//     },
+//   },
+// });
+
+
+//     if (!test) {
+//       throw new Error("Test not found");
+//     }
+
+//     const subjectGroups: Record<Subject, typeof test.questions> = {} as any;
+//     test.questions.forEach((tq) => {
+//       const subject = tq.question.subject as Subject;
+//       if (!subjectGroups[subject]) {
+//         subjectGroups[subject] = [];
+//       }
+//       subjectGroups[subject].push(tq);
+//     });
+
+//     let currentOrder = 1;
+//     const questionsWithNewOrder = Object.entries(subjectGroups).flatMap(
+//       ([_, subjectQuestions]) => {
+//         const reorderedQuestions = subjectQuestions.map((tq) => ({
+//           ...tq,
+//           order: currentOrder++,
+//         }));
+//         return reorderedQuestions;
+//       }
+//     );
+
+//     questionsWithNewOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+//     const testWithQuestions: TestWithQuestion = {
+//       id: test.id,
+//       title: test.title,
+//       category: test.category as TestType,
+//       subjects: test.subjects as Subject[],
+//       description: test.description || undefined,
+//       duration: test.duration,
+//       questions: questionsWithNewOrder.map((tq) => ({
+//         id: tq.question.id,
+//         question: tq.question.question,
+//         image: tq.question.image || undefined,
+//         options: tq.question.options,
+//         correctAnswer: tq.question.correctAnswer,
+//         subject: tq.question.subject as Subject,
+//         difficulty: tq.question.difficulty as Difficulty,
+//         solution: tq.question.solution,
+//         marks: tq.marks,
+//         negativeMark: tq.negativeMark || 0,
+//         partialMarking: tq.partialMarking || false,
+//         order: tq.order || undefined,
+//       })),
+//     };
+
+//     return testWithQuestions;
+//   } catch (error) {
+//     console.error("Error fetching test:", error);
+//     throw new Error("Failed to fetch test");
+//   }
+// }
+
 export async function fetchTest(testId: string): Promise<TestWithQuestion> {
   try {
-  const test = await prisma.test.findUnique({
-  where: { id: testId },
-  include: {
-    questions: {
-      select: {
-        marks: true,
-        negativeMark: true,
-        partialMarking: true,
-        order: true,
-        question: {
-          include: {
-            subject: true,
-            options: true, // In case options are also needed
-          },
-        },
-      },
-      orderBy: {
-        order: "asc",
-      },
-    },
-  },
-});
-
-
-    if (!test) {
-      throw new Error("Test not found");
+    // Validate testId
+    if (!testId || typeof testId !== 'string') {
+      throw new Error('Invalid test ID');
     }
 
-    const subjectGroups: Record<Subject, typeof test.questions> = {} as any;
-    test.questions.forEach((tq) => {
-      const subject = tq.question.subject as Subject;
+    const test = await prisma.test.findUnique({
+      where: { id: testId },
+      include: {
+        questions: {
+          include: {
+            question: {
+              include: {
+                subject: true,
+                options: true,
+                matchingPairs: true,
+              },
+            },
+          },
+         
+        },
+      },
+    });
+
+    if (!test) {
+      throw new Error('Test not found');
+    }
+
+    // Validate test structure
+    if (!test.questions || !Array.isArray(test.questions)) {
+      throw new Error('Invalid test structure - missing questions');
+    }
+
+    // Process questions and maintain their original order
+    // Since we can't sort by 'order' directly, we'll need to handle ordering differently
+    const questionsWithOrder = test.questions.map((tq, index) => {
+      // Validate question structure
+      if (!tq.question || !tq.question.subject) {
+        throw new Error(`Invalid question structure for question ${tq.questionId}`);
+      }
+
+      return {
+        ...tq.question,
+        marks: tq.marks,
+        negativeMark: tq.negativeMark || 0,
+        partialMarking: tq.partialMarking || false,
+        order: index + 1, // Use array index + 1 as order
+      };
+    });
+
+    // Group by subject
+    const subjectGroups: Record<string, typeof questionsWithOrder> = {};
+    questionsWithOrder.forEach((q) => {
+      const subject = q.subject.name;
       if (!subjectGroups[subject]) {
         subjectGroups[subject] = [];
       }
-      subjectGroups[subject].push(tq);
+      subjectGroups[subject].push(q);
     });
 
-    let currentOrder = 1;
-    const questionsWithNewOrder = Object.entries(subjectGroups).flatMap(
-      ([_, subjectQuestions]) => {
-        const reorderedQuestions = subjectQuestions.map((tq) => ({
-          ...tq,
-          order: currentOrder++,
-        }));
-        return reorderedQuestions;
-      }
-    );
-
-    questionsWithNewOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
-
+    // Build the test with questions
     const testWithQuestions: TestWithQuestion = {
       id: test.id,
       title: test.title,
       category: test.category as TestType,
       subjects: test.subjects as Subject[],
-      description: test.description || undefined,
+      description: test.description || '',
       duration: test.duration,
-      questions: questionsWithNewOrder.map((tq) => ({
-        id: tq.question.id,
-        question: tq.question.question,
-        image: tq.question.image || undefined,
-        options: tq.question.options,
-        correctAnswer: tq.question.correctAnswer,
-        subject: tq.question.subject as Subject,
-        difficulty: tq.question.difficulty as Difficulty,
-        solution: tq.question.solution,
-        marks: tq.marks,
-        negativeMark: tq.negativeMark || 0,
-        partialMarking: tq.partialMarking || false,
-        order: tq.order || undefined,
+      questions: questionsWithOrder.map((q) => ({
+        id: q.id,
+        question: q.questionText,
+        image: q.questionImage || undefined,
+        options: q.options.map(opt => opt.optionText || ''),
+        correctAnswer: q.options.find(opt => opt.isCorrect)?.optionText || '', // Get correct answer
+        subject: q.subject.name,
+        difficulty: q.difficulty as Difficulty,
+        solution: q.solutionText || '',
+        marks: q.marks,
+        negativeMark: q.negativeMark,
+        partialMarking: q.partialMarking,
+        order: q.order,
+        type: q.type,
       })),
     };
 
     return testWithQuestions;
   } catch (error) {
-    console.error("Error fetching test:", error);
-    throw new Error("Failed to fetch test");
+    console.error('Error fetching test:', error);
+    throw new Error(`Failed to fetch test: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

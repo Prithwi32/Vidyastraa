@@ -148,7 +148,7 @@ export function Navbar() {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger
                     className={cn(
-                      isActive("/tests/all") && "text-primary font-medium"
+                      isActive("/tests") && "text-primary font-medium"
                     )}
                   >
                     Tests
@@ -156,38 +156,30 @@ export function Navbar() {
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
                       <ListItem
-                        href="/tests/all"
+                        href="/tests"
                         title="JEE Tests"
-                        onClick={(e) =>
-                          handleProtectedNavigation(e, "/tests/all")
-                        }
+                        onClick={(e) => handleProtectedNavigation(e, "/tests")}
                       >
                         Practice tests for JEE Main & Advanced
                       </ListItem>
                       <ListItem
-                        href="/tests/all"
+                        href="/tests"
                         title="NEET Tests"
-                        onClick={(e) =>
-                          handleProtectedNavigation(e, "/tests/all")
-                        }
+                        onClick={(e) => handleProtectedNavigation(e, "/tests")}
                       >
                         Practice tests for NEET preparation
                       </ListItem>
                       <ListItem
-                        href="/tests/all"
+                        href="/tests"
                         title="Chapter-wise Tests"
-                        onClick={(e) =>
-                          handleProtectedNavigation(e, "/tests/all")
-                        }
+                        onClick={(e) => handleProtectedNavigation(e, "/tests")}
                       >
                         Topic and chapter-wise practice tests
                       </ListItem>
                       <ListItem
-                        href="/tests/all"
+                        href="/tests"
                         title="Previous Year Papers"
-                        onClick={(e) =>
-                          handleProtectedNavigation(e, "/tests/all")
-                        }
+                        onClick={(e) => handleProtectedNavigation(e, "/tests")}
                       >
                         Solve previous year question papers
                       </ListItem>
@@ -323,10 +315,10 @@ export function Navbar() {
               Study Materials
             </Link>
             <Link
-              href="/tests/all"
+              href="/tests"
               className={cn(
                 "px-4 py-2 text-lg hover:bg-muted rounded-md",
-                isActive("/tests/all") && "text-primary font-medium"
+                isActive("/tests") && "text-primary font-medium"
               )}
               onClick={(e) => {
                 if (session.status === "unauthenticated") {

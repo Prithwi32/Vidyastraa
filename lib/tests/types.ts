@@ -2,15 +2,15 @@ import type { Subject, TestType, Difficulty, TestSubject } from "@prisma/client"
 
 // Types based on Prisma schema
 export interface TestItem {
-  id: string
-  title: string
-  category: TestType
-  subjects: Subject[]
-  description?: string
-  courseId: string
-  createdAt: Date
-  totalQuestions: number
-  duration: number
+  id: string;
+  title: string;
+  category: TestType;
+  subjects: Subject[];
+  courseId: string;
+  createdAt: Date;
+  totalQuestions: number;
+  duration: number;
+  description?: string;
 }
 
 export interface TestResultItem {
@@ -113,6 +113,7 @@ export interface TestResultWithDetails {
 export type QuestionStatus = "unattempted" | "attempted" | "review" | "current"
 
 export interface QuestionWithStatus extends QuestionItem {
+  questionText: any;
   status: QuestionStatus
   selectedOption?: string
 }

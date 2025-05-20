@@ -65,28 +65,31 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import "katex/dist/katex.min.css";
+import { InlineMath, BlockMath } from "react-katex";
+import { CommandLoading } from "cmdk";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
 function LatexRenderer({ content }: { content: string }) {
   if (!content) return null;
-  
+
   // Split content by LaTeX blocks (either inline $...$ or block $$...$$)
   const parts = content.split(/(\$[^$]*\$)/g);
-  
+
   return (
     <>
       {parts.map((part, index) => {
-        if (part.startsWith('$') && part.endsWith('$')) {
+        if (part.startsWith("$") && part.endsWith("$")) {
           const latex = part.slice(1, -1);
           // Check if it's block math (double $$)
-          if (part.startsWith('$$') && part.endsWith('$$')) {
+          if (part.startsWith("$$") && part.endsWith("$$")) {
             return <BlockMath key={index} math={latex} />;
           }
           try {
             return <InlineMath key={index} math={latex} />;
           } catch (e) {
-            console.error('Error rendering LaTeX:', e);
+            console.error("Error rendering LaTeX:", e);
             return <span key={index}>{part}</span>;
           }
         }
@@ -95,7 +98,6 @@ function LatexRenderer({ content }: { content: string }) {
     </>
   );
 }
-
 
 // Question Navigation Panel component
 function QuestionNavigationPanel({
@@ -437,7 +439,7 @@ export default function TestInterface() {
         // Initialize questions with status
         const questionsWithStatus = testData.questions.map((q, index) => ({
           ...q,
-          subject: q.subject.name,
+          subject: q.subject,
           status: index === 0 ? "current" : "unattempted",
           selectedOption:
             mode === "review"
@@ -448,6 +450,7 @@ export default function TestInterface() {
         }));
 
         setQuestions(questionsWithStatus as any);
+        console.log(questionsWithStatus);
       } catch (error) {
         console.error("Error loading test:", error);
       } finally {
@@ -516,13 +519,514 @@ export default function TestInterface() {
     if (mode === "review" || !currentQuestion) return; // Disable selection in review mode
 
     const updatedQuestions = [...questions];
+
+    if (currentQuestion.type === "MULTI_SELECT") {
+      // For multi-select questions, toggle the selected option
+      const selectedOptions = Array.isArray(currentQuestion.selectedOption)
+        ? [...currentQuestion.selectedOption]
+        : [];
+
+      const optionIndex = selectedOptions.indexOf(optionId);
+      if (optionIndex === -1) {
+        selectedOptions.push(optionId);
+      } else {
+        selectedOptions.splice(optionIndex, 1);
+      }
+      updatedQuestions[currentQuestionIndex] = {
+        ...currentQuestion,
+        selectedOption: selectedOptions,
+        status: currentQuestion.status === "review" ? "review" : "attempted",
+      };
+    } else if (currentQuestion.type === "FILL_IN_BLANK") {
+      // For fill in the blank, we'll handle this separately with handleFillInBlankChange
+      return;
+    } else {
+      // For other question types (MCQ, ASSERTION_REASON)
+      updatedQuestions[currentQuestionIndex] = {
+        ...currentQuestion,
+        selectedOption: optionId,
+        status: currentQuestion.status === "review" ? "review" : "attempted",
+      };
+    }
+    setQuestions(updatedQuestions);
+  };
+
+  const handleFillInBlankChange = (value: string, blankIndex: number) => {
+    if (mode === "review" || !currentQuestion) return;
+
+    const updatedQuestions = [...questions];
+    const currentAnswers = Array.isArray(currentQuestion.selectedOption)
+      ? [...currentQuestion.selectedOption]
+      : [];
+
+    while (currentAnswers.length <= blankIndex) {
+      currentAnswers.push("");
+    }
+
+    currentAnswers[blankIndex] = value;
+
     updatedQuestions[currentQuestionIndex] = {
       ...currentQuestion,
-      selectedOption: optionId,
-      // Keep the review status if it's already marked for review
-      status: currentQuestion.status === "review" ? "review" : "attempted",
+      selectedOption: currentAnswers,
+      status: "attempted",
     };
+
     setQuestions(updatedQuestions);
+  };
+
+  // const handleFillInBlankChange = (value: string, blankIndex: number) => {
+  //   if (mode === "review" || !currentQuestion) return;
+
+  //   const updatedQuestions = [...questions];
+  //   const currentAnswers = Array.isArray(currentQuestion.selectedOption)
+  //     ? [...currentQuestion.selectedOption]
+  //     : [];
+
+  //   // Ensure we have enough elements
+  //   while (currentAnswers.length <= blankIndex) {
+  //     currentAnswers.push("");
+  //   }
+
+  //   currentAnswers[blankIndex] = value;
+
+  //   updatedQuestions[currentQuestionIndex] = {
+  //     ...updatedQuestions[currentQuestionIndex],
+  //     selectedOption: currentAnswers,
+  //     status:
+  //       updatedQuestions[currentQuestionIndex].status === "review"
+  //         ? "review"
+  //         : "attempted",
+  //   };
+
+  //   setQuestions(updatedQuestions);
+  // };
+
+  // Render question options based on question type
+  const renderQuestionOptions = () => {
+    if (!currentQuestion) return null;
+
+    switch (currentQuestion.type) {
+      case "MCQ":
+        return (
+          <RadioGroup
+            value={currentQuestion.selectedOption ?? ""}
+            onValueChange={handleOptionSelect}
+            className="space-y-3"
+          >
+            {currentQuestion.options.map((option, index) => {
+              const optionId = String.fromCharCode(65 + index);
+              const isCorrect =
+                mode === "review" &&
+                currentQuestion.options[
+                  currentQuestion.correctAnswer.charCodeAt(0) - 65
+                ] === option;
+              const isIncorrect =
+                mode === "review" &&
+                currentQuestion.selectedOption === option &&
+                currentQuestion.options[
+                  currentQuestion.correctAnswer.charCodeAt(0) - 65
+                ] !== option;
+
+              return (
+                <div
+                  key={optionId}
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4 transition-all",
+                    isCorrect
+                      ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/40 text-green-900 dark:text-green-100"
+                      : isIncorrect
+                      ? "border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/40 text-red-900 dark:text-red-100"
+                      : currentQuestion.selectedOption === option
+                      ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                      : "border-border hover:border-border/80 hover:bg-accent"
+                  )}
+                >
+                  <RadioGroupItem
+                    value={option}
+                    id={`option-${optionId}`}
+                    className={cn(
+                      isCorrect
+                        ? "text-green-600 dark:text-green-400"
+                        : isIncorrect
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-blue-600 dark:text-blue-400"
+                    )}
+                    disabled={mode === "review"}
+                  />
+                  <Label
+                    htmlFor={`option-${optionId}`}
+                    className="flex-1 cursor-pointer text-base font-medium"
+                  >
+                    <span className="font-semibold mr-3">{optionId}.</span>
+                    <LatexRenderer content={option} />
+                  </Label>
+
+                  {isCorrect && (
+                    <Badge className="ml-2 bg-green-500 dark:bg-green-600">
+                      Correct
+                    </Badge>
+                  )}
+
+                  {isIncorrect && (
+                    <Badge className="ml-2 bg-red-500 dark:bg-red-600">
+                      Incorrect
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+          </RadioGroup>
+        );
+
+      case "MULTI_SELECT":
+        return (
+          <div className="space-y-3">
+            {currentQuestion.options.map((option, index) => {
+              const optionId = String.fromCharCode(65 + index);
+              const isSelected = Array.isArray(currentQuestion.selectedOption)
+                ? currentQuestion.selectedOption.includes(option)
+                : false;
+              const isCorrect =
+                mode === "review" &&
+                Array.isArray(currentQuestion.correctAnswer) &&
+                currentQuestion.correctAnswer.includes(optionId);
+              const isIncorrect =
+                mode === "review" &&
+                isSelected &&
+                Array.isArray(currentQuestion.correctAnswer) &&
+                !currentQuestion.correctAnswer.includes(optionId);
+
+              return (
+                <div
+                  key={optionId}
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4 transition-all",
+                    isCorrect
+                      ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/40 text-green-900 dark:text-green-100"
+                      : isIncorrect
+                      ? "border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/40 text-red-900 dark:text-red-100"
+                      : isSelected
+                      ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                      : "border-border hover:border-border/80 hover:bg-accent"
+                  )}
+                >
+                  <Checkbox
+                    id={`option-${optionId}`}
+                    checked={isSelected}
+                    onCheckedChange={() => handleOptionSelect(option)}
+                    className={cn(
+                      "h-5 w-5 rounded-md",
+                      isCorrect
+                        ? "text-green-600 dark:text-green-400"
+                        : isIncorrect
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-blue-600 dark:text-blue-400"
+                    )}
+                    disabled={mode === "review"}
+                  />
+                  <Label
+                    htmlFor={`option-${optionId}`}
+                    className="flex-1 cursor-pointer text-base font-medium"
+                  >
+                    <span className="font-semibold mr-3">{optionId}.</span>
+                    <LatexRenderer content={option} />
+                  </Label>
+
+                  {isCorrect && (
+                    <Badge className="ml-2 bg-green-500 dark:bg-green-600">
+                      Correct
+                    </Badge>
+                  )}
+
+                  {isIncorrect && (
+                    <Badge className="ml-2 bg-red-500 dark:bg-red-600">
+                      Incorrect
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+      case "ASSERTION_REASON":
+        const questionText = currentQuestion?.question ?? ""; // Notice `.question` not `questionText`
+
+        // Use regex or flexible split
+        const parts = questionText.split(/-{3,}/); // splits on '---' with or without spaces/newlines
+
+        // Clean up parts
+        const assertionRaw = parts[0]?.trim() || "";
+        const reasonRaw = parts[1]?.trim() || "";
+
+        // Extract actual text after "Assertion:" and "Reason:" if present
+        const assertion =
+          assertionRaw.replace(/^Assertion:\s*/i, "") ||
+          "Assertion not provided.";
+        const reason =
+          reasonRaw.replace(/^Reason:\s*/i, "") || "Reason not provided.";
+
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">Assertion:</h4>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <LatexRenderer
+                  content={assertion || "Assertion not provided."}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-medium">Reason:</h4>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <LatexRenderer content={reason} />
+              </div>
+            </div>
+
+            <RadioGroup
+              value={currentQuestion.selectedOption ?? ""}
+              onValueChange={handleOptionSelect}
+              className="space-y-3"
+            >
+              {currentQuestion.options.map((option, index) => {
+                const optionId = String.fromCharCode(65 + index);
+                const isCorrect =
+                  mode === "review" &&
+                  currentQuestion.options[
+                    currentQuestion.correctAnswer.charCodeAt(0) - 65
+                  ] === option;
+                const isIncorrect =
+                  mode === "review" &&
+                  currentQuestion.selectedOption === option &&
+                  currentQuestion.options[
+                    currentQuestion.correctAnswer.charCodeAt(0) - 65
+                  ] !== option;
+
+                return (
+                  <div
+                    key={optionId}
+                    className={cn(
+                      "flex items-center space-x-2 rounded-lg border p-4 transition-all",
+                      isCorrect
+                        ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/40 text-green-900 dark:text-green-100"
+                        : isIncorrect
+                        ? "border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/40 text-red-900 dark:text-red-100"
+                        : currentQuestion.selectedOption === option
+                        ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                        : "border-border hover:border-border/80 hover:bg-accent"
+                    )}
+                  >
+                    <RadioGroupItem
+                      value={option}
+                      id={`option-${optionId}`}
+                      className={cn(
+                        isCorrect
+                          ? "text-green-600 dark:text-green-400"
+                          : isIncorrect
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-blue-600 dark:text-blue-400"
+                      )}
+                      disabled={mode === "review"}
+                    />
+                    <Label
+                      htmlFor={`option-${optionId}`}
+                      className="flex-1 cursor-pointer text-base font-medium"
+                    >
+                      <span className="font-semibold mr-3">{optionId}.</span>
+                      <LatexRenderer content={option} />
+                    </Label>
+
+                    {isCorrect && (
+                      <Badge className="ml-2 bg-green-500 dark:bg-green-600">
+                        Correct
+                      </Badge>
+                    )}
+
+                    {isIncorrect && (
+                      <Badge className="ml-2 bg-red-500 dark:bg-red-600">
+                        Incorrect
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })}
+            </RadioGroup>
+          </div>
+        );
+
+      case "FILL_IN_BLANK": {
+        const questionText = currentQuestion?.question ?? "";
+
+        const currentAnswer = Array.isArray(currentQuestion?.selectedOption)
+          ? currentQuestion.selectedOption[0] || ""
+          : "";
+
+        const correctAnswer = Array.isArray(currentQuestion?.correctAnswer)
+          ? currentQuestion.correctAnswer[0]
+          : currentQuestion?.correctAnswer;
+
+        return (
+          <div className="space-y-4">
+            <div className="text-lg font-medium">Fill in the Blank:</div>
+            <div className="text-lg">{questionText}</div>
+
+            <div className="relative">
+              <Input
+                id="blank-0"
+                value={currentAnswer}
+                placeholder="Enter your answer here..."
+                onChange={(e) => handleFillInBlankChange(e.target.value, 0)}
+                className={cn(
+                  "text-base h-12 w-full",
+                  mode === "review" &&
+                    correctAnswer?.trim() === currentAnswer?.trim()
+                    ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/40 text-green-900 dark:text-green-100"
+                    : mode === "review"
+                    ? "border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/40 text-red-900 dark:text-red-100"
+                    : "border-border"
+                )}
+                disabled={mode === "review"}
+              />
+
+              {mode === "review" &&
+                correctAnswer?.trim() === currentAnswer?.trim() && (
+                  <Badge className="absolute right-2 top-2 bg-green-500 dark:bg-green-600">
+                    Correct
+                  </Badge>
+                )}
+
+              {mode === "review" &&
+                correctAnswer?.trim() !== currentAnswer?.trim() && (
+                  <>
+                    <Badge className="absolute right-2 top-2 bg-red-500 dark:bg-red-600">
+                      Incorrect
+                    </Badge>
+                    <div className="text-sm text-green-600 dark:text-green-400 mt-1">
+                      Correct Answer: {correctAnswer}
+                    </div>
+                  </>
+                )}
+            </div>
+          </div>
+        );
+      }
+
+      case "MATCHING":
+        try {
+          const questionData = JSON.parse(currentQuestion.question); // contains instruction & headers
+          const options = currentQuestion.options || [];
+          const correctAnswer = currentQuestion.correctAnswer;
+          const selectedOption = currentQuestion.selectedOption;
+          const modeIsReview = mode === "review";
+
+          return (
+            <div className="space-y-4">
+              {/* Instruction */}
+              <div className="rounded-lg bg-muted/50 p-4">
+                <LatexRenderer content={questionData.instruction} />
+              </div>
+
+              {/* Matching Table (Visual Aid only) */}
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b bg-muted/50 dark:bg-muted/80">
+                      <th className="p-3 text-left">
+                        {questionData.headers.left || "List I"}
+                        {questionData.headers.leftSub && (
+                          <div className="text-xs text-muted-foreground">
+                            {questionData.headers.leftSub}
+                          </div>
+                        )}
+                      </th>
+                      <th className="p-3 text-left">
+                        {questionData.headers.right || "List II"}
+                        {questionData.headers.rightSub && (
+                          <div className="text-xs text-muted-foreground">
+                            {questionData.headers.rightSub}
+                          </div>
+                        )}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Just render dummy rows A-D and 1-4 for visual matching (optional) */}
+                    {["A", "B", "C", "D"].map((item, index) => (
+                      <tr key={item} className="border-b">
+                        <td className="p-3 font-medium">Item {item}</td>
+                        <td className="p-3 font-medium">Option {index + 1}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Options to select (radio buttons) */}
+              <div className="space-y-2">
+                {options.map((option, index) => {
+                  const isSelected = selectedOption === option;
+                  const isCorrect = correctAnswer === option;
+
+                  return (
+                    <label
+                      key={index}
+                      className={cn(
+                        "flex items-start space-x-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                        modeIsReview
+                          ? isCorrect
+                            ? "bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-700"
+                            : isSelected
+                            ? "bg-red-100 dark:bg-red-900/30 border-red-500 dark:border-red-700"
+                            : "border-muted"
+                          : isSelected
+                          ? "border-primary bg-primary/10 dark:bg-primary/20"
+                          : "border-muted"
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name={`matching-${currentQuestion.id}`}
+                        value={option}
+                        checked={isSelected}
+                        disabled={modeIsReview}
+                        onChange={() => handleOptionSelect(option)}
+                        className="mt-1"
+                      />
+                      <span className="text-sm">{option}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Correct Answer Display in Review Mode */}
+              {modeIsReview && correctAnswer && (
+                <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <h4 className="font-medium text-emerald-800 dark:text-emerald-200 mb-1">
+                    Correct Answer:
+                  </h4>
+                  <div className="font-mono text-sm">{correctAnswer}</div>
+                </div>
+              )}
+            </div>
+          );
+        } catch (e) {
+          console.error("Error parsing matching question:", e);
+          return (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="text-red-600 dark:text-red-400 font-medium">
+                Error displaying matching question
+              </div>
+              <div className="mt-2 text-sm text-red-800 dark:text-red-300">
+                {currentQuestion.question}
+              </div>
+            </div>
+          );
+        }
+
+      default:
+        return <div>Unsupported question type</div>;
+    }
   };
 
   // Handle review later
@@ -913,7 +1417,10 @@ export default function TestInterface() {
 
               <CardContent className="pt-4">
                 <div className="mb-6 text-lg font-medium">
-                  <LatexRenderer content={currentQuestion.question}/>
+                  {currentQuestion.type !== "ASSERTION_REASON" &&
+                    currentQuestion.type !== "MATCHING" && (
+                      <LatexRenderer content={currentQuestion.questionText} />
+                    )}
                 </div>
 
                 {currentQuestion.image && (
@@ -932,82 +1439,14 @@ export default function TestInterface() {
                   </div>
                 )}
 
-                <RadioGroup
-                  value={currentQuestion.selectedOption ?? ""}
-                  onValueChange={handleOptionSelect}
-                  className="space-y-3"
-                >
-                  {currentQuestion.options.map((option, index) => {
-                    const optionId = String.fromCharCode(65 + index); // A, B, C, D
-                    const isCorrect =
-                      mode === "review" &&
-                      currentQuestion.selectedOption &&
-                      currentQuestion.options[
-                        currentQuestion.correctAnswer.charCodeAt(0) - 65
-                      ] === option;
-                    const isIncorrect =
-                      mode === "review" &&
-                      currentQuestion.selectedOption == option &&
-                      currentQuestion.selectedOption !==
-                        currentQuestion.options[
-                          currentQuestion.correctAnswer.charCodeAt(0) - 65
-                        ];
-                    return (
-                      <div
-                        key={optionId}
-                        className={cn(
-                          "flex items-center space-x-2 rounded-lg border p-4 transition-all",
-                          isCorrect
-                            ? "border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/40 text-green-900 dark:text-green-100"
-                            : isIncorrect
-                            ? "border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/40 text-red-900 dark:text-red-100"
-                            : currentQuestion.selectedOption === option
-                            ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
-                            : "border-border hover:border-border/80 hover:bg-accent"
-                        )}
-                      >
-                        <RadioGroupItem
-                          value={option}
-                          id={`option-${optionId}`}
-                          className={cn(
-                            isCorrect
-                              ? "text-green-600 dark:text-green-400"
-                              : isIncorrect
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-blue-600 dark:text-blue-400"
-                          )}
-                          disabled={mode === "review"}
-                        />
-                        <Label
-                          htmlFor={`option-${optionId}`}
-                          className="flex-1 cursor-pointer text-base font-medium"
-                        >
-                          <span className="font-semibold mr-3">
-                            {optionId}.
-                          </span>
-                          <LatexRenderer content={option} />
-                        </Label>
+                {renderQuestionOptions()}
 
-                        {isCorrect && (
-                          <Badge className="ml-2 bg-green-500 dark:bg-green-600">
-                            Correct
-                          </Badge>
-                        )}
-
-                        {isIncorrect && (
-                          <Badge className="ml-2 bg-red-500 dark:bg-red-600">
-                            Incorrect
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })}
-                </RadioGroup>
-
-                {mode === "review" && (
+                {mode === "review" && currentQuestion.solution && (
                   <div className="mt-6 p-4 bg-muted rounded-lg">
                     <h3 className="font-semibold mb-2">Solution</h3>
-                    <p><LatexRenderer content={currentQuestion.solution} /></p>
+                    <p>
+                      <LatexRenderer content={currentQuestion.solution} />
+                    </p>
                   </div>
                 )}
               </CardContent>
