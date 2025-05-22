@@ -3,6 +3,8 @@
 import { NEXT_AUTH } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  QuestionType,
+  QuestionWithStatus,
   SubjectResult,
   TestItem,
   TestResultItem,
@@ -19,6 +21,7 @@ import {
   TestResult,
   TestResponse,
   TestSubject,
+  MatchingPair,
 } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 
@@ -345,74 +348,6 @@ export async function deleteTest(testId: string) {
   }
 }
 
-// export async function fetchUpcomingTests(
-//   userId: string
-// ): Promise<TestItem[] | null> {
-//   try {
-//     const enrolledCourses = await prisma.enrolledCourse.findMany({
-//       where: { userId },
-//       select: { courseId: true },
-//     });
-
-//     const enrolledCourseIds = enrolledCourses.map((ec) => ec.courseId);
-//     if (enrolledCourseIds.length === 0) return [];
-
-//     const takenTests = await prisma.testResult.findMany({
-//       where: { userId },
-//       select: { testId: true },
-//     });
-//     const takenTestIds = takenTests.map((tt) => tt.testId);
-
-//     const upcomingTests = await prisma.test.findMany({
-//       where: {
-//         courseId: { in: enrolledCourseIds },
-//         id: { notIn: takenTestIds },
-//       },
-//       include: {
-//         questions: {
-//           select: {
-//             marks: true,
-//             question: {
-//               select: {
-//                 subject: true,
-//               },
-//             },
-//           },
-//           orderBy: {
-//             order: "asc",
-//           },
-//         },
-//       },
-//       orderBy: {
-//         createdAt: "asc",
-//       },
-//     });
-
-//     return upcomingTests.map((test) => {
-//       const totalQuestions = test.questions.length;
-
-//       const subjects = Array.from(
-//         new Set(test.questions.map((tq) => tq.question.subject))
-//       );
-
-//       return {
-//         id: test.id,
-//         title: test.title,
-//         category: test.category as TestType,
-//         subjects: subjects as Subject[],
-//         courseId: test.courseId,
-//         createdAt: test.createdAt,
-//         totalQuestions,
-//         duration: test.duration,
-//         description: test.description || undefined,
-//       };
-//     });
-//   } catch (error) {
-//     console.error("Error fetching upcoming tests:", error);
-//     return null;
-//   }
-// }
-
 export async function fetchUpcomingTests(
   userId: string
 ): Promise<TestItem[] | null> {
@@ -451,7 +386,7 @@ export async function fetchUpcomingTests(
     return upcomingTests.map((test) => {
       const totalQuestions = test.questions.length;
 
-      const subjects = test.subjects.map((ts) => ts.subject);
+      const subjects = test.subjects.map((ts) => ts);
 
       return {
         id: test.id,
@@ -471,90 +406,8 @@ export async function fetchUpcomingTests(
   }
 }
 
-// export async function fetchTest(testId: string): Promise<TestWithQuestion> {
-//   try {
-//   const test = await prisma.test.findUnique({
-//   where: { id: testId },
-//   include: {
-//     questions: {
-//       select: {
-//         marks: true,
-//         negativeMark: true,
-//         partialMarking: true,
-//         question: {
-//           include: {
-//             subject: true,
-//             options: true, // In case options are also needed
-//           },
-//         },
-//       },
-//       orderBy: {
-//         order: "asc",
-//       },
-//     },
-//   },
-// });
-
-
-//     if (!test) {
-//       throw new Error("Test not found");
-//     }
-
-//     const subjectGroups: Record<Subject, typeof test.questions> = {} as any;
-//     test.questions.forEach((tq) => {
-//       const subject = tq.question.subject as Subject;
-//       if (!subjectGroups[subject]) {
-//         subjectGroups[subject] = [];
-//       }
-//       subjectGroups[subject].push(tq);
-//     });
-
-//     let currentOrder = 1;
-//     const questionsWithNewOrder = Object.entries(subjectGroups).flatMap(
-//       ([_, subjectQuestions]) => {
-//         const reorderedQuestions = subjectQuestions.map((tq) => ({
-//           ...tq,
-//           order: currentOrder++,
-//         }));
-//         return reorderedQuestions;
-//       }
-//     );
-
-//     questionsWithNewOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-//     const testWithQuestions: TestWithQuestion = {
-//       id: test.id,
-//       title: test.title,
-//       category: test.category as TestType,
-//       subjects: test.subjects as Subject[],
-//       description: test.description || undefined,
-//       duration: test.duration,
-//       questions: questionsWithNewOrder.map((tq) => ({
-//         id: tq.question.id,
-//         question: tq.question.question,
-//         image: tq.question.image || undefined,
-//         options: tq.question.options,
-//         correctAnswer: tq.question.correctAnswer,
-//         subject: tq.question.subject as Subject,
-//         difficulty: tq.question.difficulty as Difficulty,
-//         solution: tq.question.solution,
-//         marks: tq.marks,
-//         negativeMark: tq.negativeMark || 0,
-//         partialMarking: tq.partialMarking || false,
-//         order: tq.order || undefined,
-//       })),
-//     };
-
-//     return testWithQuestions;
-//   } catch (error) {
-//     console.error("Error fetching test:", error);
-//     throw new Error("Failed to fetch test");
-//   }
-// }
-
 export async function fetchTest(testId: string): Promise<TestWithQuestion> {
   try {
-    // Validate testId
     if (!testId || typeof testId !== 'string') {
       throw new Error('Invalid test ID');
     }
@@ -562,19 +415,27 @@ export async function fetchTest(testId: string): Promise<TestWithQuestion> {
     const test = await prisma.test.findUnique({
       where: { id: testId },
       include: {
-        questions: {
+        questions: { 
           include: {
             question: {
               include: {
                 subject: true,
                 options: true,
-                matchingPairs: true,
-              },
-            },
-          },
-         
+                matchingPairs: {
+                  orderBy: { order: 'asc' }
+                },
+                chapter: true
+              }
+            }
+          }
         },
-      },
+        course: {
+          select: {
+            title: true,
+            category: true
+          }
+        }
+      }
     });
 
     if (!test) {
@@ -586,56 +447,59 @@ export async function fetchTest(testId: string): Promise<TestWithQuestion> {
       throw new Error('Invalid test structure - missing questions');
     }
 
-    // Process questions and maintain their original order
-    // Since we can't sort by 'order' directly, we'll need to handle ordering differently
-    const questionsWithOrder = test.questions.map((tq, index) => {
+    // Process questions while maintaining their order from the query
+    const questionsWithStatus: QuestionWithStatus[] = test.questions.map((tq, index) => {
+      const question = tq.question;
+      
       // Validate question structure
-      if (!tq.question || !tq.question.subject) {
+      if (!question || !question.subject) {
         throw new Error(`Invalid question structure for question ${tq.questionId}`);
       }
 
+      // Prepare ordered matching pairs
+      const orderedMatchingPairs: MatchingPair[] = question.matchingPairs
+        .sort((a, b) => a.order - b.order)
+        .map(pair => ({
+          id: pair.id,
+          leftText: pair.leftText,
+          leftImage: pair.leftImage || undefined,
+          rightText: pair.rightText,
+          rightImage: pair.rightImage || undefined
+        }));
+
       return {
-        ...tq.question,
+        id: question.id,
+        type: question.type as QuestionType,
+        questionText: question.questionText,
+        questionImage: question.questionImage || undefined,
+        solutionText: question.solutionText || undefined,
+        solutionImage: question.solutionImage || undefined,
+        difficulty: question.difficulty as Difficulty,
+        subject: question.subject.name,
+        chapter: question.chapter?.name || 'Uncategorized',
         marks: tq.marks,
         negativeMark: tq.negativeMark || 0,
         partialMarking: tq.partialMarking || false,
-        order: index + 1, // Use array index + 1 as order
+        status: index === 0 ? 'current' : 'unattempted',
+        selectedOption: undefined,
+        options: question.options.map(opt => ({
+          id: opt.id,
+          optionText: opt.optionText || undefined,
+          optionImage: opt.optionImage || undefined,
+          isCorrect: opt.isCorrect
+        })),
+        matchingPairs: orderedMatchingPairs
       };
     });
 
-    // Group by subject
-    const subjectGroups: Record<string, typeof questionsWithOrder> = {};
-    questionsWithOrder.forEach((q) => {
-      const subject = q.subject.name;
-      if (!subjectGroups[subject]) {
-        subjectGroups[subject] = [];
-      }
-      subjectGroups[subject].push(q);
-    });
-
-    // Build the test with questions
     const testWithQuestions: TestWithQuestion = {
       id: test.id,
       title: test.title,
-      category: test.category as TestType,
-      subjects: test.subjects as Subject[],
-      description: test.description || '',
+      description: test.description || undefined,
       duration: test.duration,
-      questions: questionsWithOrder.map((q) => ({
-        id: q.id,
-        question: q.questionText,
-        image: q.questionImage || undefined,
-        options: q.options.map(opt => opt.optionText || ''),
-        correctAnswer: q.options.find(opt => opt.isCorrect)?.optionText || '', // Get correct answer
-        subject: q.subject.name,
-        difficulty: q.difficulty as Difficulty,
-        solution: q.solutionText || '',
-        marks: q.marks,
-        negativeMark: q.negativeMark,
-        partialMarking: q.partialMarking,
-        order: q.order,
-        type: q.type,
-      })),
+      category: test.course.category as TestType,
+      subjects: test.subjects as TestSubject[],
+      questions: questionsWithStatus
     };
 
     return testWithQuestions;
@@ -663,95 +527,142 @@ export async function submitTest({
 }: SubmitTestParams): Promise<TestResult | null> {
   try {
     const testQuestions = await prisma.testQuestion.findMany({
-      where: {
-        testId: testId,
-      },
+      where: { testId },
       include: {
         question: {
-          select: {
-            id: true,
-            correctAnswer: true,
-            options: true,
-          },
-        },
-      },
+          include: {
+            options: {
+              where: { isCorrect: true },
+              select: { id: true, optionText: true }
+            },
+            matchingPairs: true
+          }
+        }
+      }
     });
 
+    // Create a map for quick lookup of test questions
     const questionMap = new Map<
-      string,
+      string, 
       {
-        correctAnswer: string;
-        options: string[];
+        type: QuestionType;
+        correctOptionIds: string[];
+        correctOptionTexts: string[];
         marks: number;
+        negativeMark: number;
+        partialMarking: boolean;
+        totalCorrectOptions: number;
       }
     >();
 
     testQuestions.forEach((tq) => {
       questionMap.set(tq.questionId, {
-        correctAnswer: tq.question.correctAnswer,
-        options: tq.question.options,
+        type: tq.question.type as QuestionType,
+        correctOptionIds: tq.question.options.map(opt => opt.id.toLowerCase()),
+        correctOptionTexts: tq.question.options
+          .map(opt => (opt.optionText ?? '').toLowerCase().trim())
+          .filter((text): text is string => text !== null),
         marks: tq.marks,
+        negativeMark: tq.negativeMark || 0,
+        partialMarking: tq.partialMarking || false,
+        totalCorrectOptions: tq.question.options.length
       });
     });
 
     let totalMarks = 0;
     let correct = 0;
     let wrong = 0;
-    let attempted = 0;
+    let attempted = responses.length; 
 
     const testResponses: Omit<TestResponse, "id" | "createdAt">[] = [];
 
-    responses.forEach((response) => {
+    // Process each response
+    for (const response of responses) {
       const questionData = questionMap.get(response.questionId);
-      if (!questionData) return;
+      if (!questionData) continue;
 
-      let actualCorrectAnswer: string;
-      if (
-        ["A", "B", "C", "D"].includes(questionData.correctAnswer.toUpperCase())
-      ) {
-        const optionIndex =
-          questionData.correctAnswer.toUpperCase().charCodeAt(0) -
-          "A".charCodeAt(0);
-        actualCorrectAnswer = questionData.options[optionIndex];
-      } else {
-        actualCorrectAnswer = questionData.correctAnswer;
+      let isCorrect = false;
+      let marksAwarded = 0;
+      let answerStatus = false;
+
+      // Handle different question types
+      switch (questionData.type) {
+        case "MCQ":
+        case "MATCHING":  
+        case "ASSERTION_REASON":
+          const selectedOption = response.selectedAnswer as string;
+          isCorrect = questionData.correctOptionIds.includes(selectedOption);
+          answerStatus = !!selectedOption;
+          marksAwarded = isCorrect ? questionData.marks : -questionData.negativeMark;
+          break;
+
+        case "MULTI_SELECT":
+          // Multiple correct answers (comma-separated in response)
+          const selectedOptions = (response.selectedAnswer as string).split(',');
+          const correctOptions = questionData.correctOptionIds;
+          const totalCorrectOptions = questionData.totalCorrectOptions;
+          
+          // Count correct and wrong selections
+          const correctSelections = selectedOptions.filter(opt => 
+            correctOptions.includes(opt)
+          ).length;
+          const wrongSelections = selectedOptions.filter(opt => 
+            !correctOptions.includes(opt)
+          ).length;
+          
+          // Calculate marks based on the new rules
+          if (wrongSelections > 0) {
+            marksAwarded = 0;
+            isCorrect = false;
+          } else if (correctSelections === totalCorrectOptions) {
+            marksAwarded = questionData.marks;
+            isCorrect = true;
+          } else if (correctSelections > 0) {
+            marksAwarded = (questionData.marks * correctSelections) / totalCorrectOptions;
+            isCorrect = false;
+          } else {
+            marksAwarded = 0;
+            isCorrect = false;
+          }
+          
+          answerStatus = selectedOptions.length > 0;
+          break;
+
+        case "FILL_IN_BLANK":
+          isCorrect = questionData.correctOptionTexts.includes(response.selectedAnswer.toLowerCase().trim() as string);
+          answerStatus = !!response.selectedAnswer;
+          marksAwarded = isCorrect ? questionData.marks : -questionData.negativeMark;
+          break;
       }
 
-      let actualSelectedAnswer: string;
-      if (
-        ["A", "B", "C", "D"].includes(response.selectedAnswer.toUpperCase())
-      ) {
-        const optionIndex =
-          response.selectedAnswer.toUpperCase().charCodeAt(0) -
-          "A".charCodeAt(0);
-        actualSelectedAnswer = questionData.options[optionIndex];
-      } else {
-        actualSelectedAnswer = response.selectedAnswer;
-      }
+      // Update counters
+      if (isCorrect) correct++;
+      else if (answerStatus) wrong++;
+      console.log(questionData.type,marksAwarded);
+      totalMarks += marksAwarded;
 
-      const isCorrect = actualSelectedAnswer === actualCorrectAnswer;
-      if (response.selectedAnswer) attempted++;
-
-      if (isCorrect) {
-        correct++;
-        totalMarks += questionData.marks;
-      } else if (response.selectedAnswer) {
-        wrong++;
-      }
-
+      // Prepare response for database
       testResponses.push({
-        testResultId: "",
+        testResultId: "", 
         questionId: response.questionId,
-        selectedAnswer: response.selectedAnswer,
+        answer: Array.isArray(response.selectedAnswer) 
+          ? response.selectedAnswer 
+          : [response.selectedAnswer],
+        marksAwarded,
         isCorrect,
+        isAnswered: answerStatus
       });
-    });
+    }
 
+    // Calculate total possible marks (sum of all question marks)
     const totalPossibleMarks = testQuestions.reduce(
-      (sum, tq) => sum + tq.marks,
+      (sum, tq) => sum + tq.marks, 
       0
     );
 
+    totalMarks=Math.max(0, totalMarks); 
+
+    // Create test result and responses in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const testResult = await tx.testResult.create({
         data: {
@@ -766,10 +677,27 @@ export async function submitTest({
         },
       });
 
+      // Create responses for answered questions
       await tx.testResponse.createMany({
         data: testResponses.map((tr) => ({
           ...tr,
           testResultId: testResult.id,
+        })),
+      });
+
+      // Create empty responses for unattempted questions
+      const unansweredQuestionIds = testQuestions
+        .map(tq => tq.questionId)
+        .filter(id => !responses.some(r => r.questionId === id));
+
+      await tx.testResponse.createMany({
+        data: unansweredQuestionIds.map(questionId => ({
+          testResultId: testResult.id,
+          questionId,
+          answer: [],
+          marksAwarded: 0,
+          isCorrect: false,
+          isAnswered: false
         })),
       });
 

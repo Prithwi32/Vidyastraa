@@ -187,7 +187,7 @@ export function CompletedTestCard({ test }: CompletedTestCardProps) {
               correct out of {test.totalQuestions}
             </p>
             <div className="mt-1">
-              <Badge variant="outline">{test.test.category}</Badge>
+              <Badge variant="outline">{test.test.category.split("_").join(" ")}</Badge>
             </div>
           </div>
           <div className="flex gap-2">
@@ -240,7 +240,7 @@ export function UpcomingTestCard({ test, onStartTest }: UpcomingTestCardProps) {
             {test.subjects?.length ? (
               test.subjects.map((subject, index) => (
                 <Badge key={index} variant="outline">
-                  {formatSubject(subject.name)}
+                  {formatSubject(subject)}
                 </Badge>
               ))
             ) : (

@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -90,6 +89,9 @@ export default function TestInterface() {
   const [timeRemaining, setTimeRemaining] = useState(0); // in seconds
   const [timerActive, setTimerActive] = useState(false);
 
+  // Fix: Add timerInitialized ref
+  const timerInitialized = useRef(false);
+
   // Current question index
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
@@ -173,33 +175,27 @@ export default function TestInterface() {
         const testData = await fetchTest(testId as string);
         setTest(testData);
 
-        // Initialize timer with test duration (converted to seconds)
-        const initialTime = testData.duration * 60;
-        setTimeRemaining(initialTime);
+        // Only initialize timer if not already initialized for this test
+        if (!timerInitialized.current) {
+          const initialTime = testData.duration * 60;
+          setTimeRemaining(initialTime);
+          setTime({
+            hours: Math.floor(initialTime / 3600),
+            minutes: Math.floor((initialTime % 3600) / 60),
+            seconds: initialTime % 60,
+          });
+          setTimerActive(true);
+          timerInitialized.current = true;
+        }
 
-        // Calculate initial display time
-        const hours = Math.floor(initialTime / 3600);
-        const minutes = Math.floor((initialTime % 3600) / 60);
-        const seconds = initialTime % 60;
-
-        setTime({
-          hours,
-          minutes,
-          seconds,
-        });
-
-        // Start the timer
-        setTimerActive(true);
-
-        // Initialize questions with status
+        // Initialize questions with status and image
         const questionsWithStatus = testData.questions.map((q, index) => ({
           ...q,
-          subject: q.subject,
-          status: index === 0 ? "current" : "unattempted",
+          status: q.status || (index === 0 ? "current" : "unattempted"),
           selectedOption: undefined,
         }));
 
-        setQuestions(questionsWithStatus as any);
+        setQuestions(questionsWithStatus);
       } catch (error) {
         console.error("Error loading test:", error);
       } finally {
@@ -208,10 +204,18 @@ export default function TestInterface() {
     }
 
     loadTest();
+    // Only run this effect when testId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testId]);
 
   // Current question
   const currentQuestion = questions[currentQuestionIndex] || null;
+
+  // Helper to get image for current question
+  const getCurrentQuestionImage = () => {
+    if (!currentQuestion) return null;
+    return currentQuestion.questionImage || null;
+  };
 
   // Handle option selection
   const handleOptionSelect = (optionId: string) => {
@@ -266,8 +270,8 @@ export default function TestInterface() {
 
     updatedQuestions[currentQuestionIndex] = {
       ...currentQuestion,
-      selectedOption: currentAnswers,
-      status: "attempted",
+      selectedOption: currentAnswers[0].length > 0 ? currentAnswers : undefined,
+      status: currentAnswers[0].length > 0 ? "attempted" : "unattempted",
     };
 
     setQuestions(updatedQuestions);
@@ -341,15 +345,9 @@ export default function TestInterface() {
 
   // Handle test submission
   const handleSubmitTest = async () => {
-    // Use functional update to get the latest state
     if (!test) return;
-
-    // Stop the timer
     setTimerActive(false);
-
     setTestSubmitLoader(true);
-
-    // Calculate actual time taken
     const totalDuration = test.duration;
     const timeTaken = totalDuration - Math.ceil(timeRemaining / 60);
     const duration = timeRemaining > 0 ? timeTaken : totalDuration;
@@ -359,24 +357,28 @@ export default function TestInterface() {
       .filter((q) => q.selectedOption)
       .map((q) => ({
         questionId: q.id,
-        selectedAnswer: q.selectedOption || "",
+        selectedAnswer: Array.isArray(q.selectedOption)
+          ? q.selectedOption.join(",")
+          : q.selectedOption || "",
       }));
 
     const submission: TestSubmission = {
       testId: test.id,
-      userId: session.data?.user?.id as string,
+      userId:
+        (session.data as any)?.user?.id ||
+        (session.data as any)?.user?.userId ||
+        (session.data as any)?.user?.email ||
+        "",
       duration,
       responses,
     };
 
     try {
-      // Submit the test
+      console.log(submission);
       const res = await submitTest(submission);
       setIsSubmitted(true);
       setShowSubmitDialog(false);
-
       if (!res) {
-        console.log("Error occured during submission");
         toast.error("Error occured during submission");
       } else {
         router.push(
@@ -386,7 +388,6 @@ export default function TestInterface() {
     } catch (error) {
       console.error("Error submitting test:", error);
       toast.error("Error submitting test");
-      // Show error message
     } finally {
       setTestSubmitLoader(false);
     }
@@ -638,12 +639,12 @@ export default function TestInterface() {
                     )}
                 </div>
 
-                {currentQuestion.image && (
+                {getCurrentQuestionImage() && (
                   <div className="mb-6">
                     <div className="relative w-full h-48 md:h-64 rounded-md overflow-hidden">
                       <Image
                         src={
-                          currentQuestion.image ||
+                          getCurrentQuestionImage() ||
                           "https://ui.shadcn.com/placeholder.svg" ||
                           "/placeholder.svg"
                         }
