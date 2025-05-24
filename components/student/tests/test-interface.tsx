@@ -56,7 +56,7 @@ import "katex/dist/katex.min.css";
 import QuestionNavigationPanel from "@/components/student/tests/question-navigation-panel";
 import LatexRenderer from "@/components/student/tests/latex-renderer";
 import QuestionRenderer from "@/components/student/tests/question-renderer";
-
+import { Maximize2 } from "lucide-react";
 export default function TestInterface() {
   const router = useRouter();
   const params = useParams();
@@ -102,6 +102,88 @@ export default function TestInterface() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [shouldBlockNavigation, setShouldBlockNavigation] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isMobile =
+    typeof window !== "undefined"
+      ? /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent)
+      : false;
+
+  // Initialize fullscreen when test loads
+  useEffect(() => {
+    if (!isMobile && test && !isSubmitted) {
+      const initializeFullscreen = async () => {
+        try {
+          // Check if we're already in fullscreen
+          if (!document.fullscreenElement) {
+            await enterFullScreen();
+          }
+        } catch (err) {
+          console.error("Initial fullscreen error:", err);
+        }
+      };
+
+      initializeFullscreen();
+    }
+  }, [test, isSubmitted, isMobile]);
+
+  // Track fullscreen state
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isCurrentlyFullscreen);
+
+      if (!isMobile && !isCurrentlyFullscreen && !isSubmitted) {
+        // Show exit confirmation when exiting fullscreen
+        setShowExitConfirm(true);
+        // Attempt to re-enter fullscreen after a short delay
+        setTimeout(() => {
+          if (!document.fullscreenElement) {
+            enterFullScreen();
+          }
+        }, 500);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [isSubmitted, isMobile]);
+
+  // Handle Escape key only in fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitted && isFullscreen) {
+        e.preventDefault();
+        setShowExitConfirm(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSubmitted, isFullscreen]);
+
+  const enterFullScreen = async () => {
+    try {
+      const elem = document.documentElement;
+      if (!document.fullscreenElement) {
+        // Only request if not already in fullscreen
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if ((elem as any).webkitRequestFullscreen) {
+          await (elem as any).webkitRequestFullscreen();
+        } else if ((elem as any).msRequestFullscreen) {
+          await (elem as any).msRequestFullscreen();
+        }
+      }
+    } catch (err) {
+      console.error("Fullscreen error:", err);
+    }
+  };
 
   // Prevent leaving the test
   useEffect(() => {
@@ -128,7 +210,6 @@ export default function TestInterface() {
   }, [isSubmitted]);
 
   // Handle back button/route changes
-  // Handle back button/route changes
   useEffect(() => {
     if (isSubmitted) return;
 
@@ -151,12 +232,19 @@ export default function TestInterface() {
 
   const handleConfirmExit = async () => {
     setTestSubmitLoader(true);
-    await handleSubmitTest();
-    setShowExitConfirm(false);
-  };
-
-  const handleCancelExit = () => {
-    setShowExitConfirm(false);
+    try {
+      await handleSubmitTest();
+      // Exit fullscreen after submission
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+      setShowExitConfirm(false);
+    } catch (error) {
+      console.error("Error submitting test:", error);
+      toast.error("Error submitting test");
+    } finally {
+      setTestSubmitLoader(false);
+    }
   };
 
   useEffect(() => {
@@ -496,7 +584,19 @@ export default function TestInterface() {
             <Moon className="absolute size-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
-
+          {!isMobile && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={enterFullScreen}
+              className="ml-2"
+              title={
+                isFullscreen ? "Currently in fullscreen" : "Enter fullscreen"
+              }
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
+          )}
           {/* Mobile sidebar toggle - moved to header */}
           <Sheet open={showQuestionPanel} onOpenChange={setShowQuestionPanel}>
             <SheetTrigger asChild>
@@ -523,7 +623,6 @@ export default function TestInterface() {
               />
             </SheetContent>
           </Sheet>
-
           <div className="hidden md:flex items-center gap-3">
             <TooltipProvider>
               <Tooltip>
@@ -574,7 +673,6 @@ export default function TestInterface() {
               </Tooltip>
             </TooltipProvider>
           </div>
-
           <Badge
             variant="outline"
             className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 flex items-center gap-1.5"
@@ -781,35 +879,60 @@ export default function TestInterface() {
       </Dialog>
 
       {/* Exit confirmation dialog */}
-      <Dialog open={showExitConfirm} onOpenChange={handleCancelExit}>
+      <Dialog
+        open={showExitConfirm}
+        onOpenChange={(open) => {
+          if (!open) {
+            // If cancelling exit, re-enter fullscreen if not mobile
+            if (!isMobile) {
+              enterFullScreen();
+            }
+            setShowExitConfirm(false);
+          } else {
+            setShowExitConfirm(open);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px] bg-background">
           <DialogHeader>
-            <DialogTitle>Exit Test?</DialogTitle>
+            <DialogTitle>Exit Fullscreen?</DialogTitle>
             <DialogDescription>
-              You haven't submitted your test yet. Are you sure you want to
-              leave? Your progress will be lost.
+              Tests must be completed in fullscreen mode. Are you sure you want
+              to exit?
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-5 w-5" />
               <p className="text-sm font-medium">
-                You have {unattemptedCount} unattempted questions.
+                Exiting fullscreen may result in test submission.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelExit}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!isMobile) {
+                  enterFullScreen();
+                }
+                setShowExitConfirm(false);
+              }}
+            >
               Continue Test
             </Button>
-            <Button onClick={handleConfirmExit} disabled={testSubmitLoader}>
+            <Button
+              onClick={handleConfirmExit}
+              disabled={testSubmitLoader}
+              variant="destructive"
+            >
               {testSubmitLoader ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Submitting...
                 </>
               ) : (
-                "Submit Test"
+                "Submit and Exit"
               )}
             </Button>
           </DialogFooter>

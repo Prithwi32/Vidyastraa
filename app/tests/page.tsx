@@ -86,6 +86,11 @@ export default function TestCardsGrid() {
   const [loading, setLoading] = useState(true);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
+  const [fullscreenError, setFullscreenError] = useState(false);
+  const isMobile =
+    typeof window !== "undefined"
+      ? /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent)
+      : false;
 
   useEffect(() => {
     getTests();
@@ -156,11 +161,11 @@ export default function TestCardsGrid() {
     }
   };
 
-  const confirmStartTest = () => {
-    setShowStartDialog(false);
-    if (selectedTest) {
-      router.push(`/student/dashboard/tests/${selectedTest.id}`);
-    }
+  const confirmStartTest = async () => {
+      setShowStartDialog(false);
+      if (selectedTest) {
+        router.push(`/student/dashboard/tests/${selectedTest.id}`);
+      }
   };
 
   return (
@@ -285,7 +290,10 @@ export default function TestCardsGrid() {
                     Estimated Time:
                   </span>
                   <span className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                    {selectedTest ? Math.floor(selectedTest.questions / 0.9) : 0} minutes
+                    {selectedTest
+                      ? Math.floor(selectedTest.questions / 0.9)
+                      : 0}{" "}
+                    minutes
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -402,4 +410,8 @@ function TestCard({
       </CardFooter>
     </Card>
   );
+}
+
+function setFullscreenError(arg0: boolean) {
+  throw new Error("Function not implemented.");
 }

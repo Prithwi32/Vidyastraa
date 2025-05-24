@@ -75,10 +75,7 @@ export default function TestResults() {
   }, [router]);
 
   // Calculate subject scores (memoize if needed)
-  const subjectScores = useMemo(() => {
-    if (!result?.responses || !result.test?.questions) return [];
-    return calculateSubjectScores(result.responses, result.test.questions);
-  }, [result]);
+  const subjectScores = result?.subjectScores || [];
 
   // Early return for loading state
   if (loading || !result) {
@@ -92,7 +89,7 @@ export default function TestResults() {
 
   const handleViewAnswers = () => {
     router.push(
-      `/student/dashboard/tests/${testId}?mode=review&resultId=${resultId}`
+      `/student/dashboard/tests/${testId}/result/${resultId}/testReview`
     );
   };
 
@@ -525,6 +522,4 @@ export default function TestResults() {
   );
 }
 
-function calculateSubjectScores(responses: { questionId: string; selectedAnswer: string; isCorrect: boolean; question: { id: string; question: string; options: string[]; correctAnswer: string; subject: Subject; solution: string; }; }[], questions: any): any {
-  throw new Error("Function not implemented.");
-}
+

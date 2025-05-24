@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { useParams, useRouter} from "next/navigation"
 import { ChevronLeft, ChevronRight, Menu, CheckCircle, Circle, Sun, Moon, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,6 @@ type Props = {
   testId: string
   resultId: string
 }
-
 
 type QuestionResponse = {
   questionId: string

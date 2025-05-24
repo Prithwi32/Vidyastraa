@@ -1,14 +1,17 @@
 import { redirect } from "next/navigation"
 import ReviewInterface from "@/components/student/tests/review-interface"
 
-export default function ReviewPage({
+export default async function ReviewPage({
   params,
 }: {
   params: { id: string; resultId: string }
 }) {
-  if (!params.id || !params.resultId) {
+  // Add await to ensure params are resolved
+  const { id, resultId } = params
+
+  if (!id || !resultId) {
     redirect("/student/dashboard/tests")
   }
 
-  return <ReviewInterface testId={params.id} resultId={params.resultId} />
+  return <ReviewInterface testId={id} resultId={resultId} />
 }

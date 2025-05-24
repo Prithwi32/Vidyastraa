@@ -66,12 +66,12 @@ export default function TestsPage() {
     setShowStartTestDialog(true);
   };
 
-  const confirmStartTest = () => {
+const confirmStartTest = async () => {
     setShowStartTestDialog(false);
     if (selectedTest) {
       router.push(`/student/dashboard/tests/${selectedTest.id}`);
     }
-  };
+};
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">

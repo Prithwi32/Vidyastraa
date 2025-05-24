@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "react-toastify";
 
 interface TestResult {
   totalMarks: number;
@@ -100,12 +101,12 @@ export default function CourseDetails() {
     setShowStartTestDialog(true);
   };
 
-  const confirmStartTest = () => {
+const confirmStartTest = async () => {
     setShowStartTestDialog(false);
     if (selectedTest) {
       router.push(`/student/dashboard/tests/${selectedTest.id}`);
     }
-  };
+};
 
   if (loading) {
     return (
