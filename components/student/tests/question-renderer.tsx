@@ -310,10 +310,10 @@ export default function QuestionRenderer({
           : "";
       return (
         <div className="space-y-4">
-          <div className="text-lg font-medium">Fill in the Blank:</div>
+          {/* <div className="text-lg font-medium">Fill in the Blank:</div>
           <div className="text-lg">
             <LatexRenderer content={questionText} />
-          </div>
+          </div> */}
           <div className="relative">
             <Input
               id="blank-0"

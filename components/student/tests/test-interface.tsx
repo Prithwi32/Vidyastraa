@@ -103,75 +103,103 @@ export default function TestInterface() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [shouldBlockNavigation, setShouldBlockNavigation] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRequested = useRef(false);
   const isMobile =
     typeof window !== "undefined"
       ? /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent)
       : false;
 
-  // Initialize fullscreen when test loads
-  useEffect(() => {
-    if (!isMobile && test && !isSubmitted) {
-      const initializeFullscreen = async () => {
-        try {
-          // Check if we're already in fullscreen
-          if (!document.fullscreenElement) {
-            await enterFullScreen();
-          }
-        } catch (err) {
-          console.error("Initial fullscreen error:", err);
-        }
-      };
-
-      initializeFullscreen();
+  const maintainFullscreen = useCallback(() => {
+    if (!isMobile && !isSubmitted && !document.fullscreenElement) {
+      enterFullScreen();
     }
-  }, [test, isSubmitted, isMobile]);
+  }, [isMobile, isSubmitted]);
 
-  // Track fullscreen state
+  // Add this effect to periodically check fullscreen state
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!document.fullscreenElement;
-      setIsFullscreen(isCurrentlyFullscreen);
+    if (isMobile || isSubmitted) return;
 
-      if (!isMobile && !isCurrentlyFullscreen && !isSubmitted) {
-        // Show exit confirmation when exiting fullscreen
+    const interval = setInterval(maintainFullscreen, 1000);
+    return () => clearInterval(interval);
+  }, [isMobile, isSubmitted, maintainFullscreen]);
+
+  // Improved fullscreen management
+  useEffect(() => {
+    if (isMobile || isSubmitted) return;
+
+    const handleFullscreenChange = () => {
+      const currentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(currentlyFullscreen);
+
+      // Show exit confirmation if fullscreen was exited unexpectedly
+      if (!currentlyFullscreen && !isSubmitted && !showExitConfirm) {
         setShowExitConfirm(true);
-        // Attempt to re-enter fullscreen after a short delay
-        setTimeout(() => {
-          if (!document.fullscreenElement) {
-            enterFullScreen();
-          }
-        }, 500);
       }
     };
 
+    // Handle browser-specific fullscreen events
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("msfullscreenchange", handleFullscreenChange);
+
+    // Initial fullscreen request
+    const requestFullscreen = async () => {
+      try {
+        if (!document.fullscreenElement && !fullscreenRequested.current) {
+          fullscreenRequested.current = true;
+          await enterFullScreen();
+        }
+      } catch (err) {
+        console.error("Fullscreen error:", err);
+      }
+    };
+
+    // Add slight delay to ensure DOM is ready
+    const timeoutId = setTimeout(requestFullscreen, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "msfullscreenchange",
+        handleFullscreenChange
+      );
     };
-  }, [isSubmitted, isMobile]);
+  }, [isMobile, isSubmitted, showExitConfirm]);
 
-  // Handle Escape key only in fullscreen
   useEffect(() => {
+    if (isSubmitted || !isFullscreen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitted && isFullscreen) {
+      if (e.key === "Escape") {
         e.preventDefault();
-        setShowExitConfirm(true);
+        // Only show if not already showing
+        if (!showExitConfirm) {
+          setShowExitConfirm(true);
+        }
+        // Keep focus trapped in the dialog if it's open
+        if (showExitConfirm) {
+          const dialog = document.querySelector('[role="dialog"]');
+          if (dialog) {
+            (dialog as HTMLElement).focus();
+          }
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSubmitted, isFullscreen, showExitConfirm]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isSubmitted, isFullscreen]);
-
+  // Improved enterFullScreen function
   const enterFullScreen = async () => {
     try {
       const elem = document.documentElement;
       if (!document.fullscreenElement) {
-        // Only request if not already in fullscreen
         if (elem.requestFullscreen) {
           await elem.requestFullscreen();
         } else if ((elem as any).webkitRequestFullscreen) {
@@ -179,9 +207,11 @@ export default function TestInterface() {
         } else if ((elem as any).msRequestFullscreen) {
           await (elem as any).msRequestFullscreen();
         }
+        setIsFullscreen(true);
       }
     } catch (err) {
       console.error("Fullscreen error:", err);
+      setIsFullscreen(false);
     }
   };
 
@@ -881,6 +911,9 @@ export default function TestInterface() {
       <Dialog
         open={showExitConfirm}
         onOpenChange={(open) => {
+          if (!open && !isSubmitted) {
+            enterFullScreen(); // Re-enter fullscreen if they try to dismiss
+          }
           if (!open) {
             // If cancelling exit, re-enter fullscreen if not mobile
             if (!isMobile) {
@@ -892,7 +925,16 @@ export default function TestInterface() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[425px] bg-background">
+        <DialogContent
+          className="sm:max-w-[425px] bg-background"
+          onInteractOutside={(e) => {
+            e.preventDefault(); // Prevent closing by clicking outside
+          }}
+          onEscapeKeyDown={(e) => {
+            e.preventDefault(); // Prevent closing with Escape
+            enterFullScreen(); // Re-enter fullscreen
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Exit Fullscreen?</DialogTitle>
             <DialogDescription>
