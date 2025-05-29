@@ -619,7 +619,7 @@ export async function submitTest({
             isCorrect = true;
           } else if (correctSelections > 0) {
             marksAwarded = (questionData.marks * correctSelections) / totalCorrectOptions;
-            isCorrect = false;
+            isCorrect = true;
           } else {
             marksAwarded = 0;
             isCorrect = false;
@@ -796,6 +796,7 @@ export async function fetchTestResult(
   });
 
   result.responses.forEach((response) => {
+    if(response.isAnswered === false) return; 
     const marks = questionMarksMap.get(response.questionId) || 0;
     const subject = questionSubjectMap.get(response.questionId);
 
@@ -881,20 +882,29 @@ export async function fetchTestResultWithQuestion(
                 question: {
                   include: {
                     subject: true,
-                  },
-                },
-              },
-              // orderBy: {
-              //   order: "asc",
-              // },
-            },
-          },
+                    options: true,
+                    matchingPairs: true,
+                    chapter: {
+                      include: {
+                        subject: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
         responses: {
           include: {
             question: {
               include: {
                 subject: true,
+                chapter: {
+                  include: {
+                    subject: true
+                  }
+                },
                 testQuestions: {
                   where: {
                     testId: prisma.testResult
@@ -903,13 +913,13 @@ export async function fetchTestResultWithQuestion(
                         select: { testId: true },
                       })
                       .then((r) => r?.testId),
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!result) {
@@ -921,11 +931,10 @@ export async function fetchTestResultWithQuestion(
       responseMap.set(response.questionId, response);
     });
 
-    // Group questions by subject (same logic as fetchTest)
-    const subjectGroups: Record<Subject, typeof result.test.questions> =
-      {} as any;
+    // Group questions by subject
+    const subjectGroups: Record<string, typeof result.test.questions> = {};
     result.test.questions.forEach((tq) => {
-      const subject = tq.question.subject as Subject;
+      const subject = tq.question.subject.name;
       if (!subjectGroups[subject]) {
         subjectGroups[subject] = [];
       }
@@ -951,28 +960,34 @@ export async function fetchTestResultWithQuestion(
       id: result.test.id,
       title: result.test.title,
       category: result.test.category as TestType,
-      subjects: result.test.subjects as Subject[],
+      subjects: result.test.subjects as TestSubject[],
       description: result.test.description || undefined,
       duration: result.test.duration,
       questions: questionsWithNewOrder.map((tq) => ({
         id: tq.question.id,
-        question: tq.question.question,
-        image: tq.question.image || undefined,
-        options: tq.question.options,
-        correctAnswer: tq.question.correctAnswer,
-        subject: tq.question.subject as Subject,
+        type: tq.question.type as QuestionType,
+        questionText: tq.question.questionText,
+        questionImage: tq.question.questionImage || undefined,
+        solutionText: tq.question.solutionText || undefined,
+        solutionImage: tq.question.solutionImage || undefined,
         difficulty: tq.question.difficulty as Difficulty,
-        solution: tq.question.solution,
+        subject: tq.question.subject.name as TestSubject,
+        chapter: tq.question.chapter.name,
+        options: tq.question.options,
+        matchingPairs: tq.question.matchingPairs,
         marks: tq.marks,
+        negativeMark: tq.negativeMark,
+        partialMarking: tq.partialMarking,
         order: tq.order || undefined,
       })),
       responses: questionsWithNewOrder.map((tq) => {
         const response = responseMap.get(tq.question.id);
         return {
           questionId: tq.question.id,
-          selectedAnswer: response?.selectedAnswer || null,
+          answer: response?.answer || [],
           isCorrect: response?.isCorrect || false,
-          marksAwarded: response?.isCorrect ? tq.marks : 0,
+          isAnswered: response?.isAnswered || false,
+          marksAwarded: response?.marksAwarded || 0,
         };
       }),
     };

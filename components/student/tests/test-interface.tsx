@@ -462,7 +462,6 @@ export default function TestInterface() {
     };
 
     try {
-      console.log(submission);
       const res = await submitTest(submission);
       setIsSubmitted(true);
       setShowSubmitDialog(false);

@@ -10,7 +10,7 @@ import LatexRenderer from "./latex-renderer";
 import type { QuestionWithStatus } from "@/lib/tests/types";
 
 interface QuestionRendererProps {
-  question: QuestionWithStatus;
+  question: any; // Accepts ReviewQuestion or QuestionWithStatus
   handleOptionSelect: (optionId: string) => void;
   handleFillInBlankChange: (value: string, blankIndex: number) => void;
   mode: "test" | "review";
@@ -32,24 +32,48 @@ export default function QuestionRenderer({
           onValueChange={handleOptionSelect}
           className="space-y-3"
         >
-          {question.options.map((option, index) => {
+          {question.options.map((option: any, index: number) => {
             const optionId = String.fromCharCode(65 + index);
-            const isCorrect =
-              mode === "review" &&
-              question.options[question.correctAnswer.charCodeAt(0) - 65] ===
-                option;
-            const isIncorrect =
-              mode === "review" &&
-              question.selectedOption === option &&
-              question.options[question.correctAnswer.charCodeAt(0) - 65] !==
-                option;
-
+            let isCorrect = false;
+            let isIncorrect = false;
+            if (mode === "review") {
+              // Find correct answer id (from isCorrect or correctAnswer/correctOptionId)
+              const correctOption =
+                question.options.find((opt: any) => opt.isCorrect) ||
+                question.options.find(
+                  (opt: any) =>
+                    opt.id ===
+                    (question.correctAnswer || question.correctOptionId)
+                );
+              const correctId = correctOption
+                ? correctOption.id
+                : question.correctAnswer || question.correctOptionId;
+              isCorrect = option.id === correctId;
+              isIncorrect = question.selectedOption === option.id && !isCorrect;
+            }
+            // Set dot color for review mode
+            let dotColor = "text-blue-600 dark:text-blue-400";
+            if (mode === "review") {
+              if (isCorrect) dotColor = "text-green-600 dark:text-green-400";
+              else if (isIncorrect) dotColor = "text-red-600 dark:text-red-400";
+              else if (question.selectedOption === option.id)
+                dotColor = "text-blue-600 dark:text-blue-400";
+              else dotColor = "text-border dark:text-border";
+            }
             return (
               <div
                 key={option.id}
                 className={cn(
                   "flex items-center space-x-2 rounded-lg border p-4 transition-all",
-                  question.selectedOption === option.id
+                  mode === "review"
+                    ? isCorrect
+                      ? "border-green-500 bg-green-50 text-green-900 dark:border-green-600 dark:bg-green-900/40 dark:text-green-100"
+                      : isIncorrect
+                      ? "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/40 dark:text-red-100"
+                      : question.selectedOption === option.id
+                      ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                      : "border-border hover:border-border/80 hover:bg-accent"
+                    : question.selectedOption === option.id
                     ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
                     : "border-border hover:border-border/80 hover:bg-accent"
                 )}
@@ -57,7 +81,7 @@ export default function QuestionRenderer({
                 <RadioGroupItem
                   value={option.id}
                   id={`option-${optionId}`}
-                  className="text-blue-600 dark:text-blue-400"
+                  className={dotColor}
                   disabled={mode === "review"}
                 />
                 <Label
@@ -76,17 +100,73 @@ export default function QuestionRenderer({
     case "MULTI_SELECT":
       return (
         <div className="space-y-3">
-          {question.options.map((option, index) => {
+          {question.options.map((option: any, index: number) => {
             const optionId = String.fromCharCode(65 + index);
             const isSelected = Array.isArray(question.selectedOption)
               ? question.selectedOption.includes(option.id)
               : false;
+            let isCorrect = false;
+            let isPartial = false;
+            let isIncorrect = false;
+            if (mode === "review") {
+              const correctIds = question.options
+                .filter((opt: any) => opt.isCorrect)
+                .map((opt: any) => opt.id);
+              if (!correctIds.length) {
+                const fallback = (
+                  question.correctAnswers ||
+                  question.correctAnswer ||
+                  question.correctOptionId ||
+                  ""
+                )
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean);
+                fallback.forEach((id: string) => {
+                  if (!correctIds.includes(id)) correctIds.push(id);
+                });
+              }
+
+              const isUnattempted =
+                !question.selectedOption ||
+                (Array.isArray(question.selectedOption) &&
+                  question.selectedOption.length === 0);
+              if (isUnattempted) {
+                isCorrect = correctIds.includes(option.id);
+                isPartial = false;
+                isIncorrect = false;
+              } else {
+                isCorrect = correctIds.includes(option.id) && isSelected;
+                isPartial = correctIds.includes(option.id) && !isSelected;
+                isIncorrect = !correctIds.includes(option.id) && isSelected;
+              }
+            }
+
+            let tickColor = "text-blue-600 dark:text-blue-400";
+            if (mode === "review") {
+              if (isCorrect) tickColor = "text-green-600 dark:text-green-400";
+              else if (isPartial)
+                tickColor = "text-yellow-600 dark:text-yellow-400";
+              else if (isIncorrect)
+                tickColor = "text-red-600 dark:text-red-400";
+              else if (isSelected)
+                tickColor = "text-blue-600 dark:text-blue-400";
+              else tickColor = "text-border dark:text-border";
+            }
             return (
               <div
                 key={option.id}
                 className={cn(
                   "flex items-center space-x-2 rounded-lg border p-4 transition-all",
-                  isSelected
+                  mode === "review"
+                    ? isCorrect
+                      ? "border-green-500 bg-green-50 text-green-900 dark:border-green-600 dark:bg-green-900/40 dark:text-green-100"
+                      : isPartial
+                      ? "border-yellow-500 bg-yellow-50 text-yellow-900 dark:border-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-100"
+                      : isIncorrect
+                      ? "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/40 dark:text-red-100"
+                      : "border-border hover:border-border/80 hover:bg-accent"
+                    : isSelected
                     ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
                     : "border-border hover:border-border/80 hover:bg-accent"
                 )}
@@ -95,7 +175,12 @@ export default function QuestionRenderer({
                   id={`option-${optionId}`}
                   checked={isSelected}
                   onCheckedChange={() => handleOptionSelect(option.id)}
-                  className="h-5 w-5 rounded-md text-blue-600 dark:text-blue-400"
+                  className={cn(
+                    "h-5 w-5 rounded-md",
+                    mode === "review"
+                      ? tickColor
+                      : "text-blue-600 dark:text-blue-400"
+                  )}
                   disabled={mode === "review"}
                 />
                 <Label
@@ -113,21 +198,17 @@ export default function QuestionRenderer({
 
     case "ASSERTION_REASON": {
       const questionText = question?.questionText ?? "";
-
       // Use regex or flexible split
       const parts = questionText.split(/-{3,}/); // splits on '---' with or without spaces/newlines
-
       // Clean up parts
       const assertionRaw = parts[0]?.trim() || "";
       const reasonRaw = parts[1]?.trim() || "";
-
       // Extract actual text after "Assertion:" and "Reason:" if present
       const assertion =
         assertionRaw.replace(/^Assertion:\s*/i, "") ||
         "Assertion not provided.";
       const reason =
         reasonRaw.replace(/^Reason:\s*/i, "") || "Reason not provided.";
-
       return (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -136,28 +217,61 @@ export default function QuestionRenderer({
               <LatexRenderer content={assertion || "Assertion not provided."} />
             </div>
           </div>
-
           <div className="space-y-2">
             <h4 className="font-medium">Reason:</h4>
             <div className="rounded-lg bg-muted/50 p-4">
               <LatexRenderer content={reason} />
             </div>
           </div>
-
           <RadioGroup
             value={question.selectedOption ?? ""}
             onValueChange={handleOptionSelect}
             className="space-y-3"
           >
-            {question.options.map((option, index) => {
+            {question.options.map((option: any, index: number) => {
               const optionId = String.fromCharCode(65 + index);
-
+              let isCorrect = false;
+              let isIncorrect = false;
+              if (mode === "review") {
+                // Find correct answer id (from isCorrect or correctAnswer/correctOptionId)
+                const correctOption =
+                  question.options.find((opt: any) => opt.isCorrect) ||
+                  question.options.find(
+                    (opt: any) =>
+                      opt.id ===
+                      (question.correctAnswer || question.correctOptionId)
+                  );
+                const correctId = correctOption
+                  ? correctOption.id
+                  : question.correctAnswer || question.correctOptionId;
+                isCorrect = option.id === correctId;
+                isIncorrect =
+                  question.selectedOption === option.id && !isCorrect;
+              }
+              // Set dot color for review mode
+              let dotColor = "text-blue-600 dark:text-blue-400";
+              if (mode === "review") {
+                if (isCorrect) dotColor = "text-green-600 dark:text-green-400";
+                else if (isIncorrect)
+                  dotColor = "text-red-600 dark:text-red-400";
+                else if (question.selectedOption === option.id)
+                  dotColor = "text-blue-600 dark:text-blue-400";
+                else dotColor = "text-border dark:text-border";
+              }
               return (
                 <div
                   key={option.id}
                   className={cn(
                     "flex items-center space-x-2 rounded-lg border p-4 transition-all",
-                    question.selectedOption === option.id
+                    mode === "review"
+                      ? isCorrect
+                        ? "border-green-500 bg-green-50 text-green-900 dark:border-green-600 dark:bg-green-900/40 dark:text-green-100"
+                        : isIncorrect
+                        ? "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/40 dark:text-red-100"
+                        : question.selectedOption === option.id
+                        ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                        : "border-border hover:border-border/80 hover:bg-accent"
+                      : question.selectedOption === option.id
                       ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
                       : "border-border hover:border-border/80 hover:bg-accent"
                   )}
@@ -165,7 +279,7 @@ export default function QuestionRenderer({
                   <RadioGroupItem
                     value={option.id}
                     id={`option-${optionId}`}
-                    className="text-blue-600 dark:text-blue-400"
+                    className={dotColor}
                     disabled={mode === "review"}
                   />
                   <Label
@@ -185,18 +299,21 @@ export default function QuestionRenderer({
 
     case "FILL_IN_BLANK": {
       const questionText = question?.questionText ?? "";
-
-      const currentAnswer = Array.isArray(question?.selectedOption)
-        ? question.selectedOption[0] || ""
-        : "";
-
+      // Always fill with user answer in review mode
+      const currentAnswer =
+        mode === "review"
+          ? Array.isArray(question?.selectedOption)
+            ? question.selectedOption[0] || ""
+            : ""
+          : Array.isArray(question?.selectedOption)
+          ? question.selectedOption[0] || ""
+          : "";
       return (
         <div className="space-y-4">
           <div className="text-lg font-medium">Fill in the Blank:</div>
           <div className="text-lg">
             <LatexRenderer content={questionText} />
           </div>
-
           <div className="relative">
             <Input
               id="blank-0"
@@ -228,6 +345,18 @@ export default function QuestionRenderer({
       const selectedOption = question.selectedOption;
       const modeIsReview = mode === "review";
       const matchingPairs = question.matchingPairs || [];
+      // Find correct option id
+      const correctOption =
+        options.find((opt: any) => opt.isCorrect) ||
+        options.find(
+          (opt: any) =>
+            opt.id === (question.correctAnswer || question.correctOptionId)
+        );
+      const correctId = correctOption
+        ? correctOption.id
+        : question.correctAnswer || question.correctOptionId;
+      // Unattempted: selectedOption is empty or undefined
+      const isUnattempted = !selectedOption;
       return (
         <div className="space-y-4">
           {/* Instruction */}
@@ -249,7 +378,7 @@ export default function QuestionRenderer({
                   </tr>
                 </thead>
                 <tbody>
-                  {matchingPairs.map((pair, idx) => (
+                  {matchingPairs.map((pair: any, idx: number) => (
                     <tr key={pair.id || idx} className="border-b">
                       <td className="p-3 font-medium">
                         <LatexRenderer content={pair.leftText} />
@@ -265,16 +394,35 @@ export default function QuestionRenderer({
           )}
           {/* Options to select (radio buttons) */}
           <div className="space-y-2">
-            {options.map((option, index) => {
+            {options.map((option: any, index: number) => {
               const isSelected = selectedOption === option.id;
+              let isCorrect = false;
+              let isIncorrect = false;
+              if (modeIsReview) {
+                if (isUnattempted) {
+                  isCorrect = option.id === correctId;
+                  isIncorrect = false;
+                } else {
+                  isCorrect = option.id === correctId;
+                  isIncorrect = isSelected && !isCorrect;
+                }
+              }
               return (
                 <label
                   key={option.id}
                   className={cn(
                     "flex items-start space-x-3 rounded-lg border p-3 cursor-pointer transition-colors",
-                    isSelected
-                      ? "border-primary bg-primary/10 dark:bg-primary/20"
-                      : "border-muted"
+                    modeIsReview
+                      ? isCorrect
+                        ? "border-green-500 bg-green-50 text-green-900 dark:border-green-600 dark:bg-green-900/40 dark:text-green-100"
+                        : isIncorrect
+                        ? "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/40 dark:text-red-100"
+                        : isSelected
+                        ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                        : "border-border hover:border-border/80 hover:bg-accent"
+                      : isSelected
+                      ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100"
+                      : "border-border hover:border-border/80 hover:bg-accent"
                   )}
                 >
                   <input
@@ -296,7 +444,6 @@ export default function QuestionRenderer({
         </div>
       );
     }
-
     default:
       return <div>Unsupported question type</div>;
   }

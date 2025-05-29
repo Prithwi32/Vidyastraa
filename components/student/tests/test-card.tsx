@@ -26,7 +26,7 @@ export function CompletedTestCard({ test }: CompletedTestCardProps) {
 
   const handleViewAnswers = () => {
     router.push(
-      `/student/dashboard/tests/${test.testId}/result/${result.id}/testReview` // resultId need to define
+      `/student/dashboard/tests/${test.testId}/result/${test.id}/testReview` // resultId need to define
     );
   };
 

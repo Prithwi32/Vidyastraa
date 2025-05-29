@@ -1,72 +1,98 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { useParams, useRouter} from "next/navigation"
-import { ChevronLeft, ChevronRight, Menu, CheckCircle, Circle, Sun, Moon, X, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useTheme } from "next-themes"
-import type { QuestionWithStatus, TestWithQuestion } from "@/lib/tests/types"
-import { fetchTestResultWithQuestion } from "@/app/actions/test"
-import { ToastContainer } from "react-toastify"
-import { useSession } from "next-auth/react"
-import Image from "next/image"
-import "katex/dist/katex.min.css"
-import QuestionNavigationPanel from "./question-navigation-panel"
-import LatexRenderer from "./latex-renderer"
-import QuestionRenderer from "./question-renderer"
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  CheckCircle,
+  Circle,
+  Sun,
+  Moon,
+  X,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useTheme } from "next-themes";
+import type { QuestionWithStatus, TestWithQuestion } from "@/lib/tests/types";
+import { fetchTestResultWithQuestion } from "@/app/actions/test";
+import { ToastContainer } from "react-toastify";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+import "katex/dist/katex.min.css";
+import QuestionNavigationPanel from "./question-navigation-panel";
+import LatexRenderer from "./latex-renderer";
+import QuestionRenderer from "./question-renderer";
+
+// Add a local type for review questions
+type ReviewQuestion = QuestionWithStatus & {
+  isCorrect: boolean;
+  marksAwarded: number;
+  image?: string;
+  solution?: string;
+};
 
 type Props = {
-  testId: string
-  resultId: string
-}
+  testId: string;
+  resultId: string;
+};
 
 type QuestionResponse = {
-  questionId: string
-  selectedAnswer: string
-  isCorrect: boolean
-}
+  questionId: string;
+  selectedAnswer: string;
+  isCorrect: boolean;
+};
 
 export default function ReviewInterface({ testId, resultId }: Props) {
-  const router = useRouter()
-  const params = useParams()
-  const session = useSession()
+  const router = useRouter();
+  const params = useParams();
+  const session = useSession();
 
   // Dark mode state
-  const { setTheme, theme } = useTheme()
+  const { setTheme, theme } = useTheme();
 
   // Loading state
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
 
   // Test data
-  const [test, setTest] = useState<TestWithQuestion | null>(null)
+  const [test, setTest] = useState<TestWithQuestion | null>(null);
 
   // state for question panel
-  const [showQuestionPanel, setShowQuestionPanel] = useState(false)
+  const [showQuestionPanel, setShowQuestionPanel] = useState(false);
 
   // Current question index
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   // Questions with status
-  const [questions, setQuestions] = useState<QuestionWithStatus[]>([])
+  const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
 
   useEffect(() => {
     if (session.status === "loading") {
-      setLoading(true)
+      setLoading(true);
     } else {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [session.status])
+  }, [session.status]);
 
   // Load test result data
   useEffect(() => {
     async function loadResult() {
-      setLoading(true)
+      setLoading(true);
       try {
-        const resultData = await fetchTestResultWithQuestion(resultId as string)
+        const resultData = await fetchTestResultWithQuestion(
+          resultId as string
+        );
 
         // Set the test information (using the test data from result)
         setTest({
@@ -77,98 +103,160 @@ export default function ReviewInterface({ testId, resultId }: Props) {
           description: resultData.description || "",
           duration: resultData.duration,
           questions: resultData.questions, // Use the properly ordered questions
-        })
+        });
 
         // Create a map of questionId to response for quick lookup
-        const responseMap = new Map<string, QuestionResponse>()
+        const responseMap = new Map<string, any>();
         resultData.responses.forEach((response) => {
-          responseMap.set(response.questionId, response)
-        })
+          responseMap.set(response.questionId, response);
+        });
 
         // Initialize questions with status, maintaining the original order
-        const questionsWithStatus = resultData.questions.map((question, index) => {
-          const response = responseMap.get(question.id)
-          return {
-            ...question,
-            subject: question.subject.name,
-            status: index === 0 ? "current" : "reviewed", // Changed from "unattempted" to "reviewed"
-            selectedOption: response?.selectedAnswer || undefined,
-            isCorrect: response?.isCorrect || false,
-            marksAwarded: response?.isCorrect ? question.marks || 0 : 0,
-          } as QuestionWithStatus
-        })
+        const questionsWithStatus: ReviewQuestion[] = resultData.questions.map(
+          (question, index) => {
+            const response = responseMap.get(question.id);
+            let selectedOption: any = undefined;
+            let status = index === 0 ? "current" : "review";
+            let marksAwarded = 0;
+            let isCorrect = false;
+            let image = question.questionImage;
+            let solution = question.solutionText;
 
-        setQuestions(questionsWithStatus)
+            if (response && response.isAnswered === false) {
+              status = "unattempted";
+              marksAwarded = 0;
+              selectedOption = undefined;
+              isCorrect = false;
+            } else if (question.type === "FILL_IN_BLANK") {
+              selectedOption = Array.isArray(response?.answer)
+                ? response.answer
+                : [];
+              marksAwarded =
+                response.marksAwarded || 0;
+              isCorrect = !!response?.isCorrect;
+            } else if (question.type === "MULTI_SELECT") {
+              selectedOption = Array.isArray(response?.answer)
+                ? response.answer[0]?.split(",") ?? []
+                : [];
+              marksAwarded =
+                response.marksAwarded || 0;
+              isCorrect = !!response?.isCorrect;
+            } else if (question.type === "MATCHING") {
+              // For matching, selectedOption is the id among options that matches the answer (if answered)
+              if (
+                response &&
+                response.isAnswered &&
+                Array.isArray(response.answer) &&
+                response.answer.length > 0
+              ) {
+                // Find the option id in question.options that matches the answer
+                const answerId = response.answer[0];
+                const found = question.options.find(
+                  (opt) => opt.id === answerId
+                );
+                selectedOption = found ? found.id : undefined;
+              } else {
+                selectedOption = undefined;
+              }
+              marksAwarded =
+                response.marksAwarded || 0;
+              isCorrect = !!response?.isCorrect;
+            } else {
+              selectedOption = Array.isArray(response?.answer)
+                ? response.answer[0]
+                : undefined;
+              marksAwarded =
+                response.marksAwarded || 0,
+              isCorrect = !!response?.isCorrect;
+            }
+
+            // Attach extra fields as any to avoid TS errors in the rest of the file
+            return {
+              ...question,
+              subject: question.subject,
+              status,
+              selectedOption,
+              isCorrect,
+              marksAwarded,
+              image,
+              solution,
+            };
+          }
+        );
+
+        setQuestions(questionsWithStatus);
       } catch (error) {
-        console.error("Error loading test result:", error)
+        console.error("Error loading test result:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
     if (resultId) {
-      loadResult()
+      loadResult();
     }
-  }, [resultId])
+  }, [resultId]);
 
   // Current question
-  const currentQuestion = questions[currentQuestionIndex] || null
+  const currentQuestion = questions[currentQuestionIndex] || null;
 
   // Handle navigation
   const goToQuestion = useCallback(
     (index: number) => {
-      if (!questions.length) return
+      if (!questions.length) return;
 
       // Update current question status
-      const updatedQuestions = [...questions]
+      const updatedQuestions = [...questions];
 
       // Only change the current question's status if it's currently marked as "current"
       if (updatedQuestions[currentQuestionIndex].status === "current") {
         updatedQuestions[currentQuestionIndex] = {
           ...updatedQuestions[currentQuestionIndex],
-          status: "reviewed",
-        }
+          status: "review",
+        };
       }
 
       // Set the new question to current
       updatedQuestions[index] = {
         ...updatedQuestions[index],
         status: "current",
-      }
+      };
 
-      setQuestions(updatedQuestions)
-      setCurrentQuestionIndex(index)
+      setQuestions(updatedQuestions);
+      setCurrentQuestionIndex(index);
     },
-    [questions, currentQuestionIndex],
-  )
+    [questions, currentQuestionIndex]
+  );
 
   const goToNextQuestion = useCallback(() => {
     if (currentQuestionIndex < questions.length - 1) {
-      goToQuestion(currentQuestionIndex + 1)
+      goToQuestion(currentQuestionIndex + 1);
     }
-  }, [currentQuestionIndex, questions.length, goToQuestion])
+  }, [currentQuestionIndex, questions.length, goToQuestion]);
 
   const goToPreviousQuestion = useCallback(() => {
     if (currentQuestionIndex > 0) {
-      goToQuestion(currentQuestionIndex - 1)
+      goToQuestion(currentQuestionIndex - 1);
     }
-  }, [currentQuestionIndex, goToQuestion])
+  }, [currentQuestionIndex, goToQuestion]);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
-    setTheme(theme === "dark" ? "light" : "dark")
-  }
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   // Check if a question is marked for review
   const isMarkedForReview = (questionId: string) => {
-    const question = questions.find((q) => q.id === questionId)
-    return question?.status === "review"
-  }
+    const question = questions.find((q) => q.id === questionId);
+    return question?.status === "review";
+  };
 
   // Get question counts
-  const correctCount = questions.filter((q) => q.isCorrect).length
-  const incorrectCount = questions.filter((q) => q.selectedOption && !q.isCorrect).length
-  const unattemptedCount = questions.filter((q) => !q.selectedOption).length
+  const correctCount = questions.filter((q) => q.isCorrect).length;
+  const incorrectCount = questions.filter(
+    (q) => q.selectedOption && !q.isCorrect
+  ).length;
+  const unattemptedCount = questions.filter((q) => !q.selectedOption).length;
 
   if (loading || !test || !currentQuestion) {
     return (
@@ -176,7 +264,7 @@ export default function ReviewInterface({ testId, resultId }: Props) {
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-lg">Loading test results...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -186,7 +274,13 @@ export default function ReviewInterface({ testId, resultId }: Props) {
       <header className="sticky top-0 z-30 flex items-center justify-end sm:justify-between p-4 bg-card border-b border-border shadow-sm">
         <div className="hidden sm:flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md overflow-hidden">
-            <Image src="/logo.jpeg" alt="Vidyastraa Logo" width={48} height={48} className="object-contain" />
+            <Image
+              src="/logo.jpeg"
+              alt="Vidyastraa Logo"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold">{test.title}</h1>
@@ -196,7 +290,12 @@ export default function ReviewInterface({ testId, resultId }: Props) {
 
         <div className="flex items-center gap-3">
           {/* Theme toggle */}
-          <Button variant="outline" size="icon" onClick={toggleDarkMode} className="border-border bg-card">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleDarkMode}
+            className="border-border bg-card"
+          >
             <Sun className="size-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute size-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
@@ -205,12 +304,19 @@ export default function ReviewInterface({ testId, resultId }: Props) {
           {/* Mobile sidebar toggle - moved to header */}
           <Sheet open={showQuestionPanel} onOpenChange={setShowQuestionPanel}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden border-border bg-card">
+              <Button
+                variant="outline"
+                size="icon"
+                className="md:hidden border-border bg-card"
+              >
                 <Menu className="w-5 h-5" />
                 <span className="sr-only">Open question panel</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85%] sm:w-[350px] p-0 bg-background">
+            <SheetContent
+              side="right"
+              className="w-[85%] sm:w-[350px] p-0 bg-background"
+            >
               <QuestionNavigationPanel
                 questions={questions}
                 goToQuestion={goToQuestion}
@@ -273,36 +379,43 @@ export default function ReviewInterface({ testId, resultId }: Props) {
                   </CardTitle>
                 </div>
                 <Badge
-                  variant={currentQuestion.isCorrect ? "success" : "destructive"}
+                  variant={
+                    currentQuestion.isCorrect ? "success" : "destructive"
+                  }
                   className={cn(
                     "gap-2",
                     currentQuestion.isCorrect
                       ? "bg-green-500 hover:bg-green-600"
                       : currentQuestion.selectedOption
-                        ? "bg-red-500 hover:bg-red-600"
-                        : "bg-slate-500 hover:bg-slate-600",
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-slate-500 hover:bg-slate-600"
                   )}
                 >
                   {currentQuestion.isCorrect
-                    ? `+${currentQuestion.marks || 4}`
+                    ? `+${currentQuestion.marksAwarded}`
                     : currentQuestion.selectedOption
-                      ? `-${currentQuestion.negativeMark || 1}`
-                      : "0"}
+                    ? `-${currentQuestion.marksAwarded}`
+                    : "0"}
                 </Badge>
               </CardHeader>
 
               <CardContent className="pt-4">
                 <div className="mb-6 text-lg font-medium">
-                  {currentQuestion.type !== "ASSERTION_REASON" && currentQuestion.type !== "MATCHING" && (
-                    <LatexRenderer content={currentQuestion.questionText} />
-                  )}
+                  {currentQuestion.type !== "ASSERTION_REASON" &&
+                    currentQuestion.type !== "MATCHING" && (
+                      <LatexRenderer content={currentQuestion.questionText} />
+                    )}
                 </div>
 
                 {currentQuestion.image && (
                   <div className="mb-6">
                     <div className="relative w-full h-48 md:h-64 rounded-md overflow-hidden">
                       <Image
-                        src={currentQuestion.image || "https://ui.shadcn.com/placeholder.svg" || "/placeholder.svg"}
+                        src={
+                          currentQuestion.image ||
+                          "https://ui.shadcn.com/placeholder.svg" ||
+                          "/placeholder.svg"
+                        }
                         alt="Question image"
                         fill
                         className="object-contain"
@@ -373,10 +486,8 @@ export default function ReviewInterface({ testId, resultId }: Props) {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-
 
 // "use client"
 
@@ -521,7 +632,7 @@ export default function ReviewInterface({ testId, resultId }: Props) {
 //       // Set the new question to current
 //       updatedQuestions[index] = {
 //         ...updatedQuestions[index],
-//         status: "current",
+// status: "current",
 //       }
 
 //       setQuestions(updatedQuestions)
