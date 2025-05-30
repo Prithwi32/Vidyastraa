@@ -142,17 +142,6 @@ export default function QuestionRenderer({
               }
             }
 
-            let tickColor = "text-blue-600 dark:text-blue-400";
-            if (mode === "review") {
-              if (isCorrect) tickColor = "text-green-600 dark:text-green-400";
-              else if (isPartial)
-                tickColor = "text-yellow-600 dark:text-yellow-400";
-              else if (isIncorrect)
-                tickColor = "text-red-600 dark:text-red-400";
-              else if (isSelected)
-                tickColor = "text-blue-600 dark:text-blue-400";
-              else tickColor = "text-border dark:text-border";
-            }
             return (
               <div
                 key={option.id}
@@ -176,10 +165,18 @@ export default function QuestionRenderer({
                   checked={isSelected}
                   onCheckedChange={() => handleOptionSelect(option.id)}
                   className={cn(
-                    "h-5 w-5 rounded-md",
+                    "h-5 w-5 rounded-md border",
                     mode === "review"
-                      ? tickColor
-                      : "text-blue-600 dark:text-blue-400"
+                      ? isCorrect
+                        ? "border-green-600 text-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white"
+                        : isPartial
+                        ? "border-yellow-600 text-yellow-600 data-[state=checked]:bg-yellow-600 data-[state=checked]:text-white"
+                        : isIncorrect
+                        ? "border-red-600 text-red-600 data-[state=checked]:bg-red-600 data-[state=checked]:text-white"
+                        : "border-border text-border"
+                      : isSelected
+                      ? "border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
+                      : "border-border text-border"
                   )}
                   disabled={mode === "review"}
                 />
