@@ -15,7 +15,12 @@ import Latex from "react-latex-next";
 interface QuestionDetailModalProps {
   question: {
     id: string;
-    type: "MCQ" | "MULTI_SELECT" | "ASSERTION_REASON" | "FILL_IN_BLANK" | "MATCHING";
+    type:
+      | "MCQ"
+      | "MULTI_SELECT"
+      | "ASSERTION_REASON"
+      | "FILL_IN_BLANK"
+      | "MATCHING";
     questionText: string;
     questionImage?: string | null;
     solutionText?: string | null;
@@ -62,7 +67,6 @@ export function QuestionDetailModal({
     return null;
   }
 
-
   const difficultyColors = {
     BEGINNER: {
       light: "bg-green-50 text-green-700 border-green-200",
@@ -72,7 +76,7 @@ export function QuestionDetailModal({
       light: "bg-amber-50 text-amber-700 border-amber-200",
       dark: "bg-amber-900/30 text-amber-300 border-amber-700",
     },
-    ADVANCED:{
+    ADVANCED: {
       light: "bg-red-50 text-red-700 border-red-200",
       dark: "bg-red-900/30 text-red-300 border-red-700",
     },
@@ -213,36 +217,36 @@ export function QuestionDetailModal({
   );
 
   const renderAssertionReasonOptions = () => {
-    const options = question.options|| [];
+    const options = question.options || [];
 
     return (
-        <div className="space-y-2">
-          <h4 className="font-medium">Options:</h4>
-          <div className="grid gap-2 md:grid-cols-2">
-            {options.map((option, index) => (
-              <div
-                key={option.id}
-                className={`rounded-lg p-3 border transition-colors ${
-                  option.isCorrect
-                    ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
-                    : "bg-muted/50 hover:bg-muted/70"
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  <span className="font-medium">
-                    {String.fromCharCode(65 + index)}.
+      <div className="space-y-2">
+        <h4 className="font-medium">Options:</h4>
+        <div className="grid gap-2 md:grid-cols-2">
+          {options.map((option, index) => (
+            <div
+              key={option.id}
+              className={`rounded-lg p-3 border transition-colors ${
+                option.isCorrect
+                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                  : "bg-muted/50 hover:bg-muted/70"
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                <span className="font-medium">
+                  {String.fromCharCode(65 + index)}.
+                </span>
+                <div className="flex-1">{renderWithLatex(option.text)}</div>
+                {option.isCorrect && (
+                  <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
+                    Correct
                   </span>
-                  <div className="flex-1">{renderWithLatex(option.text)}</div>
-                  {option.isCorrect && (
-                    <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
-                      Correct
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
+      </div>
     );
   };
 
@@ -250,12 +254,11 @@ export function QuestionDetailModal({
     <div className="space-y-2">
       <h3 className="font-semibold">Correct Answer:</h3>
       <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
-        {
-          renderWithLatex(question.options?.[0]?.text)
-        }
+        {renderWithLatex(question.options?.[0]?.text)}
       </div>
       <div className="text-sm text-muted-foreground">
-        Note: This is a fill-in-the-blank question. The correct answer is shown above.
+        Note: This is a fill-in-the-blank question. The correct answer is shown
+        above.
       </div>
     </div>
   );
@@ -267,13 +270,20 @@ export function QuestionDetailModal({
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b">
-              <th className="p-3 text-left bg-muted/50 dark:bg-muted/80">{JSON.parse(question.questionText).headers.left}</th>
-              <th className="p-3 text-left bg-muted/50 dark:bg-muted/80">{JSON.parse(question.questionText).headers.left}</th>
+              <th className="p-3 text-left bg-muted/50 dark:bg-muted/80">
+                {JSON.parse(question.questionText).headers.left}
+              </th>
+              <th className="p-3 text-left bg-muted/50 dark:bg-muted/80">
+                {JSON.parse(question.questionText).headers.left}
+              </th>
             </tr>
           </thead>
           <tbody>
             {question.matchingPairs?.map((pair, index) => (
-              <tr key={index} className="border-b hover:bg-muted/30 transition-colors">
+              <tr
+                key={index}
+                className="border-b hover:bg-muted/30 transition-colors"
+              >
                 <td className="p-3">
                   <div className="flex items-center gap-2">
                     {pair.leftImage && (
@@ -304,7 +314,45 @@ export function QuestionDetailModal({
         </table>
       </div>
       <div className="text-sm text-muted-foreground">
-        Note: Match items from Column A with their correct counterparts in Column B.
+        Note: Match items from Column A with their correct counterparts in
+        Column B.
+      </div>
+    </div>
+  );
+
+  const renderMatchingOptions = () => (
+    <div className="space-y-2">
+      <h3 className="font-semibold">Options:</h3>
+      <div className="grid gap-2 md:grid-cols-2">
+        {question.options?.map((option, index) => (
+          <div
+            key={option.id}
+            className={`rounded-lg p-3 border transition-colors ${
+              option.isCorrect
+                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                : "bg-muted/50 hover:bg-muted/70"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <span className="font-medium">
+                {String.fromCharCode(65 + index)}.
+              </span>
+              <div className="flex-1">{renderWithLatex(option.text)}</div>
+              {option.image && (
+                <img
+                  src={option.image}
+                  alt="Option diagram"
+                  className="mt-2 rounded-md border max-w-full"
+                />
+              )}
+              {option.isCorrect && (
+                <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
+                  Correct
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -320,7 +368,12 @@ export function QuestionDetailModal({
       case "FILL_IN_BLANK":
         return renderFillInBlank();
       case "MATCHING":
-        return renderMatchingPairs();
+        return (
+          <>
+            {renderMatchingPairs()}
+            {renderMatchingOptions()}
+          </>
+        );
       default:
         return null;
     }
@@ -368,13 +421,19 @@ export function QuestionDetailModal({
                   {question.marks} {question.marks === 1 ? "mark" : "marks"}
                 </Badge>
               )}
-              {negativeMarking!==undefined && negativeMarking>0 && (
-                <Badge variant="outline" className="font-mono text-red-600 dark:text-red-400">
+              {negativeMarking !== undefined && negativeMarking > 0 && (
+                <Badge
+                  variant="outline"
+                  className="font-mono text-red-600 dark:text-red-400"
+                >
                   -{negativeMarking} penalty
                 </Badge>
               )}
               {partialMarking && (
-                <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
+                <Badge
+                  variant="outline"
+                  className="text-amber-600 dark:text-amber-400"
+                >
                   Partial Marking
                 </Badge>
               )}
@@ -406,16 +465,22 @@ export function QuestionDetailModal({
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">
-                  {question.type!=="ASSERTION_REASON" && question.type!=="MATCHING" && renderWithLatex(question?.questionText)}
-                  {
-                    question.type==="ASSERTION_REASON" && (
-                      <>
-                        {renderWithLatex(question?.questionText?.split("---")[0])}
-                        {renderWithLatex(question?.questionText?.split("---")[1])}
-                      </>
-                    )
-                  }
-                  {question.type==="MATCHING" && <>{renderWithLatex(JSON.parse(question.questionText).instruction)}</>}
+                  {question.type !== "ASSERTION_REASON" &&
+                    question.type !== "MATCHING" &&
+                    renderWithLatex(question?.questionText)}
+                  {question.type === "ASSERTION_REASON" && (
+                    <>
+                      {renderWithLatex(question?.questionText?.split("---")[0])}
+                      {renderWithLatex(question?.questionText?.split("---")[1])}
+                    </>
+                  )}
+                  {question.type === "MATCHING" && (
+                    <>
+                      {renderWithLatex(
+                        JSON.parse(question.questionText).instruction
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
