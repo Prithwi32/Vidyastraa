@@ -789,10 +789,10 @@ export default function TestsPage() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Edit Test</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => window.open(`/api/export/tests/${test.id}`)}>
+                              {/* <DropdownMenuItem onClick={() => window.open(`/api/export/tests/${test.id}`)}>
                                 <Download className="mr-2 h-4 w-4" />
                                 <span>Export as PDF</span>
-                              </DropdownMenuItem>
+                              </DropdownMenuItem> */}
 
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

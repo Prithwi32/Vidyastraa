@@ -159,109 +159,109 @@ export default function TestResults() {
       );
 
       // Questions Summary Section
-      drawText("\nQuestions Summary", 16, 24);
+      // drawText("\nQuestions Summary", 16, 24);
 
-      // Process all questions (both attempted and unattempted)
-      testWithResponses.questions.forEach((question, idx) => {
-        const response = testWithResponses.responses.find(
-          (r) => r.questionId === question.id
-        );
+      // // Process all questions (both attempted and unattempted)
+      // testWithResponses.questions.forEach((question, idx) => {
+      //   const response = testWithResponses.responses.find(
+      //     (r) => r.questionId === question.id
+      //   );
 
-        // Question Text
-        drawText(`\n${idx + 1}. ${question.question}`, fontSize, 18);
+      //   // Question Text
+      //   drawText(`\n${idx + 1}. ${question.question}`, fontSize, 18);
 
-        // Options
-        question.options.forEach((opt: string, optIdx: number) => {
-          const optionLabel = String.fromCharCode(65 + optIdx);
-          drawText(`   ${optionLabel}. ${opt}`, fontSize - 1, 16, margin + 20);
-        });
+      //   // Options
+      //   question.options.forEach((opt: string, optIdx: number) => {
+      //     const optionLabel = String.fromCharCode(65 + optIdx);
+      //     drawText(`   ${optionLabel}. ${opt}`, fontSize - 1, 16, margin + 20);
+      //   });
 
-        // Process user answer
-        let userAnswerText = "Not answered";
-        let isCorrect = response?.isCorrect || false;
+      //   // Process user answer
+      //   let userAnswerText = "Not answered";
+      //   let isCorrect = response?.isCorrect || false;
 
-        if (response?.selectedAnswer) {
-          // First try to match the exact option text
-          const exactMatchIndex = question.options.findIndex(
-            (opt) => opt === response.selectedAnswer
-          );
-          if (exactMatchIndex >= 0) {
-            const optionLetter = String.fromCharCode(65 + exactMatchIndex);
-            userAnswerText = `${optionLetter}. ${question.options[exactMatchIndex]}`;
-          }
-          // If no exact match, try to parse as index (0-3) or letter (A-D)
-          else {
-            let optionIndex = -1;
+      //   if (response?.selectedAnswer) {
+      //     // First try to match the exact option text
+      //     const exactMatchIndex = question.options.findIndex(
+      //       (opt) => opt === response.selectedAnswer
+      //     );
+      //     if (exactMatchIndex >= 0) {
+      //       const optionLetter = String.fromCharCode(65 + exactMatchIndex);
+      //       userAnswerText = `${optionLetter}. ${question.options[exactMatchIndex]}`;
+      //     }
+      //     // If no exact match, try to parse as index (0-3) or letter (A-D)
+      //     else {
+      //       let optionIndex = -1;
 
-            // Check if it's a letter (A-D)
-            if (/^[A-Da-d]$/.test(response.selectedAnswer)) {
-              optionIndex =
-                response.selectedAnswer.toUpperCase().charCodeAt(0) -
-                "A".charCodeAt(0);
-            }
-            // Check if it's an index (0-3)
-            else if (/^[0-3]$/.test(response.selectedAnswer)) {
-              optionIndex = parseInt(response.selectedAnswer);
-            }
+      //       // Check if it's a letter (A-D)
+      //       if (/^[A-Da-d]$/.test(response.selectedAnswer)) {
+      //         optionIndex =
+      //           response.selectedAnswer.toUpperCase().charCodeAt(0) -
+      //           "A".charCodeAt(0);
+      //       }
+      //       // Check if it's an index (0-3)
+      //       else if (/^[0-3]$/.test(response.selectedAnswer)) {
+      //         optionIndex = parseInt(response.selectedAnswer);
+      //       }
 
-            if (optionIndex >= 0 && optionIndex < question.options.length) {
-              const optionLetter = String.fromCharCode(65 + optionIndex);
-              userAnswerText = `${optionLetter}. ${question.options[optionIndex]}`;
-            } else {
-              // Fallback to showing the raw value
-              userAnswerText = response.selectedAnswer;
-            }
-          }
-        }
+      //       if (optionIndex >= 0 && optionIndex < question.options.length) {
+      //         const optionLetter = String.fromCharCode(65 + optionIndex);
+      //         userAnswerText = `${optionLetter}. ${question.options[optionIndex]}`;
+      //       } else {
+      //         // Fallback to showing the raw value
+      //         userAnswerText = response.selectedAnswer;
+      //       }
+      //     }
+      //   }
 
-        // Process correct answer
-        let correctAnswerIndex = -1;
-        if (/^[A-Da-d]$/.test(question.correctAnswer)) {
-          correctAnswerIndex =
-            question.correctAnswer.toUpperCase().charCodeAt(0) -
-            "A".charCodeAt(0);
-        } else if (/^[0-3]$/.test(question.correctAnswer)) {
-          correctAnswerIndex = parseInt(question.correctAnswer);
-        } else {
-          correctAnswerIndex = question.options.findIndex(
-            (opt) => opt === question.correctAnswer
-          );
-        }
+      //   // Process correct answer
+      //   let correctAnswerIndex = -1;
+      //   if (/^[A-Da-d]$/.test(question.correctAnswer)) {
+      //     correctAnswerIndex =
+      //       question.correctAnswer.toUpperCase().charCodeAt(0) -
+      //       "A".charCodeAt(0);
+      //   } else if (/^[0-3]$/.test(question.correctAnswer)) {
+      //     correctAnswerIndex = parseInt(question.correctAnswer);
+      //   } else {
+      //     correctAnswerIndex = question.options.findIndex(
+      //       (opt) => opt === question.correctAnswer
+      //     );
+      //   }
 
-        const correctAnswerText =
-          correctAnswerIndex >= 0 &&
-          correctAnswerIndex < question.options.length
-            ? `${String.fromCharCode(65 + correctAnswerIndex)}. ${
-                question.options[correctAnswerIndex]
-              }`
-            : question.correctAnswer;
+      //   const correctAnswerText =
+      //     correctAnswerIndex >= 0 &&
+      //     correctAnswerIndex < question.options.length
+      //       ? `${String.fromCharCode(65 + correctAnswerIndex)}. ${
+      //           question.options[correctAnswerIndex]
+      //         }`
+      //       : question.correctAnswer;
 
-        // Draw user answer
-        drawText(
-          `   Your answer: ${userAnswerText}`,
-          fontSize,
-          16,
-          margin + 20
-        );
+      //   // Draw user answer
+      //   drawText(
+      //     `   Your answer: ${userAnswerText}`,
+      //     fontSize,
+      //     16,
+      //     margin + 20
+      //   );
 
-        const statusText = response
-          ? `Status: ${isCorrect ? "CORRECT" : "INCORRECT"}`
-          : "Status: UNATTEMPTED";
+      //   const statusText = response
+      //     ? `Status: ${isCorrect ? "CORRECT" : "INCORRECT"}`
+      //     : "Status: UNATTEMPTED";
 
-        drawText(`   ${statusText}`, fontSize, 16, margin + 20);
+      //   drawText(`   ${statusText}`, fontSize, 16, margin + 20);
 
-        if (!isCorrect || !response) {
-          drawText(
-            `   Correct answer: ${correctAnswerText}`,
-            fontSize,
-            16,
-            margin + 20
-          );
-        }
+      //   if (!isCorrect || !response) {
+      //     drawText(
+      //       `   Correct answer: ${correctAnswerText}`,
+      //       fontSize,
+      //       16,
+      //       margin + 20
+      //     );
+      //   }
 
-        // Add space between questions
-        drawText("", fontSize, 12);
-      });
+      //   // Add space between questions
+      //   drawText("", fontSize, 12);
+      // });
 
       // Generate and download the PDF
       const pdfBytes = await pdfDoc.save();
