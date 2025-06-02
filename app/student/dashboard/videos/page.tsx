@@ -10,15 +10,15 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PLAYLISTS: Record<string, { id: string; name: string }> = {
-  PHYSICS: { id: "PLgUwDviBIf0oF6QL8m22w1hIDC1vJ_BHz", name: "Physics" },
-  CHEMISTRY: { id: "PLgUwDviBIf0pMFMWuuvDNMAkoQFi-h0ZF", name: "Chemistry" },
+  PHYSICS: { id: "PL5CqlNNHaqGPVD3P1s1BSPYdOYTSGpxfT", name: "Physics" },
+  CHEMISTRY: { id: "PL5CqlNNHaqGNldahPYJi8W__HFk2s-O63", name: "Chemistry" },
   MATHEMATICS: {
-    id: "PLgUwDviBIf0rqmgarU5Rx6MP6Qt1_uVx4",
+    id: "PL5CqlNNHaqGParoEFtSg4k-5_3D0hmndb",
     name: "Mathematics",
   },
-  BIOLOGY: { id: "PLgUwDviBIf0pMFMWuuvDNMAkoQFi-h0ZF", name: "Biology" },
-  JEE: { id: "PLgUwDviBIf0oF6QL8m22w1hIDC1vJ_BHz", name: "JEE Preparation" },
-  NEET: { id: "PL9gnSGHSqcnrslTujkMYzx-GuVrpVpu5_", name: "NEET Preparation" },
+  BIOLOGY: { id: "PL5CqlNNHaqGMRtkLnc_gNMnbG7uQ0KR5F", name: "Biology" },
+  JEE: { id: "PL5CqlNNHaqGParoEFtSg4k-5_3D0hmndb", name: "JEE Preparation" },
+  NEET: { id: "PL5CqlNNHaqGNXfQ8Fkdds2we6QuX08YhN", name: "NEET Preparation" },
 };
 
 const formatDuration = (duration: string): string => {
@@ -151,7 +151,7 @@ export default function VideosPage() {
               />
             </div>
             <a
-              href="https://www.youtube.com/@takeUforward"
+              href="https://www.youtube.com/@Neetworld-2025"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-md shadow hover:bg-red-700 transition-colors text-sm w-full sm:w-auto justify-center"

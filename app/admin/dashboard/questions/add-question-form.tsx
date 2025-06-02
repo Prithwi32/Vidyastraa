@@ -20,13 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-toastify";
 import FileUpload from "@/components/admin/FileUpload";
 import MathDisplay from "@/components/math-display";
+import MathInput from "@/components/admin/MathInput";
 import {
   Table,
   TableBody,
@@ -152,235 +151,54 @@ export default function AddQuestionForm({
   const [leftColumnSubheader, setLeftColumnSubheader] = useState("");
   const [rightColumnSubheader, setRightColumnSubheader] = useState("");
 
-  // Reset form when editing question changes
-  // useEffect(() => {
-  //   if (editingQuestion) {
-  //     setQuestionType(editingQuestion.type || "MCQ");
+  // Update the useEffect that handles editingQuestion changes
+  useEffect(() => {
+    if (editingQuestion) {
+      setQuestionType(editingQuestion.type || "MCQ");
 
-  //     if (editingQuestion.type === "ASSERTION_REASON") {
-  //       // Parse assertion and reason from questionText if it contains the delimiter
-  //       const parts = editingQuestion.questionText.split("\n---\n");
-  //       if (parts.length === 2) {
-  //         setAssertion(parts[0]);
-  //         setReason(parts[1]);
-  //       } else {
-  //         setQuestionText(editingQuestion.questionText || "");
-  //       }
+      if (editingQuestion.type === "ASSERTION_REASON") {
+        // Parse assertion and reason from questionText if it contains the delimiter
+        const parts = editingQuestion.questionText.split("\n---\n");
+        if (parts.length === 2) {
+          setAssertion(parts[0]);
+          setReason(parts[1]);
+        } else {
+          setQuestionText(editingQuestion.questionText || "");
+        }
 
-  //       // Find the correct option index
-  //       const correctOptionIndex =
-  //         editingQuestion.options?.findIndex((opt: any) => opt.isCorrect) || -1;
-  //       setArOption(correctOptionIndex);
-  //     } else {
-  //       setQuestionText(editingQuestion.questionText || "");
-  //     }
-
-  //     setQuestionImage(editingQuestion.questionImage || null);
-  //     setSolutionText(editingQuestion.solutionText || null);
-  //     setSolutionImage(editingQuestion.solutionImage || null);
-  //     setSubject(editingQuestion.subject?.name || "PHYSICS");
-  //     setDifficulty(editingQuestion.difficulty || "BEGINNER");
-  //     setChapter(editingQuestion.chapter?.name || "");
-
-  //     // Set options based on question type
-  //     if (editingQuestion.options) {
-  //       // Preserve the original order by sorting if needed
-  //       const orderedOptions = [...editingQuestion.options].sort((a, b) => {
-  //         // Add any sorting logic if your options have an order field
-  //         return 0; // Default to original order
-  //       });
-  //       setOptions(orderedOptions);
-  //     }
-
-  //     if (
-  //       editingQuestion.options &&
-  //       ["MCQ", "MULTI_SELECT", "ASSERTION_REASON"].includes(
-  //         editingQuestion.type
-  //       )
-  //     ) {
-  //       setOptions(
-  //         editingQuestion.options.map((opt: any) => ({
-  //           id: opt.id,
-  //           optionText: opt.optionText || "",
-  //           optionImage: opt.optionImage || null,
-  //           isCorrect: opt.isCorrect || false,
-  //         }))
-  //       );
-
-  //       // Extract solution options from solutionText if available
-  //       setSolutionText(editingQuestion.solutionText || "");
-  //     }
-
-  //     // Set matching pairs if available
-  //     if (
-  //       editingQuestion.matchingPairs &&
-  //       editingQuestion.type === "MATCHING"
-  //     ) {
-  //       setMatchingPairs(
-  //         editingQuestion.matchingPairs.map((pair: any) => ({
-  //           id: pair.id,
-  //           leftText: pair.leftText || "",
-  //           leftImage: pair.leftImage || null,
-  //           rightText: pair.rightText || "",
-  //           rightImage: pair.rightImage || null,
-  //         }))
-  //       );
-
-  //       // Try to extract table headers from questionText
-  //       try {
-  //         const tableData = JSON.parse(editingQuestion.questionText);
-  //         if (tableData.headers) {
-  //           setLeftColumnHeader(tableData.headers.left || "List I");
-  //           setRightColumnHeader(tableData.headers.right || "List II");
-  //           setLeftColumnSubheader(tableData.headers.leftSub || "");
-  //           setRightColumnSubheader(tableData.headers.rightSub || "");
-  //           setQuestionText(
-  //             tableData.instruction || "Match List I with List II."
-  //           );
-  //         }
-  //       } catch (e) {
-  //         // If not JSON, just use the text as is
-  //         setQuestionText(editingQuestion.questionText);
-  //       }
-
-  //       // Set options for matching questions if available
-  //       if (editingQuestion.options && editingQuestion.options.length > 0) {
-  //         setOptions(
-  //           editingQuestion.options.map((opt: any) => ({
-  //             id: opt.id,
-  //             optionText: opt.optionText || "",
-  //             optionImage: opt.optionImage || null,
-  //             isCorrect: opt.isCorrect || false,
-  //           }))
-  //         );
-  //       }
-  //     }
-
-  //     // Set correct answer for numerical questions
-  //     if (editingQuestion.type === "FILL_IN_BLANK") {
-  //       // Find the correct option
-  //       const correctOpt = editingQuestion.options?.find(
-  //         (opt: any) => opt.isCorrect
-  //       );
-  //       setCorrectAnswer(correctOpt?.optionText || "");
-  //     }
-  //   } else {
-  //     resetForm();
-  //   }
-  // }, [editingQuestion]);
-
-  // Remove this standalone block (it's causing the error)
-// if (editingQuestion.matchingPairs && editingQuestion.type === "MATCHING") {
-//   setMatchingPairs(
-//     editingQuestion.matchingPairs
-//       .map((pair: any) => ({
-//         id: pair.id,
-//         leftText: pair.leftText || "",
-//         leftImage: pair.leftImage || null,
-//         rightText: pair.rightText || "",
-//         rightImage: pair.rightImage || null,
-//         order: pair.order || 0, // Default to 0 if order is missing
-//       }))
-//       .sort((a, b) => a.order - b.order) // Sort by order
-//   );
-// }
-
-// Update the useEffect that handles editingQuestion changes
-useEffect(() => {
-  if (editingQuestion) {
-    setQuestionType(editingQuestion.type || "MCQ");
-
-    if (editingQuestion.type === "ASSERTION_REASON") {
-      // Parse assertion and reason from questionText if it contains the delimiter
-      const parts = editingQuestion.questionText.split("\n---\n");
-      if (parts.length === 2) {
-        setAssertion(parts[0]);
-        setReason(parts[1]);
+        // Find the correct option index
+        const correctOptionIndex =
+          editingQuestion.options?.findIndex((opt: any) => opt.isCorrect) || -1;
+        setArOption(correctOptionIndex);
       } else {
         setQuestionText(editingQuestion.questionText || "");
       }
 
-      // Find the correct option index
-      const correctOptionIndex =
-        editingQuestion.options?.findIndex((opt: any) => opt.isCorrect) || -1;
-      setArOption(correctOptionIndex);
-    } else {
-      setQuestionText(editingQuestion.questionText || "");
-    }
+      setQuestionImage(editingQuestion.questionImage || null);
+      setSolutionText(editingQuestion.solutionText || null);
+      setSolutionImage(editingQuestion.solutionImage || null);
+      setSubject(editingQuestion.subject?.name || "PHYSICS");
+      setDifficulty(editingQuestion.difficulty || "BEGINNER");
+      setChapter(editingQuestion.chapter?.name || "");
 
-    setQuestionImage(editingQuestion.questionImage || null);
-    setSolutionText(editingQuestion.solutionText || null);
-    setSolutionImage(editingQuestion.solutionImage || null);
-    setSubject(editingQuestion.subject?.name || "PHYSICS");
-    setDifficulty(editingQuestion.difficulty || "BEGINNER");
-    setChapter(editingQuestion.chapter?.name || "");
-
-    // Set options based on question type
-    if (editingQuestion.options) {
-      // Preserve the original order by sorting if needed
-      const orderedOptions = [...editingQuestion.options].sort((a, b) => {
-        // Add any sorting logic if your options have an order field
-        return 0; // Default to original order
-      });
-      setOptions(orderedOptions);
-    }
-
-    if (
-      editingQuestion.options &&
-      ["MCQ", "MULTI_SELECT", "ASSERTION_REASON"].includes(
-        editingQuestion.type
-      )
-    ) {
-      setOptions(
-        editingQuestion.options.map((opt: any) => ({
-          id: opt.id,
-          optionText: opt.optionText || "",
-          optionImage: opt.optionImage || null,
-          isCorrect: opt.isCorrect || false,
-        }))
-      );
-
-      // Extract solution options from solutionText if available
-      setSolutionText(editingQuestion.solutionText || "");
-    }
-
-    // Set matching pairs if available
-    if (
-      editingQuestion.matchingPairs &&
-      editingQuestion.type === "MATCHING"
-    ) {
-      setMatchingPairs(
-        editingQuestion.matchingPairs
-          .map((pair: any) => ({
-            id: pair.id,
-            leftText: pair.leftText || "",
-            leftImage: pair.leftImage || null,
-            rightText: pair.rightText || "",
-            rightImage: pair.rightImage || null,
-            order: pair.order || 0,
-          }))
-          .sort((a, b) => (a.order || 0) - (b.order || 0)) // Sort by order
-      );
-
-      // Try to extract table headers from questionText
-      try {
-        const tableData = JSON.parse(editingQuestion.questionText);
-        if (tableData.headers) {
-          setLeftColumnHeader(tableData.headers.left || "List I");
-          setRightColumnHeader(tableData.headers.right || "List II");
-          setLeftColumnSubheader(tableData.headers.leftSub || "");
-          setRightColumnSubheader(tableData.headers.rightSub || "");
-          setQuestionText(
-            tableData.instruction || "Match List I with List II."
-          );
-        }
-      } catch (e) {
-        // If not JSON, just use the text as is
-        setQuestionText(editingQuestion.questionText);
+      // Set options based on question type
+      if (editingQuestion.options) {
+        // Preserve the original order by sorting if needed
+        const orderedOptions = [...editingQuestion.options].sort(
+          (a: QuestionOption, b: QuestionOption) => {
+            // Add any sorting logic if your options have an order field
+            return 0; // Default to original order
+          }
+        );
+        setOptions(orderedOptions);
       }
 
-      // Set options for matching questions if available
-      if (editingQuestion.options && editingQuestion.options.length > 0) {
+      if (
+        editingQuestion.options &&
+        ["MCQ", "MULTI_SELECT", "ASSERTION_REASON"].includes(
+          editingQuestion.type
+        )
+      ) {
         setOptions(
           editingQuestion.options.map((opt: any) => ({
             id: opt.id,
@@ -389,21 +207,74 @@ useEffect(() => {
             isCorrect: opt.isCorrect || false,
           }))
         );
-      }
-    }
 
-    // Set correct answer for numerical questions
-    if (editingQuestion.type === "FILL_IN_BLANK") {
-      // Find the correct option
-      const correctOpt = editingQuestion.options?.find(
-        (opt: any) => opt.isCorrect
-      );
-      setCorrectAnswer(correctOpt?.optionText || "");
+        // Extract solution options from solutionText if available
+        setSolutionText(editingQuestion.solutionText || "");
+      }
+
+      // Set matching pairs if available
+      if (
+        editingQuestion.matchingPairs &&
+        editingQuestion.type === "MATCHING"
+      ) {
+        setMatchingPairs(
+          editingQuestion.matchingPairs
+            .map((pair: any) => ({
+              id: pair.id,
+              leftText: pair.leftText || "",
+              leftImage: pair.leftImage || null,
+              rightText: pair.rightText || "",
+              rightImage: pair.rightImage || null,
+              order: pair.order || 0,
+            }))
+            .sort(
+              (a: MatchingPair, b: MatchingPair) =>
+                (a.order || 0) - (b.order || 0)
+            ) // Sort by order
+        );
+
+        // Try to extract table headers from questionText
+        try {
+          const tableData = JSON.parse(editingQuestion.questionText);
+          if (tableData.headers) {
+            setLeftColumnHeader(tableData.headers.left || "List I");
+            setRightColumnHeader(tableData.headers.right || "List II");
+            setLeftColumnSubheader(tableData.headers.leftSub || "");
+            setRightColumnSubheader(tableData.headers.rightSub || "");
+            setQuestionText(
+              tableData.instruction || "Match List I with List II."
+            );
+          }
+        } catch (e) {
+          // If not JSON, just use the text as is
+          setQuestionText(editingQuestion.questionText);
+        }
+
+        // Set options for matching questions if available
+        if (editingQuestion.options && editingQuestion.options.length > 0) {
+          setOptions(
+            editingQuestion.options.map((opt: any) => ({
+              id: opt.id,
+              optionText: opt.optionText || "",
+              optionImage: opt.optionImage || null,
+              isCorrect: opt.isCorrect || false,
+            }))
+          );
+        }
+      }
+
+      // Set correct answer for numerical questions
+      if (editingQuestion.type === "FILL_IN_BLANK") {
+        // Find the correct option
+        const correctOpt = editingQuestion.options?.find(
+          (opt: any) => opt.isCorrect
+        );
+        setCorrectAnswer(correctOpt?.optionText || "");
+      }
+    } else {
+      resetForm();
     }
-  } else {
-    resetForm();
-  }
-}, [editingQuestion]);
+  }, [editingQuestion]);
 
   useEffect(() => {
     const fetchChapters = async () => {
@@ -695,9 +566,6 @@ useEffect(() => {
 
       // await onSubmit(payload);
       const success = await onSubmit(payload);
-      if (success) {
-        resetForm(); // Only reset if submission was successful
-      }
       resetForm();
     } catch (error) {
       console.error("Error submitting question:", error);
@@ -727,50 +595,17 @@ useEffect(() => {
     setMatchingPairs(newPairs);
   };
 
-  // Helper function to render math content
-  const renderMathContent = (text: string) => {
-    if (!text) return null;
-
-    // Simple regex to find math expressions
-    const parts = text.split(/(\$\$.*?\$\$|\$.*?\$)/g);
-
-    return (
-      <>
-        {parts.map((part, index) => {
-          if (part.startsWith("$$") && part.endsWith("$$")) {
-            // Display math
-            const math = part.slice(2, -2);
-            return (
-              <MathDisplay
-                key={index}
-                math={math}
-                display={true}
-                className="my-2"
-              />
-            );
-          } else if (part.startsWith("$") && part.endsWith("$")) {
-            // Inline math
-            const math = part.slice(1, -1);
-            return (
-              <MathDisplay
-                key={index}
-                math={math}
-                display={false}
-                className="inline"
-              />
-            );
-          } else {
-            // Regular text
-            return <span key={index}>{part}</span>;
-          }
-        })}
-      </>
-    );
-  };
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 dark:border-gray-700">
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        if (!newOpen) {
+          resetForm();
+        }
+        setOpen(newOpen);
+      }}
+    >
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {editingQuestion ? "Edit Question" : "Add New Question"}
@@ -789,6 +624,7 @@ useEffect(() => {
               </p>
             </div>
           )}
+
           {/* Question Type */}
           <div>
             <Label>Question Type</Label>
@@ -910,10 +746,10 @@ useEffect(() => {
               </div>
             ) : (
               <div className="flex gap-2">
-                <Input
-                  placeholder="Enter new chapter name"
+                <MathInput
                   value={chapter}
-                  onChange={(e) => setChapter(e.target.value)}
+                  onChange={setChapter}
+                  placeholder="Enter new chapter name"
                   className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 flex-1"
                 />
                 <Button
@@ -934,95 +770,77 @@ useEffect(() => {
           {questionType === "ASSERTION_REASON" ? (
             <div className="space-y-4">
               <div>
-                <Label>Assertion</Label>
-                <Textarea
-                  placeholder="Type the assertion here. Use $ for inline math and $$ for display math."
+                <MathInput
                   value={assertion}
-                  onChange={(e) => setAssertion(e.target.value)}
+                  onChange={setAssertion}
+                  placeholder="Type the assertion here. Use $ for inline math and $$ for display math."
+                  multiline={true}
                   rows={2}
                   className="resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  label="Assertion"
                 />
-                {assertion && (
-                  <div className="mt-2 p-3 border rounded-md dark:border-gray-700">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                      Preview:
-                    </p>
-                    <div className="question-preview">
-                      {renderMathContent(assertion)}
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div>
-                <Label>Reason</Label>
-                <Textarea
-                  placeholder="Type the reason here. Use $ for inline math and $$ for display math."
+                <MathInput
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={setReason}
+                  placeholder="Type the reason here. Use $ for inline math and $$ for display math."
+                  multiline={true}
                   rows={2}
                   className="resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  label="Reason"
                 />
-                {reason && (
-                  <div className="mt-2 p-3 border rounded-md dark:border-gray-700">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                      Preview:
-                    </p>
-                    <div className="question-preview">
-                      {renderMathContent(reason)}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ) : questionType === "MATCHING" ? (
             <div className="space-y-4">
               <div>
-                <Label>Instruction</Label>
-                <Input
-                  placeholder="Match List I with List II."
+                <MathInput
                   value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
+                  onChange={setQuestionText}
+                  placeholder="Match List I with List II."
                   className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  label="Instruction"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Left Column Header</Label>
-                  <Input
-                    placeholder="List I"
+                  <MathInput
                     value={leftColumnHeader}
-                    onChange={(e) => setLeftColumnHeader(e.target.value)}
+                    onChange={setLeftColumnHeader}
+                    placeholder="List I"
                     className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                    label="Left Column Header"
                   />
                 </div>
                 <div>
-                  <Label>Right Column Header</Label>
-                  <Input
-                    placeholder="List II"
+                  <MathInput
                     value={rightColumnHeader}
-                    onChange={(e) => setRightColumnHeader(e.target.value)}
+                    onChange={setRightColumnHeader}
+                    placeholder="List II"
                     className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                    label="Right Column Header"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Left Column Subheader (Optional)</Label>
-                  <Input
-                    placeholder="e.g., (Spectral Lines of Hydrogen for transitions from)"
+                  <MathInput
                     value={leftColumnSubheader}
-                    onChange={(e) => setLeftColumnSubheader(e.target.value)}
+                    onChange={setLeftColumnSubheader}
+                    placeholder="e.g., (Spectral Lines of Hydrogen for transitions from)"
                     className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                    label="Left Column Subheader (Optional)"
                   />
                 </div>
                 <div>
-                  <Label>Right Column Subheader (Optional)</Label>
-                  <Input
-                    placeholder="e.g., (Wavelengths (nm))"
+                  <MathInput
                     value={rightColumnSubheader}
-                    onChange={(e) => setRightColumnSubheader(e.target.value)}
+                    onChange={setRightColumnSubheader}
+                    placeholder="e.g., (Wavelengths (nm))"
                     className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                    label="Right Column Subheader (Optional)"
                   />
                 </div>
               </div>
@@ -1055,29 +873,29 @@ useEffect(() => {
                   </TableHeader>
                   <TableBody>
                     {matchingPairs
-                      .sort((a, b) => a.order - b.order)
+                      .sort(
+                        (a: MatchingPair, b: MatchingPair) =>
+                          (a.order || 0) - (b.order || 0)
+                      )
                       .map((pair, index) => (
                         <TableRow key={pair.id || index}>
                           <TableCell className="border border-gray-300 dark:border-gray-700 font-medium">
                             {String.fromCharCode(65 + index)}.
                           </TableCell>
                           <TableCell className="border border-gray-300 dark:border-gray-700">
-                            <Textarea
+                            <MathInput
                               value={pair.leftText}
-                              onChange={(e) =>
+                              onChange={(value) =>
                                 handleMatchingPairChange(
                                   index,
                                   "leftText",
-                                  e.target.value
+                                  value
                                 )
                               }
                               placeholder="Use $ for inline math and $$ for display math"
+                              multiline={true}
+                              rows={2}
                             />
-                            {pair.leftText && (
-                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                {renderMathContent(pair.leftText)}
-                              </div>
-                            )}
                             <div
                               className="mt-2"
                               onClick={(e) => e.stopPropagation()}
@@ -1112,22 +930,19 @@ useEffect(() => {
                             {index + 1}.
                           </TableCell>
                           <TableCell className="border border-gray-300 dark:border-gray-700">
-                            <Textarea
+                            <MathInput
                               value={pair.rightText}
-                              onChange={(e) =>
+                              onChange={(value) =>
                                 handleMatchingPairChange(
                                   index,
                                   "rightText",
-                                  e.target.value
+                                  value
                                 )
                               }
                               placeholder="Use $ for inline math and $$ for display math"
+                              multiline={true}
+                              rows={2}
                             />
-                            {pair.rightText && (
-                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                {renderMathContent(pair.rightText)}
-                              </div>
-                            )}
                             <div
                               className="mt-2"
                               onClick={(e) => e.stopPropagation()}
@@ -1185,7 +1000,8 @@ useEffect(() => {
                                   isCorrect: false,
                                 }));
                                 // Set the selected option as correct
-                                resetOptions[parseInt(value)].isCorrect = true;
+                                resetOptions[Number.parseInt(value)].isCorrect =
+                                  true;
                                 setOptions(resetOptions);
                               }}
                             >
@@ -1197,29 +1013,19 @@ useEffect(() => {
                           </div>
                           <div className="flex-1 space-y-2">
                             <div>
-                              <Label htmlFor={`option-text-${index}`}>
-                                Option {String.fromCharCode(65 + index)}
-                              </Label>
-                              <Input
-                                id={`option-text-${index}`}
+                              <MathInput
+                                value={option.optionText || ""}
+                                onChange={(value) =>
+                                  handleOptionChange(index, "optionText", value)
+                                }
                                 placeholder={`Enter option ${String.fromCharCode(
                                   65 + index
                                 )}`}
-                                value={option.optionText || ""}
-                                onChange={(e) =>
-                                  handleOptionChange(
-                                    index,
-                                    "optionText",
-                                    e.target.value
-                                  )
-                                }
                                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                                label={`Option ${String.fromCharCode(
+                                  65 + index
+                                )}`}
                               />
-                              {option.optionText && (
-                                <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                  {renderMathContent(option.optionText)}
-                                </div>
-                              )}
                             </div>
                             <div onClick={(e) => e.stopPropagation()}>
                               <FileUpload
@@ -1257,24 +1063,15 @@ useEffect(() => {
             </div>
           ) : (
             <div>
-              <Label>Question</Label>
-              <Textarea
-                placeholder="Type the question here. Use $ for inline math and $$ for display math."
+              <MathInput
                 value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
+                onChange={setQuestionText}
+                placeholder="Type the question here. Use $ for inline math and $$ for display math."
+                multiline={true}
                 rows={3}
                 className="resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                label="Question"
               />
-              {questionText && (
-                <div className="mt-2 p-3 border rounded-md dark:border-gray-700">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    Preview:
-                  </p>
-                  <div className="question-preview">
-                    {renderMathContent(questionText)}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1320,7 +1117,8 @@ useEffect(() => {
                                 isCorrect: false,
                               }));
                               // Set the selected option as correct
-                              resetOptions[parseInt(value)].isCorrect = true;
+                              resetOptions[Number.parseInt(value)].isCorrect =
+                                true;
                               setOptions(resetOptions);
                             }}
                           >
@@ -1332,29 +1130,19 @@ useEffect(() => {
                         </div>
                         <div className="flex-1 space-y-2">
                           <div>
-                            <Label htmlFor={`option-text-${index}`}>
-                              Option {String.fromCharCode(65 + index)}
-                            </Label>
-                            <Input
-                              id={`option-text-${index}`}
+                            <MathInput
+                              value={option.optionText || ""}
+                              onChange={(value) =>
+                                handleOptionChange(index, "optionText", value)
+                              }
                               placeholder={`Enter option ${String.fromCharCode(
                                 65 + index
                               )}`}
-                              value={option.optionText || ""}
-                              onChange={(e) =>
-                                handleOptionChange(
-                                  index,
-                                  "optionText",
-                                  e.target.value
-                                )
-                              }
                               className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                              label={`Option ${String.fromCharCode(
+                                65 + index
+                              )}`}
                             />
-                            {option.optionText && (
-                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                {renderMathContent(option.optionText)}
-                              </div>
-                            )}
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
                             <FileUpload
@@ -1401,13 +1189,6 @@ useEffect(() => {
                     >
                       <div className="flex items-start gap-3">
                         <div className="pt-2">
-                          {/* <Checkbox
-                            id={`option-${index}`}
-                            checked={option.isCorrect}
-                            onCheckedChange={(checked) => {
-                              handleOptionChange(index, "isCorrect", checked);
-                            }}
-                          /> */}
                           <Checkbox
                             id={`multiselect-option-${index}`}
                             checked={option.isCorrect}
@@ -1420,29 +1201,19 @@ useEffect(() => {
                         </div>
                         <div className="flex-1 space-y-2">
                           <div>
-                            <Label htmlFor={`option-text-${index}`}>
-                              Option {String.fromCharCode(65 + index)}
-                            </Label>
-                            <Input
-                              id={`option-text-${index}`}
+                            <MathInput
+                              value={option.optionText || ""}
+                              onChange={(value) =>
+                                handleOptionChange(index, "optionText", value)
+                              }
                               placeholder={`Enter option ${String.fromCharCode(
                                 65 + index
                               )}`}
-                              value={option.optionText || ""}
-                              onChange={(e) =>
-                                handleOptionChange(
-                                  index,
-                                  "optionText",
-                                  e.target.value
-                                )
-                              }
                               className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                              label={`Option ${String.fromCharCode(
+                                65 + index
+                              )}`}
                             />
-                            {option.optionText && (
-                              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                {renderMathContent(option.optionText)}
-                              </div>
-                            )}
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
                             <FileUpload
@@ -1534,12 +1305,12 @@ useEffect(() => {
 
           {questionType === "FILL_IN_BLANK" && (
             <div>
-              <Label>Correct Answer</Label>
-              <Input
-                placeholder="Enter the correct answer"
+              <MathInput
                 value={correctAnswer}
-                onChange={(e) => setCorrectAnswer(e.target.value)}
+                onChange={setCorrectAnswer}
+                placeholder="Enter the correct answer"
                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                label="Correct Answer"
               />
               <p className="text-sm text-gray-500 mt-1">
                 Make sure your question includes a blank (e.g., _____ or [...])
@@ -1550,24 +1321,15 @@ useEffect(() => {
 
           {/* Solution */}
           <div>
-            <Label>Solution Explanation</Label>
-            <Textarea
-              placeholder="Explain the solution here. Use $ for inline math and $$ for display math."
+            <MathInput
               value={solutionText}
-              onChange={(e) => setSolutionText(e.target.value)}
+              onChange={setSolutionText}
+              placeholder="Explain the solution here. Use $ for inline math and $$ for display math."
+              multiline={true}
               rows={3}
               className="resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+              label="Solution Explanation"
             />
-            {solutionText && (
-              <div className="mt-2 p-3 border rounded-md dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  Preview:
-                </p>
-                <div className="solution-preview">
-                  {renderMathContent(solutionText)}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Solution Image Upload */}

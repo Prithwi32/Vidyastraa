@@ -21,6 +21,7 @@ import { signOut, useSession } from "next-auth/react";
 import Loader from "@/components/Loader";
 import Image from "next/image";
 import { LogoutDialog } from "@/components/logout-dialog";
+import "mathlive";
 
 export default function DashboardLayout({
   children,
@@ -78,6 +79,12 @@ export default function DashboardLayout({
     setLoader(true);
     handleAuth();
   }, [session]);
+
+  useEffect(() => {
+    import("mathlive").then((module) => {
+      module.renderMathInDocument();
+    });
+  }, []);
 
   const handleAuth = () => {
     if (session.status === "unauthenticated")
