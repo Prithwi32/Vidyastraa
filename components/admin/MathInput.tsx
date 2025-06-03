@@ -58,6 +58,16 @@ const mathSymbols = [
   { symbol: "sin", latex: "$\\sin$", label: "Sine" },
   { symbol: "cos", latex: "$\\cos$", label: "Cosine" },
   { symbol: "tan", latex: "$\\tan$", label: "Tangent" },
+  { symbol: "csc", latex: "$\\csc$", label: "Cosecant" },
+  { symbol: "sec", latex: "$\\sec$", label: "Secant" },
+  { symbol: "cot", latex: "$\\cot$", label: "Cotangent" },
+  // Inverse trig functions
+  { symbol: "sin⁻¹", latex: "$\\sin^{-1}$", label: "Inverse sine" },
+  { symbol: "cos⁻¹", latex: "$\\cos^{-1}$", label: "Inverse cosine" },
+  { symbol: "tan⁻¹", latex: "$\\tan^{-1}$", label: "Inverse tangent" },
+  { symbol: "csc⁻¹", latex: "$\\csc^{-1}$", label: "Inverse cosecant" },
+  { symbol: "sec⁻¹", latex: "$\\sec^{-1}$", label: "Inverse secant" },
+  { symbol: "cot⁻¹", latex: "$\\cot^{-1}$", label: "Inverse cotangent" },
   { symbol: "log", latex: "$\\log$", label: "Logarithm" },
   { symbol: "ln", latex: "$\\ln$", label: "Natural log" },
 
@@ -136,13 +146,13 @@ const categoryGroups = {
   Basic: mathSymbols.slice(0, 7),
   "Powers & Roots": mathSymbols.slice(7, 16),
   "Greek Letters": mathSymbols.slice(16, 28),
-  Functions: mathSymbols.slice(28, 33),
-  Calculus: mathSymbols.slice(33, 41),
-  Geometry: mathSymbols.slice(41, 46),
-  Sets: mathSymbols.slice(46, 52),
-  Comparison: mathSymbols.slice(52, 56),
-  Brackets: mathSymbols.slice(56, 60),
-  "Chemistry&Physics": mathSymbols.slice(60, 94),
+  Functions: mathSymbols.slice(28, 40),
+  Calculus: mathSymbols.slice(40, 48),
+  Geometry: mathSymbols.slice(48, 53),
+  Sets: mathSymbols.slice(53, 59),
+  Comparison: mathSymbols.slice(59, 63),
+  Brackets: mathSymbols.slice(63, 67),
+  "Chemistry&Physics": mathSymbols.slice(67, 101),
 }
 
 export default function MathInput({
