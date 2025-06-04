@@ -586,32 +586,6 @@ export default function ViewTestPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  window.open(`/api/export/tests/${test.id}`);
-                  toast.success("Test exported successfully!");
-                }}
-              >
-                Export Test
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() =>
-                  router.push(`/admin/dashboard/tests/${params.id}/edit`)
-                }
-              >
-                Edit Test
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
